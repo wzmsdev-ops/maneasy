@@ -175,6 +175,23 @@
     }
     .linked-po-card:last-child { margin-bottom:0; }
     .linked-po-vendor { font-weight:700; color:#111827; min-width:120px; }
+
+    .po-actionbar, .m-filter-bar {
+      display: flex; align-items: center; gap: 8px;
+      background: #fff; border: 1px solid #e5e7eb; border-radius: 8px;
+      padding: 7px 12px; flex-shrink: 0; height: 44px; box-sizing: border-box;
+    }
+    .po-actionbar input[type=text], .m-filter-bar input[type=text],
+    .po-actionbar input[type=date], .m-filter-bar input[type=date],
+    .po-actionbar select, .m-filter-bar select {
+      height: 28px; padding: 0 8px; border: 1px solid #e5e7eb;
+      border-radius: 6px; font-size: 12px; outline: none; background: #fff;
+    }
+    .po-actionbar input[type=date], .m-filter-bar input[type=date] { width: 130px; }
+    .po-actionbar input[type=text]:focus, .m-filter-bar input[type=text]:focus,
+    .po-actionbar input[type=date]:focus, .m-filter-bar input[type=date]:focus,
+    .po-actionbar select:focus, .m-filter-bar select:focus { border-color: #2563eb; }
+    .po-actionbar .spacer { flex: 1; }
   </style>
 </head>
 <body>
