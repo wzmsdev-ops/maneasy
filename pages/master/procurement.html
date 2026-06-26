@@ -192,7 +192,16 @@
     .po-actionbar input[type=date]:focus, .m-filter-bar input[type=date]:focus,
     .po-actionbar select:focus, .m-filter-bar select:focus { border-color: #2563eb; }
     .po-actionbar .spacer { flex: 1; }
-  </style>
+
+    .pr-divider {
+      width: 1px; height: 20px; background: #d1d5db; flex-shrink: 0; margin: 0 4px;
+    }
+    .po-actionbar input[type=text], .m-filter-bar input[type=text] {
+      flex: 1; min-width: 0;
+    }
+    .po-actionbar input[type=date], .m-filter-bar input[type=date] { flex-shrink: 0; }
+    .po-actionbar .spacer { flex: 0; }
+    </style>
 </head>
 <body>
 <div class="po-page">
@@ -211,12 +220,13 @@
     ══════════════════════════════════════ -->
     <div id="panel-review" class="po-main-panel active">
       <div class="po-actionbar">
+        <input type="date" id="rvDateFrom" style="height:30px;padding:0 6px;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;outline:none;width:130px;flex-shrink:0;" />
+        <span style="font-size:11px;color:#9ca3af;flex-shrink:0;">~</span>
+        <input type="date" id="rvDateTo" style="height:30px;padding:0 6px;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;outline:none;width:130px;flex-shrink:0;" />
+        <div class="pr-divider"></div>
         <input type="text" id="rvKeyword" placeholder="요청자/부서 검색..."
-          style="height:30px;padding:0 10px;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;outline:none;width:180px;" />
-        <input type="date" id="rvDateFrom" style="height:30px;padding:0 6px;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;outline:none;width:130px;" />
-        <span style="font-size:11px;color:#9ca3af;">~</span>
-        <input type="date" id="rvDateTo" style="height:30px;padding:0 6px;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;outline:none;width:130px;" />
-        <button class="btn btn-sm" id="rvSearchBtn"><i class="ti ti-search"></i> 검색</button>
+          style="flex:1;min-width:0;height:30px;padding:0 10px;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;outline:none;" />
+        <button class="btn btn-sm btn-primary" id="rvSearchBtn"><i class="ti ti-search"></i> 조회</button>
         <div class="po-status-tabs">
           <button class="rv-status-tab active" data-status="REQUESTED">요청</button>
           <button class="rv-status-tab" data-status="PROCESSING">처리중</button>
@@ -242,12 +252,13 @@
     ══════════════════════════════════════ -->
     <div id="panel-orders" class="po-main-panel">
       <div class="po-actionbar">
+        <input type="date" id="poDateFrom" style="height:30px;padding:0 6px;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;outline:none;width:130px;flex-shrink:0;" />
+        <span style="font-size:11px;color:#9ca3af;flex-shrink:0;">~</span>
+        <input type="date" id="poDateTo" style="height:30px;padding:0 6px;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;outline:none;width:130px;flex-shrink:0;" />
+        <div class="pr-divider"></div>
         <input type="text" id="poKeyword" placeholder="발주번호/거래처 검색..."
-          style="height:30px;padding:0 10px;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;outline:none;width:200px;" />
-        <input type="date" id="poDateFrom" style="height:30px;padding:0 6px;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;outline:none;width:130px;" />
-        <span style="font-size:11px;color:#9ca3af;">~</span>
-        <input type="date" id="poDateTo" style="height:30px;padding:0 6px;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;outline:none;width:130px;" />
-        <button class="btn btn-sm" id="poSearchBtn"><i class="ti ti-search"></i> 검색</button>
+          style="flex:1;min-width:0;height:30px;padding:0 10px;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;outline:none;" />
+        <button class="btn btn-sm btn-primary" id="poSearchBtn"><i class="ti ti-search"></i> 조회</button>
         <div class="po-status-tabs">
           <button class="po-status-tab active" data-status="">전체</button>
           <button class="po-status-tab" data-status="DRAFT">초안</button>
