@@ -324,14 +324,20 @@ function createMgGrid(containerId, colDefs, rows, options) {
     el.classList.add('ag-theme-alpine');
   }
 
-  // 높이 없으면 pageSize 기반으로 설정
+  // 높이 계산 — 컨테이너 또는 부모에서 실제 높이 확인
   var baseH = 34;
-  if (!el.style.height && el.clientHeight === 0) {
-    el.style.height = (baseH * pageSize + baseH) + 'px';
+  var gridH = el.clientHeight;
+  if (!gridH) {
+    // 부모 체인에서 높이 탐색
+    var p = el.parentElement;
+    while (p && !gridH) { gridH = p.clientHeight; p = p.parentElement; }
   }
+  if (!gridH) gridH = baseH * pageSize + baseH;
+  // 높이 명시적 설정 (ag-grid domLayout:normal 필요)
+  el.style.height = gridH + 'px';
 
   // rowHeight 계산 — equipment-list.js 동일 방식
-  var gridH = el.clientHeight || (baseH * pageSize + baseH);
+  var gridH = el.clientHeight || gridH;
   var dataH = gridH - baseH;
   var rowH  = Math.max(26, Math.floor(dataH / pageSize));
   var rem   = dataH - (rowH * pageSize);
