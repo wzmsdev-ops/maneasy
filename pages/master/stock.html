@@ -121,7 +121,6 @@
     <button class="tab-btn active" data-tab="receipt">입고</button>
     <button class="tab-btn" data-tab="dispatch">불출</button>
     <button class="tab-btn" data-tab="deptstock">부서별재고</button>
-    <button class="tab-btn" data-tab="use">사용처리</button>
   </div>
 
   <div class="st-content">
@@ -191,26 +190,6 @@
     </div>
 
     <!-- ═══ 사용처리 탭 (부서 재고 차감) ═══ -->
-    <div id="tab-use" class="tab-panel">
-      <div class="m-card">
-        <div class="m-card-head">
-          <span class="m-card-title">사용처리 이력 <span style="color:#9ca3af;font-weight:400;">— 부서에서 사용한 자재 차감</span></span>
-          <button class="btn btn-sm btn-primary" id="addUseBtn"><i class="ti ti-plus"></i> 사용처리 등록</button>
-        </div>
-        <div class="m-filter-bar">
-          <span class="m-filter-label">부서</span>
-          <select id="useDeptFilter"><option value="">전체</option></select>
-          <span class="m-filter-label">기간</span>
-          <input type="date" id="useDateFrom" style="min-width:unset;width:130px;" />
-          <span style="font-size:11px;color:#9ca3af;">~</span>
-          <input type="date" id="useDateTo" style="min-width:unset;width:130px;" />
-          <button class="btn btn-sm" id="useSearchBtn">검색</button>
-        </div>
-        <div class="m-card-body">
-          <div id="useGrid" class="m-table-wrap"></div>
-        </div>
-        <div class="pagination-area" id="usePagination"></div>
-      </div>
     </div>
 
   </div>
