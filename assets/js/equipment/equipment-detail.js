@@ -350,7 +350,7 @@ async function deleteCurrentPhoto() {
 
 async function deleteCurrentEquipment() {
   if (!detailPermission.canDelete) {
-    showMessage('장비를 삭제할 권한이 없습니다.', 'error');
+    showMessage('장비를 폐기할 권한이 없습니다.', 'error');
     return;
   }
 
@@ -359,14 +359,14 @@ async function deleteCurrentEquipment() {
     return;
   }
 
-  const confirmed = confirm('이 장비를 삭제하시겠습니까? 삭제 후 목록에서 제외됩니다.');
+  const confirmed = confirm('이 장비를 폐기하시겠습니까? 폐기 후 목록에서 제외됩니다.');
   if (!confirmed) return;
 
   const user = getCurrentUser();
   const userEmail = (user && user.email) || '';
 
   try {
-    showGlobalLoading('장비를 삭제하는 중...');
+    showGlobalLoading('장비를 폐기하는 중...');
     const { error: delErr } = await supabaseClient
       .from('equipments')
       .update({ deleted_yn: 'Y' })
@@ -374,10 +374,10 @@ async function deleteCurrentEquipment() {
     if (delErr) throw new Error(delErr.message);
 
     invalidateDashboardSessionCacheSafe();
-    alert('장비가 삭제되었습니다.');
+    alert('장비가 폐기되었습니다.');
     parent.shellNavigate?.('equipment/list');
   } catch (error) {
-    showMessage(error.message || '장비 삭제 중 오류가 발생했습니다.', 'error');
+    showMessage(error.message || '장비 폐기 중 오류가 발생했습니다.', 'error');
   } finally {
     if (typeof hideGlobalLoading === 'function') {
       hideGlobalLoading();
