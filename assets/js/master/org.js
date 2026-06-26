@@ -110,28 +110,26 @@ function renderClinics(rows) {
   if (!rows.length) { empty.style.display = ''; list.innerHTML = ''; return; }
   empty.style.display = 'none';
 
-  list.innerHTML = `
-    <table class="data-table">
-      <thead><tr>
-        <th>코드</th><th>의원명</th><th>전화</th><th>주소</th><th>순서</th><th>상태</th><th class="action-cell"></th>
-      </tr></thead>
-      <tbody>${rows.map(r => `
-        <tr>
-          <td><code>${ts(r.clinic_code)}</code></td>
-          <td>${ts(r.clinic_name)}</td>
-          <td>${ts(r.phone || '-')}</td>
-          <td>${ts(r.address || '-')}</td>
-          <td style="text-align:center">${r.sort_order}</td>
-          <td>${badgeActive(r.active)}</td>
-          <td class="action-cell">
-            <button class="btn btn-sm" onclick="openEditClinic('${r.id}')">수정</button>
-            <button class="btn btn-sm btn-danger" onclick="deleteClinic('${r.id}')">삭제</button>
-          </td>
-        </tr>`).join('')}
-      </tbody>
-    </table>`;
-
-  // 의원이 바뀌면 부서/사용자 탭 필터 select, 모달 select도 동기화
+  if (!window._clinicGrid) {
+    window._clinicGrid = createMgGrid('clinicList', [
+      { headerName: '코드',   field: 'clinic_code', flex: 1, minWidth: 90 },
+      { headerName: '의원명', field: 'clinic_name', flex: 2, minWidth: 120 },
+      { headerName: '전화',   field: 'phone',       flex: 1, minWidth: 110, valueFormatter: p => p.value || '-' },
+      { headerName: '주소',   field: 'address',     flex: 2, minWidth: 140, valueFormatter: p => p.value || '-' },
+      { headerName: '순서',   field: 'sort_order',  flex: 0, width: 60 },
+      { headerName: '상태',   field: 'active',      flex: 0, width: 70,
+        cellRenderer: p => { const s = document.createElement('span'); s.innerHTML = badgeActive(p.value); return s; } },
+      { headerName: '', flex: 0, width: 120, sortable: false,
+        cellRenderer: p => {
+          const wrap = document.createElement('div'); wrap.style.cssText = 'display:flex;gap:4px;align-items:center;';
+          const e = document.createElement('button'); e.className = 'btn btn-sm'; e.textContent = '수정'; e.onclick = () => openEditClinic(p.data.id);
+          const d = document.createElement('button'); d.className = 'btn btn-sm btn-danger'; d.textContent = '삭제'; d.onclick = () => deleteClinic(p.data.id);
+          wrap.append(e, d); return wrap;
+        }},
+    ], rows, { pageSize: 15, fit: true, noRowsText: '등록된 의원이 없습니다.' });
+  } else {
+    updateMgGrid(window._clinicGrid, rows);
+  }
   syncClinicSelects();
 }
 
@@ -242,27 +240,26 @@ function renderDepts(rows, filterClinicId) {
   if (!filtered.length) { empty.style.display = ''; list.innerHTML = ''; return; }
   empty.style.display = 'none';
 
-  list.innerHTML = `
-    <table class="data-table">
-      <thead><tr>
-        <th>코드</th><th>부서명</th><th>소속 의원</th><th>순서</th><th>상태</th><th class="action-cell"></th>
-      </tr></thead>
-      <tbody>${filtered.map(r => `
-        <tr>
-          <td><code>${ts(r.dept_code)}</code></td>
-          <td>${ts(r.dept_name)}</td>
-          <td>${ts(r.clinics?.clinic_name || '-')}</td>
-          <td style="text-align:center">${r.sort_order}</td>
-          <td>${badgeActive(r.active)}</td>
-          <td class="action-cell">
-            <button class="btn btn-sm" onclick="openEditDept('${r.id}')">수정</button>
-            <button class="btn btn-sm btn-danger" onclick="deleteDept('${r.id}')">삭제</button>
-          </td>
-        </tr>`).join('')}
-      </tbody>
-    </table>`;
-
-  // 사용자 탭 부서 필터도 갱신
+  if (!window._deptGrid) {
+    window._deptGrid = createMgGrid('deptList', [
+      { headerName: '코드',     field: 'dept_code',  flex: 1, minWidth: 90 },
+      { headerName: '부서명',   field: 'dept_name',  flex: 2, minWidth: 100 },
+      { headerName: '소속 의원', flex: 1, minWidth: 100,
+        valueGetter: p => p.data.clinics?.clinic_name || '-' },
+      { headerName: '순서',     field: 'sort_order', flex: 0, width: 60 },
+      { headerName: '상태',     field: 'active',     flex: 0, width: 70,
+        cellRenderer: p => { const s = document.createElement('span'); s.innerHTML = badgeActive(p.value); return s; } },
+      { headerName: '', flex: 0, width: 120, sortable: false,
+        cellRenderer: p => {
+          const wrap = document.createElement('div'); wrap.style.cssText = 'display:flex;gap:4px;align-items:center;';
+          const e = document.createElement('button'); e.className = 'btn btn-sm'; e.textContent = '수정'; e.onclick = () => openEditDept(p.data.id);
+          const d = document.createElement('button'); d.className = 'btn btn-sm btn-danger'; d.textContent = '삭제'; d.onclick = () => deleteDept(p.data.id);
+          wrap.append(e, d); return wrap;
+        }},
+    ], filtered, { pageSize: 15, fit: true, noRowsText: '등록된 부서가 없습니다.' });
+  } else {
+    updateMgGrid(window._deptGrid, filtered);
+  }
   syncDeptFilter();
 }
 
@@ -372,25 +369,26 @@ function renderUsers(rows, filterClinicCode, filterDeptCode) {
   if (!filtered.length) { empty.style.display = ''; list.innerHTML = ''; return; }
   empty.style.display = 'none';
 
-  list.innerHTML = `
-    <table class="data-table">
-      <thead><tr>
-        <th>이름</th><th>역할</th><th>의원</th><th>팀/부서</th><th>전화</th><th>상태</th><th class="action-cell"></th>
-      </tr></thead>
-      <tbody>${filtered.map(r => `
-        <tr>
-          <td>${ts(r.user_name || '-')}</td>
-          <td>${badgeRole(r.role)}</td>
-          <td>${ts(r.clinic_name || '-')}</td>
-          <td>${ts(r.team_name || r.department || '-')}</td>
-          <td>${ts(r.phone || '-')}</td>
-          <td>${badgeActive(r.active)}</td>
-          <td class="action-cell">
-            <button class="btn btn-sm" onclick="openEditUser('${r.id}')">수정</button>
-          </td>
-        </tr>`).join('')}
-      </tbody>
-    </table>`;
+  if (!window._userGrid) {
+    window._userGrid = createMgGrid('userList', [
+      { headerName: '이름',   field: 'user_name',  flex: 1, minWidth: 80, valueFormatter: p => p.value || '-' },
+      { headerName: '역할',   field: 'role',       flex: 0, width: 90,
+        cellRenderer: p => { const s = document.createElement('span'); s.innerHTML = badgeRole(p.value); return s; } },
+      { headerName: '의원',   field: 'clinic_name', flex: 1, minWidth: 90, valueFormatter: p => p.value || '-' },
+      { headerName: '팀/부서', flex: 1, minWidth: 90,
+        valueGetter: p => p.data.team_name || p.data.department || '-' },
+      { headerName: '전화',   field: 'phone',      flex: 1, minWidth: 110, valueFormatter: p => p.value || '-' },
+      { headerName: '상태',   field: 'active',     flex: 0, width: 70,
+        cellRenderer: p => { const s = document.createElement('span'); s.innerHTML = badgeActive(p.value); return s; } },
+      { headerName: '', flex: 0, width: 70, sortable: false,
+        cellRenderer: p => {
+          const btn = document.createElement('button'); btn.className = 'btn btn-sm'; btn.textContent = '수정';
+          btn.onclick = () => openEditUser(p.data.id); return btn;
+        }},
+    ], filtered, { pageSize: 15, fit: true, noRowsText: '등록된 사용자가 없습니다.' });
+  } else {
+    updateMgGrid(window._userGrid, filtered);
+  }
 }
 
 /** 사용자 모달: 의원 선택 → 해당 의원 부서만 부서 select에 뿌리기 */
