@@ -202,4 +202,5 @@ async function init() {
   });
 }
 
+function initEquipmentForm() { init(); }
 document.addEventListener('DOMContentLoaded', init);
