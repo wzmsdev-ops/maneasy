@@ -37,6 +37,12 @@ function initTabs() {
       document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
       btn.classList.add('active');
       document.getElementById(`tab-${target}`)?.classList.add('active');
+
+      requestAnimationFrame(() => {
+        const gridMap = { vendors: '_vendorGrid', items: '_itemGrid' };
+        const g = window[gridMap[target]];
+        if (g) g.sizeColumnsToFit();
+      });
     });
   });
 }
