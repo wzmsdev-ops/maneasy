@@ -321,9 +321,6 @@ function getActionButtons(item) {
   if (equipmentListState.canEdit) {
     btns += '<button class="tbl-btn" onclick="openListLabelModal(\'' + id + '\')">라벨</button>';
   }
-  if (equipmentListState.canEdit) {
-    btns += '<button class="tbl-btn" onclick="openListLabelModal(\'' + id + '\')">라벨</button>';
-  }
   return btns;
 }
 
@@ -1062,6 +1059,9 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     if (window.appPermission && typeof window.appPermission.hasPermission === 'function') {
       equipmentListState.canEdit = await window.appPermission.hasPermission('equipment', ['edit', 'admin']);
+    } else {
+      // appPermission 없는 경우(데모) — admin이면 편집 허용
+      equipmentListState.canEdit = equipmentListState.isAdmin;
     }
 
     if (window.appPermission && typeof window.appPermission.getPermission === 'function') {
