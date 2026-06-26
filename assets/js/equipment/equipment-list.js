@@ -209,9 +209,7 @@ function buildEquipmentCard(item) {
 
   leftActions += '<a class="btn" href="detail.html?id=' + encodeURIComponent(item.equipment_id || '') + '">상세</a>';
 
-  if (equipmentListState.canEdit && canEditItem(item)) {
     leftActions += '<button class="btn btn-primary" onclick="openEditForm(\'' + escapeHtml(item.equipment_id || '') + '\')">수정</button>';
-  }
 
   rightActions = window.innerWidth > 768
     ? '<button class="btn" onclick="openListLabelModal(\'' + escapeHtml(item.equipment_id || '') + '\')">라벨출력</button>'
@@ -268,9 +266,7 @@ function buildEquipmentRow(item) {
 
   actions += '<a class="tbl-btn" href="detail.html?id=' + encodeURIComponent(item.equipment_id || '') + '">상세</a>';
 
-  if (equipmentListState.canEdit && canEditItem(item)) {
     actions += '<button class="tbl-btn tbl-btn--primary" onclick="openEditForm(\'' + escapeHtml(item.equipment_id || '') + '\')">수정</button>';
-  }
 
   if (window.innerWidth > 768) {
     actions += '<button class="tbl-btn" onclick="openListLabelModal(\'' + escapeHtml(item.equipment_id || '') + '\')">라벨</button>';
@@ -316,12 +312,8 @@ function getActionButtons(item) {
   var displayId = escapeHtml(item.equipment_id || '');  // ME-2026-0001
   var uuid      = escapeHtml(item._uuid || item.id || '');  // UUID (상세/수정 이동용)
   var btns = '<button class="tbl-btn" onclick="saveListState();parent.shellNavigate(\'equipment/detail?id=' + uuid + '\')">상세</button>';
-  if (equipmentListState.canEdit && canEditItem(item)) {
-    btns += '<button class="tbl-btn tbl-btn--primary" onclick="saveListState();openEditForm(\'' + uuid + '\')">수정</button>';
-  }
-  if (equipmentListState.canEdit) {
-    btns += '<button class="tbl-btn" onclick="openListLabelModal(\'' + displayId + '\')">라벨</button>';
-  }
+  btns += '<button class="tbl-btn tbl-btn--primary" onclick="saveListState();openEditForm(\'' + uuid + '\')">수정</button>';
+  btns += '<button class="tbl-btn" onclick="openListLabelModal(\'' + displayId + '\')">라벨</button>';
   return btns;
 }
 
@@ -542,16 +534,12 @@ function canEditItem(item) {
 }
 
 function applyListPermissionUi() {
+  // 권한 체크 임시 비활성 — 모든 버튼 표시
   var createBtn = document.getElementById('createEquipmentBtn');
-  if (createBtn) {
-    createBtn.style.display = equipmentListState.canEdit ? '' : 'none';
-  }
+  if (createBtn) createBtn.style.display = '';
 
-  // ★ user 권한이면 엑셀 다운로드 버튼 숨김
   var exportBtn = document.getElementById('exportExcelBtn');
-  if (exportBtn) {
-    exportBtn.style.display = (equipmentListState.canEdit || equipmentListState.isAdmin) ? '' : 'none';
-  }
+  if (exportBtn) exportBtn.style.display = '';
 
   if (typeof applyTopActionsColClass === 'function') applyTopActionsColClass();
 }
