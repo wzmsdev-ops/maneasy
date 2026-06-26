@@ -221,7 +221,17 @@ function initRvStatusTabs() {
       document.querySelectorAll('.rv-status-tab').forEach(function(b) { b.classList.remove('active'); });
       btn.classList.add('active');
       rvState.statusFilter = btn.dataset.status || '';
-      loadRvList(1);
+      // 기본 날짜 — 오늘부터 이전 7일
+  var _today = new Date();
+  var _weekAgo = new Date(_today);
+  _weekAgo.setDate(_today.getDate() - 7);
+  var _todayStr   = _today.toISOString().slice(0, 10);
+  var _weekAgoStr = _weekAgo.toISOString().slice(0, 10);
+  setVal('rvDateFrom', _weekAgoStr);
+  setVal('rvDateTo', _todayStr);
+  setVal('poDateFrom', _weekAgoStr);
+  setVal('poDateTo', _todayStr);
+  loadRvList(1);
     });
   });
 }
