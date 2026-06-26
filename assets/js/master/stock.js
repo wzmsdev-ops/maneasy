@@ -824,7 +824,7 @@ async function loadCaches() {
 
   // 부서 select 채우기 (필터들 + 모달)
   var deptOpts = deptCache.map(function(d) { return '<option value="' + d.id + '">' + ts(d.dept_name) + '</option>'; }).join('');
-  ['dispatchDeptFilter', 'd_dept_id', 'deptStockDeptFilter', 'useDeptFilter', 'u_dept_id'].forEach(function(id) {
+  ['dispatchDeptFilter', 'd_dept_id', 'deptStockDeptFilter'].forEach(function(id) {
     var el = document.getElementById(id);
     if (!el) return;
     var placeholder = id === 'd_dept_id' || id === 'u_dept_id' ? '<option value="">부서 선택</option>' : '<option value="">전체</option>';
