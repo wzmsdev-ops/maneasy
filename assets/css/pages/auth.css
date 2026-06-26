@@ -22,13 +22,13 @@ body.auth-page {
 
 /* 좌측 브랜드 패널 */
 .auth-panel {
-  width: 420px;
-  min-width: 420px;
-  background: #0c1f3f;
+  width: 340px;
+  min-width: 340px;
+  background: #0a1e3d;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 48px 40px;
+  padding: 48px 32px;
   position: relative;
   overflow: hidden;
 }
@@ -586,11 +586,11 @@ body.auth-page {
 }
 
 
-/* 로고 이미지 (index.html) */
+/* 로고 이미지 — 패널 중앙에 자연스럽게 배치 */
 .auth-panel-logo-img {
   display: block;
-  width: 240px;
-  max-width: 80%;
+  width: 260px;
+  max-width: 90%;
   height: auto;
-  margin: 0 auto 8px;
+  margin: 0 auto;
 }
