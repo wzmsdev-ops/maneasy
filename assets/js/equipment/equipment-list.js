@@ -219,6 +219,7 @@ async function init() {
   document.body.classList.add('page-ready');
   document.getElementById('eqToolbar').style.display = '';
 
+  showGlobalLoading('장비 목록을 불러오는 중...');
   try {
     allEquipments = await loadEquipments();
     filteredEquipments = allEquipments;
@@ -228,6 +229,9 @@ async function init() {
     console.error('[list]', e);
     const box = document.getElementById('messageBox');
     if (box) { box.textContent = '데이터를 불러오지 못했습니다: ' + e.message; box.style.display = ''; }
+  }
+  finally {
+    hideGlobalLoading();
   }
 }
 
