@@ -77,7 +77,7 @@ function renderGrid(rows) {
     onRowClicked: e => {
       if (e.data?.id) parent.shellNavigate?.(`equipment/detail?id=${e.data.id}`);
     },
-    domLayout: 'autoHeight',
+    domLayout: 'normal',
     headerHeight: 36,
     rowHeight: 36,
   });
