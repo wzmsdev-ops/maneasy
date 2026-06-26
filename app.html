@@ -54,6 +54,10 @@
               id="sbItemPurchaseRequest">
         <div class="sb-item-inner"><i class="ti ti-shopping-cart"></i><span>발주요청</span></div>
       </button>
+      <button class="sb-item" data-page="master/use-stock" onclick="navigate('master/use-stock')"
+              id="sbItemUseStock">
+        <div class="sb-item-inner"><i class="ti ti-clipboard-check"></i><span>사용처리</span></div>
+      </button>
       <button class="sb-item" data-page="master/procurement" onclick="navigate('master/procurement')"
               id="sbItemProcurement" style="display:none;">
         <div class="sb-item-inner"><i class="ti ti-file-invoice"></i><span>발주 관리</span></div>
@@ -120,6 +124,7 @@ const MENU_META = {
   'master/org':             { app: '마스터 관리', page: '의원·부서·사용자' },
   'master/supply':          { app: '마스터 관리', page: '자재·거래처' },
   'master/purchase-request':{ app: '자재관리', page: '발주요청' },
+  'master/use-stock':       { app: '자재관리', page: '사용처리' },
   'master/procurement':     { app: '자재관리', page: '발주 관리' },
   'master/stock':           { app: '자재관리', page: '재고 관리' },
 };
