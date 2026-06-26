@@ -1096,8 +1096,7 @@ async function submitInventoryModal() {
 
   var payload = {
     equipment_id:          currentEquipmentId,
-    checked_at:            inventoryModalGetField('m_checked_at'),
-    checked_by:            user && (user.email || user.user_email) || '',
+    checked_at:            inventoryModalGetField('m_checked_at') || new Date().toISOString(),
     checked_by_name:       checkedBy,
     clinic_code_at_check:  equipment.clinic_code || '',
     clinic_name_at_check:  equipment.clinic_name || '',
@@ -1105,8 +1104,7 @@ async function submitInventoryModal() {
     team_name_at_check:    equipment.team_name   || '',
     department_at_check:   equipment.department_display || equipment.department || '',
     location_at_check:     equipment.location || '',
-    condition_status:      conditionStatus,
-    qr_scan_yn:            inventoryModalGetField('m_qr_scan_yn'),
+    status_at_check:       conditionStatus,
     memo:                  inventoryModalGetField('m_memo')
   };
 
