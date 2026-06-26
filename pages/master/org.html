@@ -107,3 +107,257 @@
     .badge-role-edit    { background:#ede9fe;color:#6d28d9;padding:1px 7px;border-radius:999px;font-size:10px;font-weight:700; }
     .badge-role-manager { background:#fef3c7;color:#92400e;padding:1px 7px;border-radius:999px;font-size:10px;font-weight:700; }
     .badge-role-user    { background:#f3f4f6;color:#6b7280;padding:1px 7px;border-radius:999px;font-size:10px;font-weight:700; }
+  
+  </style>
+</head>
+<body>
+<div class="master-page">
+
+  <div class="master-tabs">
+    <button class="tab-btn active" data-tab="clinics">의원</button>
+    <button class="tab-btn" data-tab="departments">부서</button>
+    <button class="tab-btn" data-tab="users">사용자</button>
+  </div>
+
+  <div class="master-content">
+
+    <!-- ═══ 의원 탭 ═══ -->
+    <div id="tab-clinics" class="tab-panel active">
+      <div class="m-card">
+        <div class="m-card-head">
+          <span class="m-card-title">의원 목록</span>
+          <button class="btn btn-sm btn-primary" id="addClinicBtn"><i class="ti ti-plus"></i> 추가</button>
+        </div>
+        <div class="m-card-body">
+          <div id="clinicEmpty" class="m-empty" style="display:none;">등록된 의원이 없습니다.</div>
+          <div id="clinicList" class="m-table-wrap"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ 부서 탭 ═══ -->
+    <div id="tab-departments" class="tab-panel">
+      <div class="m-card">
+        <div class="m-card-head">
+          <span class="m-card-title">부서 목록</span>
+          <button class="btn btn-sm btn-primary" id="addDeptBtn"><i class="ti ti-plus"></i> 추가</button>
+        </div>
+        <!-- 의원 필터 -->
+        <div class="m-filter-bar">
+          <span class="m-filter-label">의원</span>
+          <select id="deptClinicFilter">
+            <option value="">전체</option>
+          </select>
+        </div>
+        <div class="m-card-body">
+          <div id="deptEmpty" class="m-empty" style="display:none;">등록된 부서가 없습니다.</div>
+          <div id="deptList" class="m-table-wrap"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ 사용자 탭 ═══ -->
+    <div id="tab-users" class="tab-panel">
+      <div class="m-card">
+        <div class="m-card-head">
+          <span class="m-card-title">사용자 목록</span>
+        </div>
+        <!-- 의원·부서 필터 -->
+        <div class="m-filter-bar">
+          <span class="m-filter-label">의원</span>
+          <select id="userClinicFilter">
+            <option value="">전체</option>
+          </select>
+          <span class="m-filter-label">부서</span>
+          <select id="userDeptFilter">
+            <option value="">전체</option>
+          </select>
+        </div>
+        <div class="m-card-body">
+          <div id="userEmpty" class="m-empty" style="display:none;">등록된 사용자가 없습니다.</div>
+          <div id="userList" class="m-table-wrap"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── 의원 모달 ── -->
+<div id="clinicModal" class="m-modal">
+  <div class="m-modal-backdrop" onclick="closeModal('clinicModal')"></div>
+  <div class="m-modal-dialog">
+    <div class="m-modal-head">
+      <span class="m-modal-title" id="clinicModalTitle">의원 추가</span>
+      <button class="m-modal-close" onclick="closeModal('clinicModal')"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="m-modal-body">
+      <div class="m-field-row">
+        <div class="m-field">
+          <label>의원 코드 <span class="m-req">*</span></label>
+          <input type="text" id="c_clinic_code" placeholder="예: SS" />
+        </div>
+        <div class="m-field">
+          <label>의원명 <span class="m-req">*</span></label>
+          <input type="text" id="c_clinic_name" placeholder="의원 이름" />
+        </div>
+      </div>
+      <div class="m-field">
+        <label>주소</label>
+        <input type="text" id="c_address" placeholder="주소" />
+      </div>
+      <div class="m-field-row">
+        <div class="m-field">
+          <label>전화번호</label>
+          <input type="text" id="c_phone" placeholder="02-0000-0000" />
+        </div>
+        <div class="m-field">
+          <label>정렬순서</label>
+          <input type="number" id="c_sort_order" value="0" />
+        </div>
+      </div>
+      <div class="m-field">
+        <label>상태</label>
+        <select id="c_active">
+          <option value="Y">활성</option>
+          <option value="N">비활성</option>
+        </select>
+      </div>
+    </div>
+    <div class="m-modal-foot">
+      <button class="btn btn-sm" onclick="closeModal('clinicModal')">취소</button>
+      <button class="btn btn-sm btn-primary" id="clinicSaveBtn">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── 부서 모달 ── -->
+<div id="deptModal" class="m-modal">
+  <div class="m-modal-backdrop" onclick="closeModal('deptModal')"></div>
+  <div class="m-modal-dialog">
+    <div class="m-modal-head">
+      <span class="m-modal-title" id="deptModalTitle">부서 추가</span>
+      <button class="m-modal-close" onclick="closeModal('deptModal')"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="m-modal-body">
+      <!-- 의원 선택 (상위) -->
+      <div class="m-field">
+        <label>소속 의원 <span class="m-req">*</span></label>
+        <select id="d_clinic_id">
+          <option value="">의원을 선택하세요</option>
+        </select>
+      </div>
+      <div class="m-field-row">
+        <div class="m-field">
+          <label>부서 코드 <span class="m-req">*</span></label>
+          <input type="text" id="d_dept_code" placeholder="예: SS_LAB" />
+        </div>
+        <div class="m-field">
+          <label>부서명 <span class="m-req">*</span></label>
+          <input type="text" id="d_dept_name" placeholder="부서 이름" />
+        </div>
+      </div>
+      <div class="m-field-row">
+        <div class="m-field">
+          <label>정렬순서</label>
+          <input type="number" id="d_sort_order" value="0" />
+        </div>
+        <div class="m-field">
+          <label>상태</label>
+          <select id="d_active">
+            <option value="Y">활성</option>
+            <option value="N">비활성</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="m-modal-foot">
+      <button class="btn btn-sm" onclick="closeModal('deptModal')">취소</button>
+      <button class="btn btn-sm btn-primary" id="deptSaveBtn">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── 사용자 모달 ── -->
+<div id="userModal" class="m-modal">
+  <div class="m-modal-backdrop" onclick="closeModal('userModal')"></div>
+  <div class="m-modal-dialog">
+    <div class="m-modal-head">
+      <span class="m-modal-title" id="userModalTitle">사용자 수정</span>
+      <button class="m-modal-close" onclick="closeModal('userModal')"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="m-modal-body">
+      <div class="m-field">
+        <label>이메일</label>
+        <input type="text" id="u_email" placeholder="이메일" readonly
+          style="background:#f9fafb;color:#6b7280;cursor:default;" />
+      </div>
+      <div class="m-field-row">
+        <div class="m-field">
+          <label>이름</label>
+          <input type="text" id="u_user_name" placeholder="이름" />
+        </div>
+        <div class="m-field">
+          <label>전화번호</label>
+          <input type="text" id="u_phone" placeholder="010-0000-0000" />
+        </div>
+      </div>
+      <div class="m-field">
+        <label>역할</label>
+        <select id="u_role">
+          <option value="admin">admin (전체 관리자)</option>
+          <option value="edit">edit (편집)</option>
+          <option value="manager">manager (담당자)</option>
+          <option value="user">user (일반)</option>
+        </select>
+      </div>
+      <!-- 의원 선택 → 부서 자동 연동 -->
+      <div class="m-field">
+        <label>소속 의원</label>
+        <select id="u_clinic_select">
+          <option value="">선택 안 함</option>
+        </select>
+      </div>
+      <div class="m-field">
+        <label>소속 부서</label>
+        <select id="u_dept_select">
+          <option value="">선택 안 함</option>
+        </select>
+      </div>
+      <div class="m-field-row">
+        <div class="m-field">
+          <label>부서 (직접입력)</label>
+          <input type="text" id="u_department" placeholder="세부 부서명 (선택)" />
+        </div>
+        <div class="m-field">
+          <label>상태</label>
+          <select id="u_active">
+            <option value="Y">활성</option>
+            <option value="N">비활성</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="m-modal-foot">
+      <button class="btn btn-sm" onclick="closeModal('userModal')">취소</button>
+      <button class="btn btn-sm btn-primary" id="userSaveBtn">저장</button>
+    </div>
+  </div>
+</div>
+
+<div id="globalLoading" aria-hidden="true">
+  <div class="global-loading__dialog">
+    <div class="global-loading__spinner" aria-hidden="true"></div>
+    <div class="global-loading__text" id="globalLoadingText">불러오는 중...</div>
+  </div>
+</div>
+
+<script src="../../assets/libs/ag-grid/ag-grid-community.min.js"></script>
+<script src="../../assets/libs/supabase.js"></script>
+<script src="../../assets/js/core/config.js"></script>
+<script src="../../assets/js/core/utils.js"></script>
+<script src="../../assets/js/core/supabase.js"></script>
+<script src="../../assets/js/core/auth.js"></script>
+<script src="../../assets/js/master/org.js"></script>
+</body>
+</html>
