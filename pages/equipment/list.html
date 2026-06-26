@@ -5,10 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>장비 목록 · 의료장비 관리</title>
   <link rel="stylesheet" href="../../assets/css/common.css" />
-  <link rel="stylesheet" href="../../assets/css/pages/equipment-list.css" />
-  <link rel="stylesheet" href="../../assets/font/tabler-icons/tabler-icons.min.css" />
   <link rel="stylesheet" href="../../assets/libs/ag-grid/ag-grid.min.css" />
   <link rel="stylesheet" href="../../assets/libs/ag-grid/ag-theme-alpine.min.css" />
+  <link rel="stylesheet" href="../../assets/css/ag-grid-custom.css" />
+  <link rel="stylesheet" href="../../assets/css/pages/equipment-list.css" />
+  <link rel="stylesheet" href="../../assets/font/tabler-icons/tabler-icons.min.css" />
+  
+  
   <script>
     if (new URLSearchParams(location.search).get('shell') === '1')
       document.documentElement.classList.add('in-shell');
@@ -37,33 +40,8 @@
     body.page-ready .pagination-area { visibility: visible; }
     /* AG Grid 커스텀 */
     #equipmentGrid { flex: 1; min-height: 0; height: 100%; }
-    .ag-theme-alpine {
-      --ag-font-size: 11px !important;
-      --ag-font-family: "Pretendard", "Noto Sans KR", sans-serif !important;
 
-      --ag-header-background-color: #f8fafc;
-      --ag-header-foreground-color: #4b5563;
-      --ag-border-color: #e5e7eb;
-      --ag-row-border-color: #f0f0f0;
-      --ag-background-color: #fff;
-      --ag-odd-row-background-color: #fff;
-      --ag-row-hover-color: #f0f5ff;
-      --ag-cell-horizontal-padding: 8px;
-    }
-    .ag-theme-alpine .ag-root-wrapper { border-radius: 8px; overflow: hidden; }
-    .ag-theme-alpine .ag-body-viewport { overflow-x: hidden !important; overflow-y: auto !important; }
-    .ag-theme-alpine .ag-body-horizontal-scroll { display: none !important; }
-    .ag-theme-alpine .ag-header { font-size: 11px; }
-    .ag-theme-alpine .ag-cell { font-size: 11px !important; font-family: "Pretendard", "Noto Sans KR", sans-serif !important; }
-    .ag-theme-alpine .ag-cell * { font-size: 11px !important; }
-
-    .ag-theme-alpine .ag-header-cell-text { font-size: 11px !important; }
-    .ag-theme-alpine .ag-header-cell-label { justify-content: center; font-weight: 700; }
-    .ag-left-header .ag-header-cell-label { justify-content: flex-start !important; }
     /* 데이터 행 세로줄 */
-    .ag-theme-alpine .ag-cell { border-right: 1px solid #e5e7eb !important; }
-    .ag-theme-alpine .ag-cell:last-child { border-right: none !important; }
-    .ag-center-header .ag-header-cell-label { justify-content: center; }
 
     .tab-name { font-weight: 600; color: #111827; }
     .tab-id   { font-size: 11px; color: #6b7280; font-family: Consolas, monospace; }
