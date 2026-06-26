@@ -215,6 +215,7 @@ async function loadDashboard() {
   const session = await auth.requireAuth();
   if (!session) return;
 
+  showGlobalLoading('대시보드를 불러오는 중...');
   try {
     const data = await fetchDashboardData();
     _deptData = data.rows;
@@ -228,6 +229,9 @@ async function loadDashboard() {
       const el = document.getElementById(id);
       if (el) el.innerHTML = `<div class="db-empty"><i class="ti ti-alert-circle"></i>${e.message}</div>`;
     });
+  }
+  finally {
+    hideGlobalLoading();
   }
 }
 
