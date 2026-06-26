@@ -1,6 +1,10 @@
 /**
  * assets/js/master/procurement.js
- * 발주 관리 — 목록/등록/상세 전부 AG Grid
+ * 발주 관리 (자재담당자) — admin/manager role만 접근
+ *
+ *   [발주요청확인] 탭 — 사용자가 제출한 purchase_requests 를 확인하고
+ *                       품목별 거래처를 지정해 거래처별 purchase_orders(DRAFT)로 분리한다.
+ *   [발주목록] 탭     — 기존 발주서 목록/등록/수정/발주확정/취소 (그대로 유지)
  *
  * 부가세 원칙:
  *   DB: supply_price(공급가액)만 저장
@@ -14,13 +18,19 @@ var poState = {
   page: 1, pageSize: 20, totalPages: 1, loading: false,
   statusFilter: '',
 };
+var rvState = {
+  page: 1, pageSize: 20, totalPages: 1, loading: false,
+  statusFilter: 'REQUESTED',
+};
 
 var _poListGrid   = null;   // 발주 목록 그리드
 var _poItemGrid   = null;   // 발주 등록/수정 모달 품목 그리드
 var _poDetailGrid = null;   // 발주 상세 모달 품목 그리드
+var _rvListGrid   = null;   // 발주요청 목록 그리드
+var _rvSplitGrid  = null;   // 발주요청 상세 — 거래처 분리 그리드
 
 var vendorCache = [];   // 거래처 [{id, vendor_name}]
-var itemCache   = [];   // 자재   [{id, item_name, purchase_unit, standard_price}]
+var itemCache   = [];   // 자재   [{id, item_name, purchase_unit, purchase_unit_qty, use_unit, standard_price, vendor_id}]
 
 var editingPoId   = null;
 var poItemRowData = [];   // 품목 그리드 rowData (로컬 상태)
@@ -38,15 +48,511 @@ function calcVat(s)    { return Math.round((s || 0) * 0.1); }
 
 var STATUS_LABEL = { DRAFT:'초안', ORDERED:'발주완료', PARTIAL:'부분입고', COMPLETED:'완료', CANCELLED:'취소' };
 var STATUS_BADGE = { DRAFT:'badge-draft', ORDERED:'badge-ordered', PARTIAL:'badge-partial', COMPLETED:'badge-completed', CANCELLED:'badge-cancelled' };
-
 function badgeStatus(s) {
   return '<span class="' + (STATUS_BADGE[s] || 'badge-draft') + '">' + (STATUS_LABEL[s] || ts(s)) + '</span>';
+}
+
+var RV_STATUS_LABEL = {
+  REQUESTED:'요청', PROCESSING:'처리중', ORDERED:'발주확정',
+  PARTIAL:'부분입고', COMPLETED:'입고완료', REJECTED:'반려', CANCELLED:'취소',
+};
+var RV_STATUS_BADGE = {
+  REQUESTED:'badge-requested', PROCESSING:'badge-processing', ORDERED:'badge-ordered',
+  PARTIAL:'badge-partial', COMPLETED:'badge-completed', REJECTED:'badge-rejected', CANCELLED:'badge-cancelled',
+};
+function badgeRvStatus(s) {
+  return '<span class="' + (RV_STATUS_BADGE[s] || 'badge-requested') + '">' + (RV_STATUS_LABEL[s] || ts(s)) + '</span>';
 }
 
 /* ── 모달 ── */
 function openModal(id)  { document.getElementById(id)?.classList.add('is-open'); }
 function closeModal(id) { document.getElementById(id)?.classList.remove('is-open'); }
 window.closeModal = closeModal;
+
+/* ── 메인 탭 (발주요청확인 / 발주목록) ── */
+function initMainTabs() {
+  document.querySelectorAll('.po-main-tabs .tab-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var target = btn.dataset.maintab;
+      document.querySelectorAll('.po-main-tabs .tab-btn').forEach(function(b) { b.classList.remove('active'); });
+      document.querySelectorAll('.po-main-panel').forEach(function(p) { p.classList.remove('active'); });
+      btn.classList.add('active');
+      document.getElementById('panel-' + target)?.classList.add('active');
+
+      requestAnimationFrame(function() {
+        if (target === 'review') { if (!_rvListGrid) initRvListGrid(); if (_rvListGrid) _rvListGrid.sizeColumnsToFit(); }
+        if (target === 'orders') { if (!_poListGrid) initPoListGrid(); if (_poListGrid) _poListGrid.sizeColumnsToFit(); }
+      });
+    });
+  });
+}
+
+/* ══════════════════════════════════════════
+   A. 발주요청확인 — 목록
+══════════════════════════════════════════ */
+function initRvListGrid() {
+  _rvListGrid = createMgGrid('rvGrid', [
+    { headerName: '요청번호', field: 'request_no', width: 150,
+      headerClass: 'ag-left-header',
+      cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-start' },
+      cellRenderer: function(p) { return '<code style="font-size:11px;">' + ts(p.value || '-') + '</code>'; }
+    },
+    { headerName: '요청일', field: 'request_date', width: 100,
+      cellRenderer: function(p) { return fmtDate(p.value); }
+    },
+    { headerName: '요청자', field: 'requester_name', width: 100,
+      cellRenderer: function(p) { return ts(p.value || '-'); }
+    },
+    { headerName: '부서', field: 'departments', flex: 1,
+      headerClass: 'ag-left-header',
+      cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-start' },
+      cellRenderer: function(p) { return ts(p.value?.dept_name || '-'); }
+    },
+    { headerName: '품목수', field: '_itemCount', width: 80,
+      cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-end' },
+      cellRenderer: function(p) { return Number(p.value || 0).toLocaleString('ko-KR'); }
+    },
+    { headerName: '상태', field: 'status', width: 90,
+      cellRenderer: function(p) {
+        var s = document.createElement('span');
+        s.innerHTML = badgeRvStatus(p.value);
+        return s;
+      }
+    },
+    { headerName: '', width: 90, sortable: false,
+      cellRenderer: function(p) {
+        var btn = document.createElement('button');
+        btn.className = 'tbl-btn tbl-btn--primary'; btn.textContent = '확인';
+        btn.onclick = function() { openRvDetail(p.data.id); };
+        return btn;
+      }
+    },
+  ], [], { noRowsText: '발주요청이 없습니다.' });
+}
+
+async function loadRvList(page) {
+  if (rvState.loading) return;
+  rvState.loading = true;
+  page = page || rvState.page;
+  showGlobalLoading('발주요청 목록을 불러오는 중...');
+  try {
+    var from = (page - 1) * rvState.pageSize;
+    var to   = from + rvState.pageSize - 1;
+    var q = supabaseClient
+      .from('purchase_requests')
+      .select('*, departments(dept_name)', { count: 'exact' })
+      .order('created_at', { ascending: false })
+      .range(from, to);
+    if (rvState.statusFilter) q = q.eq('status', rvState.statusFilter);
+
+    var { data, error, count } = await q;
+    if (error) throw new Error(error.message);
+
+    rvState.page       = page;
+    rvState.totalPages = Math.max(1, Math.ceil((count || 0) / rvState.pageSize));
+
+    var label = document.getElementById('rvCountLabel');
+    if (label) label.textContent = '총 ' + (count || 0) + '건';
+
+    var rows = data || [];
+    if (rows.length) {
+      var ids = rows.map(function(r) { return r.id; });
+      var { data: items } = await supabaseClient
+        .from('purchase_request_items').select('request_id').in('request_id', ids);
+      var countMap = {};
+      (items || []).forEach(function(it) { countMap[it.request_id] = (countMap[it.request_id] || 0) + 1; });
+      rows.forEach(function(r) { r._itemCount = countMap[r.id] || 0; });
+    }
+
+    updateMgGrid(_rvListGrid, rows);
+    renderRvPagination();
+    await refreshReviewBadge();
+  } catch(e) {
+    alert('발주요청 목록 로드 실패: ' + e.message);
+  } finally {
+    rvState.loading = false;
+    hideGlobalLoading();
+  }
+}
+
+function renderRvPagination() {
+  var container = document.getElementById('rvPagination');
+  if (!container) return;
+  var page = rvState.page, totalPages = rvState.totalPages;
+  if (totalPages <= 1) { container.innerHTML = ''; return; }
+  var bs = Math.floor((page-1)/10)*10+1, end = Math.min(totalPages, bs+9), pages = [];
+  for (var i = bs; i <= end; i++)
+    pages.push('<button class="pagination-btn' + (i===page?' is-active':'') + '" data-page="' + i + '">' + i + '</button>');
+  container.innerHTML =
+    '<button class="pagination-btn" data-page="' + Math.max(1,bs-1) + '"' + (bs<=1?' disabled':'') + '>이전</button>' +
+    pages.join('') +
+    '<button class="pagination-btn" data-page="' + Math.min(totalPages,end+1) + '"' + (end>=totalPages?' disabled':'') + '>다음</button>';
+  Array.prototype.forEach.call(container.querySelectorAll('.pagination-btn[data-page]'), function(btn) {
+    btn.addEventListener('click', function() {
+      var p = Number(btn.dataset.page);
+      if (p && p !== rvState.page) loadRvList(p);
+    });
+  });
+}
+
+function initRvStatusTabs() {
+  document.querySelectorAll('.rv-status-tab').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      document.querySelectorAll('.rv-status-tab').forEach(function(b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      rvState.statusFilter = btn.dataset.status || '';
+      loadRvList(1);
+    });
+  });
+}
+
+async function refreshReviewBadge() {
+  var { count } = await supabaseClient
+    .from('purchase_requests').select('id', { count: 'exact', head: true }).eq('status', 'REQUESTED');
+  var badge = document.getElementById('reviewCountBadge');
+  if (!badge) return;
+  if (count > 0) { badge.textContent = count; badge.style.display = ''; }
+  else { badge.style.display = 'none'; }
+}
+
+/* ══════════════════════════════════════════
+   B. 발주요청 상세 — 업체별 분리 / 분리 결과 조회
+══════════════════════════════════════════ */
+function VendorSelectEditor() {}
+VendorSelectEditor.prototype.init = function(params) {
+  this.value = params.value;
+  this.eInput = document.createElement('select');
+  this.eInput.style.cssText = 'width:100%;height:100%;border:none;outline:2px solid #3b82f6;padding:0 6px;font-size:11px;background:#fff;box-sizing:border-box;';
+  this.eInput.innerHTML = '<option value="">거래처 선택</option>' +
+    vendorCache.map(function(v) { return '<option value="' + v.id + '">' + ts(v.vendor_name) + '</option>'; }).join('');
+  this.eInput.value = params.value || '';
+  var self = this;
+  this.eInput.addEventListener('change', function() {
+    self.value = self.eInput.value;
+    params.stopEditing();
+  });
+};
+VendorSelectEditor.prototype.getGui = function() { return this.eInput; };
+VendorSelectEditor.prototype.afterGuiAttached = function() { this.eInput.focus(); };
+VendorSelectEditor.prototype.getValue = function() { return this.value; };
+VendorSelectEditor.prototype.isPopup = function() { return false; };
+
+function initRvSplitGrid() {
+  var el = document.getElementById('rvSplitGrid');
+  if (!el || typeof agGrid === 'undefined') return;
+
+  _rvSplitGrid = agGrid.createGrid(el, {
+    columnDefs: [
+      { headerName: '자재명', field: 'item_name', flex: 2,
+        headerClass: 'ag-left-header',
+        cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-start' },
+        cellRenderer: function(p) { return ts(p.value || '-'); }
+      },
+      { headerName: '요청수량(사용단위)', field: 'request_qty', width: 130,
+        headerClass: 'ag-right-header',
+        cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-end' },
+        cellRenderer: function(p) { return Number(p.value || 0).toLocaleString('ko-KR') + ' ' + (p.data.use_unit || ''); }
+      },
+      { headerName: '입고수량(환산)', field: '_orderQty', width: 110,
+        headerClass: 'ag-right-header',
+        cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-end', background:'#f8fafc' },
+        cellRenderer: function(p) { return Number(p.value || 0).toLocaleString('ko-KR') + ' ' + (p.data.purchase_unit || ''); }
+      },
+      { headerName: '단가', field: 'unit_price', width: 100,
+        headerClass: 'ag-right-header',
+        cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-end' },
+        editable: true,
+        cellEditor: 'agNumberCellEditor',
+        cellEditorParams: { min: 0 },
+        cellRenderer: function(p) { return Number(p.value || 0).toLocaleString('ko-KR') + '원'; }
+      },
+      { headerName: '거래처', field: 'vendor_id', flex: 1.4,
+        editable: true,
+        cellEditorFramework: VendorSelectEditor,
+        cellEditorParams: {},
+        cellRenderer: function(p) {
+          if (!p.value) return '<span style="color:#ef4444;">거래처를 선택하세요</span>';
+          var v = vendorCache.find(function(x) { return x.id === p.value; });
+          return ts(v ? v.vendor_name : '-');
+        }
+      },
+    ],
+    defaultColDef: {
+      sortable: false, resizable: true, suppressMovable: true,
+      headerClass: 'ag-center-header',
+      cellStyle: { display:'flex', alignItems:'center', justifyContent:'center' },
+    },
+    rowData: [],
+    rowHeight: 34,
+    headerHeight: 34,
+    suppressHorizontalScroll: true,
+    suppressScrollOnNewData: true,
+    stopEditingWhenCellsLoseFocus: true,
+    singleClickEdit: true,
+    overlayNoRowsTemplate: '<span style="color:#9ca3af;font-size:12px;">품목이 없습니다.</span>',
+    onGridReady: function(params) { params.api.sizeColumnsToFit(); },
+  });
+}
+
+var rvCurrentRequest = null;   // 현재 상세 모달에서 보고 있는 요청
+
+async function openRvDetail(id) {
+  showGlobalLoading('발주요청 상세를 불러오는 중...');
+  try {
+    var { data: pr, error: e1 } = await supabaseClient
+      .from('purchase_requests').select('*, departments(dept_name), clinics(clinic_name)').eq('id', id).single();
+    if (e1) throw new Error(e1.message);
+    rvCurrentRequest = pr;
+
+    var { data: prItems, error: e2 } = await supabaseClient
+      .from('purchase_request_items')
+      .select('*, items(item_name, purchase_unit, purchase_unit_qty, use_unit, standard_price, vendor_id), purchase_order_items(id, order_qty, received_qty, unit_price, purchase_orders(order_no, status, vendor_id, vendors(vendor_name)))')
+      .eq('request_id', id).order('created_at');
+    if (e2) throw new Error(e2.message);
+
+    var meta = document.getElementById('rvDetailMeta');
+    meta.innerHTML =
+      mkMetaItem('요청번호', '<code>' + ts(pr.request_no) + '</code>') +
+      mkMetaItem('상태',     badgeRvStatus(pr.status)) +
+      mkMetaItem('요청일',   fmtDate(pr.request_date)) +
+      mkMetaItem('요청자',   ts(pr.requester_name || '-')) +
+      mkMetaItem('부서',     ts(pr.departments?.dept_name || '-')) +
+      mkMetaItem('메모',     ts(pr.memo || '-'));
+
+    document.getElementById('rvDetailTitle').textContent = '발주요청 상세 — ' + pr.request_no;
+
+    var splitSection  = document.getElementById('rvSplitSection');
+    var linkedSection = document.getElementById('rvLinkedSection');
+    var foot = document.getElementById('rvDetailFoot');
+    foot.innerHTML = '<button class="btn btn-sm" onclick="closeModal(\'rvDetailModal\')">닫기</button>';
+
+    if (pr.status === 'REQUESTED') {
+      // ── 거래처 분리 편집 화면 ──
+      splitSection.style.display  = 'flex';
+      linkedSection.style.display = 'none';
+
+      var gridRows = (prItems || []).map(function(r) {
+        var item = r.items || {};
+        var puQty = item.purchase_unit_qty || 1;
+        return {
+          _reqItemId:    r.id,
+          item_id:       r.item_id,
+          item_name:     item.item_name || '-',
+          request_qty:   r.request_qty,
+          use_unit:      r.use_unit || item.use_unit || '',
+          purchase_unit: item.purchase_unit || '',
+          _orderQty:     Math.ceil((r.request_qty || 1) / puQty),
+          unit_price:    item.standard_price || 0,
+          vendor_id:     item.vendor_id || '',
+        };
+      });
+
+      openModal('rvDetailModal');
+      setTimeout(function() {
+        if (!_rvSplitGrid) initRvSplitGrid();
+        if (_rvSplitGrid) {
+          _rvSplitGrid.setGridOption('rowData', gridRows);
+          _rvSplitGrid.sizeColumnsToFit();
+        }
+      }, 50);
+
+      var rejectBtn = document.createElement('button');
+      rejectBtn.className = 'btn btn-sm btn-danger'; rejectBtn.textContent = '반려';
+      rejectBtn.onclick = function() { rejectPr(id); };
+      foot.insertBefore(rejectBtn, foot.firstChild);
+
+      var splitBtn = document.createElement('button');
+      splitBtn.className = 'btn btn-sm btn-primary'; splitBtn.textContent = '업체별 발주서 분리';
+      splitBtn.onclick = function(ev) { splitPrIntoOrders(pr, ev); };
+      foot.insertBefore(splitBtn, foot.firstChild);
+
+    } else {
+      // ── 분리/처리 결과 조회 화면 ──
+      splitSection.style.display  = 'none';
+      linkedSection.style.display = 'block';
+
+      var byOrder = {};
+      (prItems || []).forEach(function(r) {
+        var poi = r.purchase_order_items;
+        if (!poi || !poi.purchase_orders) return;
+        var orderNo = poi.purchase_orders.order_no;
+        if (!byOrder[orderNo]) {
+          byOrder[orderNo] = {
+            order_no: orderNo,
+            status:   poi.purchase_orders.status,
+            vendor:   poi.purchase_orders.vendors?.vendor_name || '-',
+            items:    [],
+          };
+        }
+        byOrder[orderNo].items.push({
+          item_name:    r.items?.item_name || '-',
+          order_qty:    poi.order_qty,
+          received_qty: poi.received_qty || 0,
+          purchase_unit:r.items?.purchase_unit || '',
+        });
+      });
+
+      var list = document.getElementById('rvLinkedList');
+      var orderKeys = Object.keys(byOrder);
+      if (!orderKeys.length) {
+        list.innerHTML = '<div style="color:#9ca3af;font-size:12px;padding:20px;text-align:center;">아직 분리된 발주서가 없습니다.</div>';
+      } else {
+        list.innerHTML = orderKeys.map(function(k) {
+          var g = byOrder[k];
+          var itemsHtml = g.items.map(function(it) {
+            return ts(it.item_name) + ' (' + it.received_qty + '/' + it.order_qty + ' ' + ts(it.purchase_unit) + ')';
+          }).join(', ');
+          return '<div class="linked-po-card">' +
+            '<span class="linked-po-vendor">' + ts(g.vendor) + '</span>' +
+            '<code style="font-size:11px;">' + ts(g.order_no) + '</code>' +
+            badgeStatus(g.status) +
+            '<span style="flex:1;color:#6b7280;font-size:11px;">' + itemsHtml + '</span>' +
+            '</div>';
+        }).join('');
+      }
+
+      openModal('rvDetailModal');
+    }
+  } catch(e) {
+    alert('발주요청 상세 로드 실패: ' + e.message);
+  } finally {
+    hideGlobalLoading();
+  }
+}
+window.openRvDetail = openRvDetail;
+
+function mkMetaItem(label, value) {
+  return '<div class="po-detail-meta-item">' +
+    '<span class="po-detail-meta-label">' + label + '</span>' +
+    '<span class="po-detail-meta-value">' + value + '</span>' +
+    '</div>';
+}
+
+async function rejectPr(id) {
+  if (!confirm('이 발주요청을 반려하시겠습니까?')) return;
+  var { error } = await supabaseClient.from('purchase_requests')
+    .update({ status: 'REJECTED', updated_at: new Date().toISOString() }).eq('id', id);
+  if (error) { alert('반려 실패: ' + error.message); return; }
+  closeModal('rvDetailModal');
+  await loadRvList(rvState.page);
+}
+
+/** 거래처별로 묶어 DRAFT 발주서 자동 생성 + purchase_request_items 연결 + 요청 상태 PROCESSING 전환 */
+async function splitPrIntoOrders(pr, ev) {
+  if (!_rvSplitGrid) return;
+
+  var rows = [];
+  _rvSplitGrid.forEachNode(function(node) { rows.push(node.data); });
+
+  var missingVendor = rows.some(function(r) { return !r.vendor_id; });
+  if (missingVendor) { alert('모든 품목에 거래처를 선택해주세요.'); return; }
+  if (!rows.length) { alert('분리할 품목이 없습니다.'); return; }
+
+  if (!confirm('거래처별로 발주서(초안)를 생성하시겠습니까?')) return;
+
+  var btn = ev && ev.target;
+  if (btn) btn.disabled = true;
+  showGlobalLoading('발주서를 분리하는 중...');
+  try {
+    // 거래처별 그룹화
+    var groups = {};
+    rows.forEach(function(r) {
+      if (!groups[r.vendor_id]) groups[r.vendor_id] = [];
+      groups[r.vendor_id].push(r);
+    });
+
+    for (var vendorId in groups) {
+      var groupRows = groups[vendorId];
+      var orderNo = await genDocNo('PO');
+      var supplyTotal = groupRows.reduce(function(sum, r) {
+        return sum + (Number(r._orderQty || 1) * Number(r.unit_price || 0));
+      }, 0);
+
+      var { data: newPo, error: poErr } = await supabaseClient.from('purchase_orders').insert({
+        order_no:      orderNo,
+        vendor_id:     vendorId,
+        clinic_id:     pr.clinic_id,
+        order_date:    new Date().toISOString().slice(0, 10),
+        supply_price:  supplyTotal,
+        status:        'DRAFT',
+        memo:          '발주요청 ' + pr.request_no + ' 에서 분리',
+      }).select().single();
+      if (poErr) throw new Error(poErr.message);
+
+      for (var i = 0; i < groupRows.length; i++) {
+        var r = groupRows[i];
+        var { data: newPoItem, error: poiErr } = await supabaseClient.from('purchase_order_items').insert({
+          order_id:          newPo.id,
+          item_id:           r.item_id,
+          purchase_unit:     r.purchase_unit || '',
+          purchase_unit_qty: 1,
+          use_unit:          r.use_unit || '',
+          order_qty:         r._orderQty || 1,
+          unit_price:        Number(r.unit_price || 0),
+          memo:              '요청수량 ' + r.request_qty + ' ' + r.use_unit + ' 환산',
+        }).select().single();
+        if (poiErr) throw new Error(poiErr.message);
+
+        var { error: linkErr } = await supabaseClient.from('purchase_request_items')
+          .update({ order_item_id: newPoItem.id }).eq('id', r._reqItemId);
+        if (linkErr) throw new Error(linkErr.message);
+      }
+    }
+
+    await supabaseClient.from('purchase_requests')
+      .update({ status: 'PROCESSING', updated_at: new Date().toISOString() }).eq('id', pr.id);
+
+    closeModal('rvDetailModal');
+    await loadRvList(rvState.page);
+    alert('업체별 발주서 분리가 완료됐습니다. [발주목록] 탭에서 발주를 확정해주세요.');
+  } catch(e) {
+    alert('발주서 분리 실패: ' + e.message);
+  } finally {
+    if (btn) btn.disabled = false;
+    hideGlobalLoading();
+  }
+}
+
+/** 연결된 발주요청들의 상태를 발주서/입고 진행상황에 맞춰 재계산 */
+async function syncLinkedRequestStatuses(orderId) {
+  try {
+    var { data: poItems } = await supabaseClient
+      .from('purchase_order_items').select('id, order_qty, received_qty').eq('order_id', orderId);
+
+    var poItemIds = (poItems || []).map(function(i) { return i.id; });
+    if (!poItemIds.length) return;
+
+    var { data: reqItems } = await supabaseClient
+      .from('purchase_request_items').select('request_id, order_item_id').in('order_item_id', poItemIds);
+    var requestIds = Array.from(new Set((reqItems || []).map(function(r) { return r.request_id; })));
+
+    for (var i = 0; i < requestIds.length; i++) {
+      await syncRequestStatus(requestIds[i]);
+    }
+  } catch(e) {
+    console.warn('[syncLinkedRequestStatuses]', e);
+  }
+}
+
+async function syncRequestStatus(requestId) {
+  var { data: items } = await supabaseClient
+    .from('purchase_request_items')
+    .select('order_item_id, purchase_order_items(order_qty, received_qty, purchase_orders(status))')
+    .eq('request_id', requestId);
+
+  if (!items || !items.length) return;
+  var linked = items.filter(function(i) { return i.order_item_id; });
+  if (!linked.length) return; // 아직 분리 전
+
+  var statuses = linked.map(function(i) { return i.purchase_order_items?.purchase_orders?.status; });
+  var newStatus = 'PROCESSING';
+  if (statuses.every(function(s) { return s === 'COMPLETED'; })) newStatus = 'COMPLETED';
+  else if (statuses.some(function(s) { return s === 'PARTIAL' || s === 'COMPLETED'; })) newStatus = 'PARTIAL';
+  else if (statuses.some(function(s) { return s === 'ORDERED'; })) newStatus = 'ORDERED';
+
+  await supabaseClient.from('purchase_requests')
+    .update({ status: newStatus, updated_at: new Date().toISOString() }).eq('id', requestId);
+}
 
 /* ══════════════════════════════════════════
    1. 발주 목록 그리드 (createMgGrid 활용)
@@ -629,20 +1135,15 @@ async function openPoDetail(id) {
 }
 window.openPoDetail = openPoDetail;
 
-function mkMetaItem(label, value) {
-  return '<div class="po-detail-meta-item">' +
-    '<span class="po-detail-meta-label">' + label + '</span>' +
-    '<span class="po-detail-meta-value">' + value + '</span>' +
-    '</div>';
-}
-
 async function changePoStatus(id, status) {
   if (!confirm(STATUS_LABEL[status] + ' 처리하시겠습니까?')) return;
   var { error } = await supabaseClient.from('purchase_orders')
     .update({ status: status, updated_at: new Date().toISOString() }).eq('id', id);
   if (error) { alert('상태 변경 실패: ' + error.message); return; }
+  await syncLinkedRequestStatuses(id);
   closeModal('poDetailModal');
   await loadPoList(poState.page);
+  await refreshReviewBadge();
 }
 
 /* ── 채번 ── */
@@ -657,7 +1158,7 @@ async function genDocNo(prefix) {
 async function loadCaches() {
   var results = await Promise.all([
     supabaseClient.from('vendors').select('id, vendor_name').eq('active', 'Y').order('vendor_name'),
-    supabaseClient.from('items').select('id, item_name, purchase_unit, use_unit, purchase_unit_qty, standard_price').eq('active', 'Y').order('item_name'),
+    supabaseClient.from('items').select('id, item_name, purchase_unit, use_unit, purchase_unit_qty, standard_price, vendor_id').eq('active', 'Y').order('item_name'),
   ]);
   vendorCache = results[0].data || [];
   itemCache   = results[1].data || [];
@@ -669,13 +1170,29 @@ async function loadCaches() {
   }
 }
 
+/* ── 접근 권한 (자재담당자 = manager 또는 admin) ── */
+async function guardAccess() {
+  var session = await auth.requireAuth();
+  if (!session) return null;
+  var user = await auth.getSession();
+  if (user.role !== 'admin' && user.role !== 'manager') {
+    alert('자재담당자(또는 관리자)만 접근할 수 있습니다.');
+    location.replace(CONFIG.SITE_BASE_URL + '/app.html');
+    return null;
+  }
+  return user;
+}
+
 /* ── 초기화 ── */
 async function init() {
-  await auth.requireAuth();
+  var user = await guardAccess();
+  if (!user) return;
 
+  initMainTabs();
+  initRvStatusTabs();
+  initRvListGrid();   // review 탭이 기본 활성 → 즉시 초기화
   initStatusTabs();
-  initPoListGrid();
-  // poItemGrid, poDetailGrid는 모달 열 때 lazy 초기화 (display:none 상태에서 height=0 방지)
+  // poListGrid, poItemGrid, poDetailGrid, rvSplitGrid는 탭/모달 전환 시 lazy 초기화
 
   document.getElementById('addPoBtn')?.addEventListener('click', openAddPo);
   document.getElementById('addItemRowBtn')?.addEventListener('click', function() { addPoItemRow(null); });
@@ -696,7 +1213,7 @@ async function init() {
   showGlobalLoading('데이터를 불러오는 중...');
   try {
     await loadCaches();
-    await loadPoList(1);
+    await loadRvList(1);
   } catch(e) {
     alert('초기화 실패: ' + e.message);
   } finally {

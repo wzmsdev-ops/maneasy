@@ -1,22 +1,33 @@
 /**
  * assets/js/master/stock.js
- * 재고 관리 — 현재고 / 입고 / 입출고이력
+ * 재고 관리 (자재담당자) — admin/manager role만 접근
+ *
+ *   [입고]       발주서(ORDERED/PARTIAL) 품목별 입고 처리 (부분입고 가능) → 중앙창고(dept_id=NULL) 적립
+ *                발주 없이 직접 입고도 가능
+ *   [불출]       중앙창고 → 부서로 자재 전달 (stock_dispatch)
+ *   [부서별재고] 부서별 현재고 조회 (의원 통합 아님)
+ *   [사용처리]   부서가 보유한 재고를 사용 처리 (부서 재고 차감)
+ *
  * 부가세: supply_price(공급가액)만 저장, VAT는 조회 시 계산
  */
 'use strict';
 
 var stState = {
-  current: { page:1, pageSize:20, totalPages:1, loading:false },
-  receipt: { page:1, pageSize:20, totalPages:1, loading:false },
-  tx:      { page:1, pageSize:20, totalPages:1, loading:false },
+  receipt:   { page:1, pageSize:20, totalPages:1, loading:false },
+  dispatch:  { page:1, pageSize:20, totalPages:1, loading:false },
+  deptstock: { page:1, pageSize:20, totalPages:1, loading:false },
+  use:       { page:1, pageSize:20, totalPages:1, loading:false },
 };
 
-var _gridCurrent = null;
-var _gridReceipt = null;
-var _gridTx      = null;
+var _gridReceipt   = null;
+var _gridDispatch  = null;
+var _gridDeptStock = null;
+var _gridUse       = null;
 
-var itemCache    = [];   // 자재 목록 (id, item_name, purchase_unit, use_unit, purchase_unit_qty)
-var currentCache = {};   // item_id → current qty
+var itemCache    = [];   // 자재 목록
+var deptCache    = [];   // 부서 목록
+var centralCache = {};   // item_id → 중앙창고(dept_id=NULL) 현재고
+var orderItemsMap = {};  // (입고 모달) item_id → {order_item_id, order_qty, received_qty, purchase_unit, unit_price}
 
 /* ── 유틸 ── */
 function ts(v) {
@@ -40,8 +51,6 @@ function closeModal(id) { document.getElementById(id)?.classList.remove('is-open
 window.closeModal = closeModal;
 
 /* ── 탭 ── */
-var _tabInited = {};  // 탭별 그리드 초기화 여부
-
 function initTabs() {
   document.querySelectorAll('.tab-btn').forEach(function(btn) {
     btn.addEventListener('click', function() {
@@ -51,17 +60,17 @@ function initTabs() {
       btn.classList.add('active');
       document.getElementById('tab-' + target)?.classList.add('active');
 
-      // 탭 전환 후 그리드 lazy 초기화 + sizeColumnsToFit
       requestAnimationFrame(function() {
-        if (target === 'current')  { if (!_gridCurrent) initCurrentGrid(); if (_gridCurrent) _gridCurrent.sizeColumnsToFit(); }
-        if (target === 'receipt')  { if (!_gridReceipt) initReceiptGrid(); if (_gridReceipt) _gridReceipt.sizeColumnsToFit(); }
-        if (target === 'txlog')    { if (!_gridTx)      initTxGrid();      if (_gridTx)      _gridTx.sizeColumnsToFit(); }
+        if (target === 'receipt')   { if (!_gridReceipt)   initReceiptGrid();   if (_gridReceipt)   _gridReceipt.sizeColumnsToFit();   loadReceipts(1); }
+        if (target === 'dispatch')  { if (!_gridDispatch)  initDispatchGrid();  if (_gridDispatch)  _gridDispatch.sizeColumnsToFit();  loadDispatches(1); }
+        if (target === 'deptstock') { if (!_gridDeptStock) initDeptStockGrid(); if (_gridDeptStock) _gridDeptStock.sizeColumnsToFit(); loadDeptStock(1); }
+        if (target === 'use')       { if (!_gridUse)       initUseGrid();       if (_gridUse)       _gridUse.sizeColumnsToFit();       loadUseLog(1); }
       });
     });
   });
 }
 
-/* ── 페이지네이션 ── */
+/* ── 페이지네이션 (공통) ── */
 function renderPagination(areaId, state, loadFn) {
   var container = document.getElementById(areaId);
   if (!container) return;
@@ -89,101 +98,37 @@ function renderPagination(areaId, state, loadFn) {
 }
 
 /* ════════════════════════════════
-   현재고 탭
+   재고 upsert 공통 (dept_id 스코프)
 ════════════════════════════════ */
-function initCurrentGrid() {
-  var colDefs = [
-    { headerName: '자재명', field: 'items', flex: 2,
-      headerClass: 'ag-left-header',
-      cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-start' },
-      cellRenderer: function(p) { return ts(p.value?.item_name || '-'); }
-    },
-    { headerName: '카테고리', field: 'items', flex: 1,
-      cellRenderer: function(p) { return ts(p.value?.category || '-'); }
-    },
-    { headerName: '사용단위', field: 'items', width: 80,
-      cellRenderer: function(p) { return ts(p.value?.use_unit || p.value?.unit || '-'); }
-    },
-    { headerName: '현재고', field: 'qty', width: 90,
-      cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-end' },
-      cellRenderer: function(p) {
-        var qty = p.value || 0;
-        var item = p.data?.items;
-        var reorder = item?.reorder_point;
-        var cls = qty === 0 ? 'stock-qty-zero' : (reorder && qty <= reorder ? 'stock-qty-low' : 'stock-qty-ok');
-        return '<span class="' + cls + '">' + fmtN(qty) + '</span>';
-      }
-    },
-    { headerName: '재주문점', field: 'items', width: 90,
-      cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-end' },
-      cellRenderer: function(p) {
-        var v = p.value?.reorder_point;
-        return v != null ? fmtN(v) : '-';
-      }
-    },
-    { headerName: '안전재고', field: 'items', width: 90,
-      cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-end' },
-      cellRenderer: function(p) {
-        var v = p.value?.safety_stock;
-        return v != null ? fmtN(v) : '-';
-      }
-    },
-    { headerName: '최종갱신', field: 'last_updated_at', width: 130,
-      cellRenderer: function(p) {
-        return p.value ? new Date(p.value).toLocaleString('ko-KR',{hour12:false}).slice(0,16) : '-';
-      }
-    },
-  ];
-  _gridCurrent = createMgGrid('currentGrid', colDefs, [], { noRowsText: '재고 데이터가 없습니다.' });
-}
+async function upsertStockCurrent(itemId, deltaQty, deptId) {
+  var q = supabaseClient.from('stock_current').select('id, qty').eq('item_id', itemId);
+  q = deptId ? q.eq('dept_id', deptId) : q.is('dept_id', null);
+  var { data: existing } = await q.maybeSingle();
 
-async function loadCurrent(page) {
-  var st = stState.current;
-  if (st.loading) return;
-  st.loading = true;
-  page = page || st.page;
-  showGlobalLoading('현재고를 불러오는 중...');
-  try {
-    var from = (page - 1) * st.pageSize;
-    var to   = from + st.pageSize - 1;
-    var keyword = val('currentItemKeyword');
-
-    var q = supabaseClient
-      .from('stock_current')
-      .select('*, items(item_name, category, use_unit, unit, reorder_point, safety_stock)', { count: 'exact' })
-      .order('last_updated_at', { ascending: false })
-      .range(from, to);
-
-    if (keyword) {
-      // items 관계를 통한 필터는 직접 지원 안 되므로 item_id 목록으로 필터
-      var { data: matchItems } = await supabaseClient
-        .from('items').select('id')
-        .ilike('item_name', '%' + keyword + '%');
-      var ids = (matchItems || []).map(function(m) { return m.id; });
-      if (ids.length) q = q.in('item_id', ids);
-      else { _gridCurrent?.setGridOption('rowData', []); st.loading = false; hideGlobalLoading(); return; }
-    }
-
-    var { data, error, count } = await q;
-    if (error) throw new Error(error.message);
-
-    // 현재고 캐시 갱신
-    (data || []).forEach(function(r) { currentCache[r.item_id] = r.qty; });
-
-    st.page       = page;
-    st.totalPages = Math.max(1, Math.ceil((count || 0) / st.pageSize));
-    _gridCurrent?.setGridOption('rowData', data || []);
-    renderPagination('currentPagination', st, loadCurrent);
-  } catch(e) {
-    alert('현재고 로드 실패: ' + e.message);
-  } finally {
-    st.loading = false;
-    hideGlobalLoading();
+  if (existing) {
+    var newQty = existing.qty + deltaQty;
+    await supabaseClient.from('stock_current')
+      .update({ qty: newQty, last_updated_at: new Date().toISOString() })
+      .eq('id', existing.id);
+    if (!deptId) centralCache[itemId] = newQty;
+    return newQty;
+  } else {
+    await supabaseClient.from('stock_current')
+      .insert({ item_id: itemId, dept_id: deptId || null, qty: deltaQty, last_updated_at: new Date().toISOString() });
+    if (!deptId) centralCache[itemId] = deltaQty;
+    return deltaQty;
   }
 }
 
+async function getStockQty(itemId, deptId) {
+  var q = supabaseClient.from('stock_current').select('qty').eq('item_id', itemId);
+  q = deptId ? q.eq('dept_id', deptId) : q.is('dept_id', null);
+  var { data } = await q.maybeSingle();
+  return data?.qty || 0;
+}
+
 /* ════════════════════════════════
-   입고 탭
+   입고 탭 — 발주서 품목별 입고 (부분입고 가능) / 직접 입고
 ════════════════════════════════ */
 function initReceiptGrid() {
   var colDefs = [
@@ -199,6 +144,9 @@ function initReceiptGrid() {
       headerClass: 'ag-left-header',
       cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-start' },
       cellRenderer: function(p) { return ts(p.value?.item_name || '-'); }
+    },
+    { headerName: '연계 발주', field: 'purchase_orders', width: 130,
+      cellRenderer: function(p) { return p.value?.order_no ? '<code style="font-size:11px;">' + ts(p.value.order_no) + '</code>' : '<span style="color:#9ca3af;">직접입고</span>'; }
     },
     { headerName: '입고단위', field: 'purchase_unit', width: 80,
       cellRenderer: function(p) { return ts(p.value || '-'); }
@@ -237,7 +185,7 @@ async function loadReceipts(page) {
 
     var q = supabaseClient
       .from('stock_receipts')
-      .select('*, items(item_name)', { count: 'exact' })
+      .select('*, items(item_name), purchase_orders(order_no)', { count: 'exact' })
       .order('receipt_date', { ascending: false })
       .range(from, to);
 
@@ -262,36 +210,112 @@ async function loadReceipts(page) {
 
 /* ── 입고 등록 모달 ── */
 function openAddReceipt() {
+  setVal('r_order_id', '');
   setVal('r_item_id', '');
   setVal('r_receipt_date', new Date().toISOString().slice(0, 10));
   setVal('r_receipt_qty', '1');
   setVal('r_use_qty', '');
   setVal('r_unit_price', '0');
   setVal('r_supply_price', '0');
-  setVal('r_order_id', '');
   setVal('r_memo', '');
+  orderItemsMap = {};
+  populateReceiptItemSelect(itemCache);
   updateReceiptInfo();
   openModal('receiptModal');
+}
+
+/** 발주 선택에 따라 자재 select 옵션 갱신 */
+function populateReceiptItemSelect(list, labelFn) {
+  var sel = document.getElementById('r_item_id');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">자재 선택</option>' +
+    list.map(function(it) {
+      var label = labelFn ? labelFn(it) : it.item_name;
+      return '<option value="' + it.id + '">' + ts(label) + '</option>';
+    }).join('');
+}
+
+async function onReceiptOrderChange() {
+  var orderId = val('r_order_id');
+  orderItemsMap = {};
+  if (!orderId) {
+    populateReceiptItemSelect(itemCache);
+    updateReceiptInfo();
+    return;
+  }
+  var { data: poItems, error } = await supabaseClient
+    .from('purchase_order_items')
+    .select('id, item_id, order_qty, received_qty, unit_price, purchase_unit, use_unit, items(item_name)')
+    .eq('order_id', orderId);
+  if (error) { alert('발주 품목 조회 실패: ' + error.message); return; }
+
+  var openItems = (poItems || []).filter(function(r) { return (r.received_qty || 0) < r.order_qty; });
+  openItems.forEach(function(r) {
+    orderItemsMap[r.item_id] = {
+      order_item_id: r.id,
+      order_qty:     r.order_qty,
+      received_qty:  r.received_qty || 0,
+      unit_price:    r.unit_price,
+      purchase_unit: r.purchase_unit,
+      use_unit:      r.use_unit,
+    };
+  });
+
+  var listForSelect = openItems.map(function(r) {
+    return { id: r.item_id, item_name: r.items?.item_name || '-', _remain: r.order_qty - (r.received_qty || 0) };
+  });
+  if (!listForSelect.length) {
+    populateReceiptItemSelect([]);
+    alert('이 발주서는 모든 품목이 입고 완료되었습니다.');
+  } else {
+    populateReceiptItemSelect(listForSelect, function(it) {
+      return it.item_name + ' (잔여 ' + it._remain + ')';
+    });
+  }
+  updateReceiptInfo();
 }
 
 function updateReceiptInfo() {
   var itemId = val('r_item_id');
   var item   = itemCache.find(function(it) { return it.id === itemId; });
+  var ordInfo = orderItemsMap[itemId];
+
   if (item) {
-    var qty      = Number(val('r_receipt_qty') || 1);
-    var useQty   = qty * (item.purchase_unit_qty || 1);
-    var price    = Number(val('r_unit_price') || 0);
-    var supply   = qty * price;
-    setVal('r_use_qty',     useQty);
-    setVal('r_supply_price', supply);
-    // 안내 정보
-    document.getElementById('rPurchaseUnit').textContent = item.purchase_unit || '-';
-    document.getElementById('rUseUnit').textContent      = item.use_unit      || '-';
-    document.getElementById('rUnitQty').textContent      = item.purchase_unit_qty || 1;
-    document.getElementById('rCurrentQty').textContent   = (currentCache[itemId] || 0) + ' ' + (item.use_unit || '');
+    var purchaseUnit = ordInfo?.purchase_unit || item.purchase_unit;
+    var useUnit      = ordInfo?.use_unit      || item.use_unit;
+    var unitQty      = item.purchase_unit_qty || 1;
+
+    if (ordInfo) {
+      setVal('r_receipt_qty', Math.max(1, ordInfo.order_qty - ordInfo.received_qty));
+      setVal('r_unit_price',  ordInfo.unit_price || 0);
+    }
+
+    var qty    = Number(val('r_receipt_qty') || 1);
+    var useQty = qty * unitQty;
+    var price  = Number(val('r_unit_price') || 0);
+    setVal('r_use_qty',      useQty);
+    setVal('r_supply_price', qty * price);
+
+    document.getElementById('rPurchaseUnit').textContent = purchaseUnit || '-';
+    document.getElementById('rUseUnit').textContent      = useUnit      || '-';
+    document.getElementById('rUnitQty').textContent      = unitQty;
+    document.getElementById('rCurrentQty').textContent   = (centralCache[itemId] || 0) + ' ' + (useUnit || '');
+    document.getElementById('rItemInfo').style.display   = 'flex';
   } else {
     setVal('r_use_qty', ''); setVal('r_supply_price', '');
+    document.getElementById('rItemInfo').style.display = 'none';
   }
+}
+
+function recalcReceiptInfo() {
+  var itemId = val('r_item_id');
+  var item   = itemCache.find(function(it) { return it.id === itemId; });
+  if (!item) return;
+  var unitQty = item.purchase_unit_qty || 1;
+  var qty     = Number(val('r_receipt_qty') || 1);
+  var price   = Number(val('r_unit_price') || 0);
+  setVal('r_use_qty', qty * unitQty);
+  setVal('r_supply_price', qty * price);
 }
 
 async function saveReceipt() {
@@ -304,13 +328,22 @@ async function saveReceipt() {
   var unitPrice  = Number(val('r_unit_price') || 0);
   if (receiptQty < 1) throw new Error('입고 수량은 1 이상이어야 합니다.');
 
-  var receiptNo = await genReceiptNo();
+  var orderId = val('r_order_id') || null;
+  var ordInfo = orderId ? orderItemsMap[itemId] : null;
+  if (orderId && ordInfo && receiptQty > (ordInfo.order_qty - ordInfo.received_qty)) {
+    if (!confirm('입고수량이 발주 잔여수량(' + (ordInfo.order_qty - ordInfo.received_qty) + ')을 초과합니다. 계속하시겠습니까?')) {
+      throw new Error('입고 취소됨');
+    }
+  }
+
+  var receiptNo = await genDocNo('RC');
   var payload = {
     receipt_no:        receiptNo,
     item_id:           itemId,
-    order_id:          val('r_order_id') || null,
+    order_id:          orderId,
+    order_item_id:     ordInfo ? ordInfo.order_item_id : null,
     receipt_date:      val('r_receipt_date'),
-    purchase_unit:     item.purchase_unit,
+    purchase_unit:     ordInfo?.purchase_unit || item.purchase_unit,
     purchase_unit_qty: item.purchase_unit_qty || 1,
     receipt_qty:       receiptQty,
     unit_price:        unitPrice,
@@ -320,100 +353,92 @@ async function saveReceipt() {
   var { error } = await supabaseClient.from('stock_receipts').insert(payload);
   if (error) throw new Error(error.message);
 
-  // stock_transactions에 IN 기록
+  // stock_transactions에 IN 기록 (중앙창고, dept_id=NULL)
   var useQty = receiptQty * (item.purchase_unit_qty || 1);
   var { error: te } = await supabaseClient.from('stock_transactions').insert({
     item_id:  itemId,
+    dept_id:  null,
     tx_type:  'IN',
     tx_date:  val('r_receipt_date'),
     qty:      useQty,
-    use_unit: item.use_unit || item.unit || '',
+    use_unit: ordInfo?.use_unit || item.use_unit || item.unit || '',
     ref_type: 'receipt',
     memo:     val('r_memo'),
   });
   if (te) throw new Error('이력 기록 실패: ' + te.message);
 
-  // stock_current upsert
-  await upsertStockCurrent(itemId, useQty);
+  // 중앙창고 재고 적립
+  await upsertStockCurrent(itemId, useQty, null);
+
+  // 발주서 품목별 입고 처리 (부분입고)
+  if (ordInfo) {
+    var newReceived = ordInfo.received_qty + receiptQty;
+    await supabaseClient.from('purchase_order_items')
+      .update({ received_qty: newReceived }).eq('id', ordInfo.order_item_id);
+    await recalcOrderStatus(orderId);
+  }
 }
 
-async function genReceiptNo() {
-  var year = new Date().getFullYear();
-  var { data, error } = await supabaseClient.rpc('next_doc_seq', { p_prefix: 'RC', p_year: year });
-  if (error || data == null) return 'RC-' + year + '-' + Date.now().toString().slice(-6);
-  return 'RC-' + year + '-' + String(data).padStart(4, '0');
+/** 발주서의 모든 품목 입고 상태를 보고 PARTIAL/COMPLETED 로 갱신 + 연계 발주요청 상태 동기화 */
+async function recalcOrderStatus(orderId) {
+  var { data: items } = await supabaseClient
+    .from('purchase_order_items').select('order_qty, received_qty').eq('order_id', orderId);
+  if (!items || !items.length) return;
+
+  var allDone  = items.every(function(i) { return (i.received_qty || 0) >= i.order_qty; });
+  var anyDone  = items.some(function(i) { return (i.received_qty || 0) > 0; });
+  var newStatus = allDone ? 'COMPLETED' : (anyDone ? 'PARTIAL' : null);
+  if (newStatus) {
+    await supabaseClient.from('purchase_orders')
+      .update({ status: newStatus, updated_at: new Date().toISOString() }).eq('id', orderId);
+  }
+  await syncLinkedRequestStatuses(orderId);
 }
 
-async function upsertStockCurrent(itemId, deltaQty) {
-  var { data: existing } = await supabaseClient
-    .from('stock_current').select('id, qty').eq('item_id', itemId).maybeSingle();
-  if (existing) {
-    await supabaseClient.from('stock_current')
-      .update({ qty: existing.qty + deltaQty, last_updated_at: new Date().toISOString() })
-      .eq('id', existing.id);
-    currentCache[itemId] = existing.qty + deltaQty;
-  } else {
-    await supabaseClient.from('stock_current')
-      .insert({ item_id: itemId, qty: deltaQty, last_updated_at: new Date().toISOString() });
-    currentCache[itemId] = deltaQty;
+/** 발주요청 상태를 발주서 진행상황에 맞춰 재계산 (procurement.js 와 동일 로직의 로컬 사본) */
+async function syncLinkedRequestStatuses(orderId) {
+  try {
+    var { data: poItems } = await supabaseClient
+      .from('purchase_order_items').select('id').eq('order_id', orderId);
+    var poItemIds = (poItems || []).map(function(i) { return i.id; });
+    if (!poItemIds.length) return;
+
+    var { data: reqItems } = await supabaseClient
+      .from('purchase_request_items').select('request_id, order_item_id').in('order_item_id', poItemIds);
+    var requestIds = Array.from(new Set((reqItems || []).map(function(r) { return r.request_id; })));
+
+    for (var i = 0; i < requestIds.length; i++) {
+      var { data: items } = await supabaseClient
+        .from('purchase_request_items')
+        .select('order_item_id, purchase_order_items(order_qty, received_qty, purchase_orders(status))')
+        .eq('request_id', requestIds[i]);
+      var linked = (items || []).filter(function(it) { return it.order_item_id; });
+      if (!linked.length) continue;
+      var statuses = linked.map(function(it) { return it.purchase_order_items?.purchase_orders?.status; });
+      var newStatus = 'PROCESSING';
+      if (statuses.every(function(s) { return s === 'COMPLETED'; })) newStatus = 'COMPLETED';
+      else if (statuses.some(function(s) { return s === 'PARTIAL' || s === 'COMPLETED'; })) newStatus = 'PARTIAL';
+      else if (statuses.some(function(s) { return s === 'ORDERED'; })) newStatus = 'ORDERED';
+
+      await supabaseClient.from('purchase_requests')
+        .update({ status: newStatus, updated_at: new Date().toISOString() }).eq('id', requestIds[i]);
+    }
+  } catch(e) {
+    console.warn('[syncLinkedRequestStatuses]', e);
   }
 }
 
 /* ════════════════════════════════
-   출고 모달
+   불출 탭 — 중앙창고 → 부서
 ════════════════════════════════ */
-function openAddOut() {
-  setVal('o_item_id', '');
-  setVal('o_tx_date', new Date().toISOString().slice(0, 10));
-  setVal('o_qty', '1');
-  setVal('o_memo', '');
-  document.getElementById('oUseUnit').textContent   = '-';
-  document.getElementById('oCurrentQty').textContent = '-';
-  openModal('outModal');
-}
-
-function updateOutInfo() {
-  var itemId = val('o_item_id');
-  var item   = itemCache.find(function(it) { return it.id === itemId; });
-  document.getElementById('oUseUnit').textContent    = item ? (item.use_unit || item.unit || '-') : '-';
-  document.getElementById('oCurrentQty').textContent = item ? (fmtN(currentCache[itemId] || 0) + ' ' + (item.use_unit || '')) : '-';
-}
-
-async function saveOut() {
-  var itemId = val('o_item_id');
-  if (!itemId) throw new Error('자재를 선택해주세요.');
-  var item = itemCache.find(function(it) { return it.id === itemId; });
-  var qty  = Number(val('o_qty') || 0);
-  if (qty < 1) throw new Error('출고 수량은 1 이상이어야 합니다.');
-  var current = currentCache[itemId] || 0;
-  if (qty > current) throw new Error('출고 수량(' + qty + ')이 현재고(' + current + ')를 초과합니다.');
-
-  var { error } = await supabaseClient.from('stock_transactions').insert({
-    item_id:  itemId,
-    tx_type:  'OUT',
-    tx_date:  val('o_tx_date'),
-    qty:      -qty,
-    use_unit: item?.use_unit || item?.unit || '',
-    memo:     val('o_memo'),
-  });
-  if (error) throw new Error(error.message);
-
-  await upsertStockCurrent(itemId, -qty);
-}
-
-/* ════════════════════════════════
-   입출고 이력 탭
-════════════════════════════════ */
-function initTxGrid() {
+function initDispatchGrid() {
   var colDefs = [
-    { headerName: '유형', field: 'tx_type', width: 80,
-      cellRenderer: function(p) {
-        var s = document.createElement('span');
-        s.innerHTML = badgeTx(p.value);
-        return s;
-      }
+    { headerName: '불출번호', field: 'dispatch_no', width: 140,
+      headerClass: 'ag-left-header',
+      cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-start' },
+      cellRenderer: function(p) { return '<code style="font-size:11px;">' + ts(p.value || '-') + '</code>'; }
     },
-    { headerName: '날짜', field: 'tx_date', width: 100,
+    { headerName: '불출일', field: 'dispatch_date', width: 100,
       cellRenderer: function(p) { return fmtDate(p.value); }
     },
     { headerName: '자재명', field: 'items', flex: 2,
@@ -421,19 +446,223 @@ function initTxGrid() {
       cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-start' },
       cellRenderer: function(p) { return ts(p.value?.item_name || '-'); }
     },
-    { headerName: '수량', field: 'qty', width: 90,
+    { headerName: '받은 부서', field: 'departments', flex: 1,
+      headerClass: 'ag-left-header',
+      cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-start' },
+      cellRenderer: function(p) { return ts(p.value?.dept_name || '-'); }
+    },
+    { headerName: '불출수량', field: 'dispatch_qty', width: 100,
+      cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-end' },
+      cellRenderer: function(p) { return fmtN(p.value) + ' ' + ts(p.data.use_unit || ''); }
+    },
+    { headerName: '메모', field: 'memo', flex: 1,
+      headerClass: 'ag-left-header',
+      cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-start' },
+      cellRenderer: function(p) { return ts(p.value || '-'); }
+    },
+  ];
+  _gridDispatch = createMgGrid('dispatchGrid', colDefs, [], { noRowsText: '불출 내역이 없습니다.' });
+}
+
+async function loadDispatches(page) {
+  var st = stState.dispatch;
+  if (st.loading) return;
+  st.loading = true;
+  page = page || st.page;
+  showGlobalLoading('불출 목록을 불러오는 중...');
+  try {
+    var from = (page - 1) * st.pageSize;
+    var to   = from + st.pageSize - 1;
+    var deptId   = val('dispatchDeptFilter');
+    var dateFrom = val('dispatchDateFrom');
+    var dateTo   = val('dispatchDateTo');
+
+    var q = supabaseClient
+      .from('stock_dispatch')
+      .select('*, items(item_name), departments(dept_name)', { count: 'exact' })
+      .order('dispatch_date', { ascending: false })
+      .range(from, to);
+
+    if (deptId)   q = q.eq('dept_id', deptId);
+    if (dateFrom) q = q.gte('dispatch_date', dateFrom);
+    if (dateTo)   q = q.lte('dispatch_date', dateTo);
+
+    var { data, error, count } = await q;
+    if (error) throw new Error(error.message);
+
+    st.page       = page;
+    st.totalPages = Math.max(1, Math.ceil((count || 0) / st.pageSize));
+    if (!_gridDispatch) initDispatchGrid();
+    if (_gridDispatch) _gridDispatch.setGridOption('rowData', data || []);
+    renderPagination('dispatchPagination', st, loadDispatches);
+  } catch(e) {
+    alert('불출 목록 로드 실패: ' + e.message);
+  } finally {
+    st.loading = false;
+    hideGlobalLoading();
+  }
+}
+
+function openAddDispatch() {
+  setVal('d_item_id', '');
+  setVal('d_dept_id', '');
+  setVal('d_dispatch_date', new Date().toISOString().slice(0, 10));
+  setVal('d_qty', '1');
+  setVal('d_memo', '');
+  document.getElementById('dUseUnit').textContent    = '-';
+  document.getElementById('dCurrentQty').textContent = '-';
+  openModal('dispatchModal');
+}
+
+function updateDispatchInfo() {
+  var itemId = val('d_item_id');
+  var item   = itemCache.find(function(it) { return it.id === itemId; });
+  document.getElementById('dUseUnit').textContent    = item ? (item.use_unit || item.unit || '-') : '-';
+  document.getElementById('dCurrentQty').textContent = item ? (fmtN(centralCache[itemId] || 0) + ' ' + (item.use_unit || '')) : '-';
+}
+
+async function saveDispatch() {
+  var itemId = val('d_item_id');
+  var deptId = val('d_dept_id');
+  if (!itemId) throw new Error('자재를 선택해주세요.');
+  if (!deptId) throw new Error('받을 부서를 선택해주세요.');
+  var item = itemCache.find(function(it) { return it.id === itemId; });
+  var qty  = Number(val('d_qty') || 0);
+  if (qty < 1) throw new Error('불출 수량은 1 이상이어야 합니다.');
+
+  var central = await getStockQty(itemId, null);
+  if (qty > central) throw new Error('불출 수량(' + qty + ')이 중앙창고 현재고(' + central + ')를 초과합니다.');
+
+  var dispatchNo = await genDocNo('SD');
+  var useUnit = item?.use_unit || item?.unit || '';
+
+  var { data: newDispatch, error } = await supabaseClient.from('stock_dispatch').insert({
+    dispatch_no:   dispatchNo,
+    item_id:       itemId,
+    dept_id:       deptId,
+    dispatch_date: val('d_dispatch_date'),
+    dispatch_qty:  qty,
+    use_unit:      useUnit,
+    memo:          val('d_memo'),
+  }).select().single();
+  if (error) throw new Error(error.message);
+
+  // 이력: 중앙창고 OUT, 부서 IN
+  var { error: te1 } = await supabaseClient.from('stock_transactions').insert([
+    { item_id: itemId, dept_id: null,   tx_type: 'OUT', tx_date: val('d_dispatch_date'), qty: -qty, use_unit: useUnit, ref_type: 'dispatch', ref_id: newDispatch.id, memo: val('d_memo') },
+    { item_id: itemId, dept_id: deptId, tx_type: 'IN',  tx_date: val('d_dispatch_date'), qty:  qty, use_unit: useUnit, ref_type: 'dispatch', ref_id: newDispatch.id, memo: val('d_memo') },
+  ]);
+  if (te1) throw new Error('이력 기록 실패: ' + te1.message);
+
+  await upsertStockCurrent(itemId, -qty, null);
+  await upsertStockCurrent(itemId,  qty, deptId);
+}
+
+/* ════════════════════════════════
+   부서별재고 탭
+════════════════════════════════ */
+function initDeptStockGrid() {
+  var colDefs = [
+    { headerName: '부서', field: 'departments', flex: 1,
+      headerClass: 'ag-left-header',
+      cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-start' },
+      cellRenderer: function(p) { return ts(p.value?.dept_name || '-'); }
+    },
+    { headerName: '자재명', field: 'items', flex: 2,
+      headerClass: 'ag-left-header',
+      cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-start' },
+      cellRenderer: function(p) { return ts(p.value?.item_name || '-'); }
+    },
+    { headerName: '사용단위', field: 'items', width: 80,
+      cellRenderer: function(p) { return ts(p.value?.use_unit || p.value?.unit || '-'); }
+    },
+    { headerName: '현재고', field: 'qty', width: 100,
       cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-end' },
       cellRenderer: function(p) {
-        var v = p.value || 0;
-        var color = v > 0 ? '#059669' : '#dc2626';
-        return '<span style="color:' + color + ';font-weight:700;">' + (v > 0 ? '+' : '') + fmtN(v) + '</span>';
+        var qty = p.value || 0;
+        var item = p.data?.items;
+        var reorder = item?.reorder_point;
+        var cls = qty === 0 ? 'stock-qty-zero' : (reorder && qty <= reorder ? 'stock-qty-low' : 'stock-qty-ok');
+        return '<span class="' + cls + '">' + fmtN(qty) + '</span>';
       }
     },
-    { headerName: '사용단위', field: 'use_unit', width: 80,
-      cellRenderer: function(p) { return ts(p.value || '-'); }
+    { headerName: '최종갱신', field: 'last_updated_at', width: 140,
+      cellRenderer: function(p) {
+        return p.value ? new Date(p.value).toLocaleString('ko-KR',{hour12:false}).slice(0,16) : '-';
+      }
     },
-    { headerName: '참조유형', field: 'ref_type', width: 90,
-      cellRenderer: function(p) { return ts(p.value || '-'); }
+  ];
+  _gridDeptStock = createMgGrid('deptStockGrid', colDefs, [], { noRowsText: '부서별 재고 데이터가 없습니다.' });
+}
+
+async function loadDeptStock(page) {
+  var st = stState.deptstock;
+  if (st.loading) return;
+  st.loading = true;
+  page = page || st.page;
+  showGlobalLoading('부서별 재고를 불러오는 중...');
+  try {
+    var from = (page - 1) * st.pageSize;
+    var to   = from + st.pageSize - 1;
+    var deptId  = val('deptStockDeptFilter');
+    var keyword = val('deptStockKeyword');
+
+    var q = supabaseClient
+      .from('stock_current')
+      .select('*, items(item_name, use_unit, unit, reorder_point), departments(dept_name)', { count: 'exact' })
+      .not('dept_id', 'is', null)
+      .order('last_updated_at', { ascending: false })
+      .range(from, to);
+
+    if (deptId) q = q.eq('dept_id', deptId);
+    if (keyword) {
+      var { data: matchItems } = await supabaseClient
+        .from('items').select('id').ilike('item_name', '%' + keyword + '%');
+      var ids = (matchItems || []).map(function(m) { return m.id; });
+      if (ids.length) q = q.in('item_id', ids);
+      else { _gridDeptStock?.setGridOption('rowData', []); st.loading = false; hideGlobalLoading(); return; }
+    }
+
+    var { data, error, count } = await q;
+    if (error) throw new Error(error.message);
+
+    st.page       = page;
+    st.totalPages = Math.max(1, Math.ceil((count || 0) / st.pageSize));
+    if (!_gridDeptStock) initDeptStockGrid();
+    if (_gridDeptStock) _gridDeptStock.setGridOption('rowData', data || []);
+    renderPagination('deptStockPagination', st, loadDeptStock);
+  } catch(e) {
+    alert('부서별 재고 로드 실패: ' + e.message);
+  } finally {
+    st.loading = false;
+    hideGlobalLoading();
+  }
+}
+
+/* ════════════════════════════════
+   사용처리 탭 — 부서 재고 차감
+════════════════════════════════ */
+function initUseGrid() {
+  var colDefs = [
+    { headerName: '날짜', field: 'tx_date', width: 100,
+      cellRenderer: function(p) { return fmtDate(p.value); }
+    },
+    { headerName: '부서', field: 'departments', flex: 1,
+      headerClass: 'ag-left-header',
+      cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-start' },
+      cellRenderer: function(p) { return ts(p.value?.dept_name || '-'); }
+    },
+    { headerName: '자재명', field: 'items', flex: 2,
+      headerClass: 'ag-left-header',
+      cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-start' },
+      cellRenderer: function(p) { return ts(p.value?.item_name || '-'); }
+    },
+    { headerName: '사용수량', field: 'qty', width: 100,
+      cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-end' },
+      cellRenderer: function(p) {
+        var v = Math.abs(p.value || 0);
+        return '<span style="color:#dc2626;font-weight:700;">-' + fmtN(v) + '</span> ' + ts(p.data.use_unit || '');
+      }
     },
     { headerName: '메모', field: 'memo', flex: 1,
       headerClass: 'ag-left-header',
@@ -446,30 +675,32 @@ function initTxGrid() {
       }
     },
   ];
-  _gridTx = createMgGrid('txGrid', colDefs, [], { noRowsText: '이력이 없습니다.' });
+  _gridUse = createMgGrid('useGrid', colDefs, [], { noRowsText: '사용처리 이력이 없습니다.' });
 }
 
-async function loadTxLog(page) {
-  var st = stState.tx;
+async function loadUseLog(page) {
+  var st = stState.use;
   if (st.loading) return;
   st.loading = true;
   page = page || st.page;
-  showGlobalLoading('이력을 불러오는 중...');
+  showGlobalLoading('사용처리 이력을 불러오는 중...');
   try {
     var from = (page - 1) * st.pageSize;
     var to   = from + st.pageSize - 1;
-    var txType   = val('txTypeFilter');
-    var dateFrom = val('txDateFrom');
-    var dateTo   = val('txDateTo');
+    var deptId   = val('useDeptFilter');
+    var dateFrom = val('useDateFrom');
+    var dateTo   = val('useDateTo');
 
     var q = supabaseClient
       .from('stock_transactions')
-      .select('*, items(item_name)', { count: 'exact' })
+      .select('*, items(item_name), departments(dept_name)', { count: 'exact' })
+      .eq('tx_type', 'OUT')
+      .eq('ref_type', 'use')
       .order('tx_date', { ascending: false })
       .order('created_at', { ascending: false })
       .range(from, to);
 
-    if (txType)   q = q.eq('tx_type', txType);
+    if (deptId)   q = q.eq('dept_id', deptId);
     if (dateFrom) q = q.gte('tx_date', dateFrom);
     if (dateTo)   q = q.lte('tx_date', dateTo);
 
@@ -478,48 +709,150 @@ async function loadTxLog(page) {
 
     st.page       = page;
     st.totalPages = Math.max(1, Math.ceil((count || 0) / st.pageSize));
-    if (!_gridTx) initTxGrid();
-    if (_gridTx) _gridTx.setGridOption('rowData', data || []);
-    renderPagination('txPagination', st, loadTxLog);
+    if (!_gridUse) initUseGrid();
+    if (_gridUse) _gridUse.setGridOption('rowData', data || []);
+    renderPagination('usePagination', st, loadUseLog);
   } catch(e) {
-    alert('이력 로드 실패: ' + e.message);
+    alert('사용처리 이력 로드 실패: ' + e.message);
   } finally {
     st.loading = false;
     hideGlobalLoading();
   }
 }
 
-/* ── 자재 캐시 로드 ── */
-async function loadItemCache() {
-  var { data } = await supabaseClient
+function openAddUse() {
+  setVal('u_dept_id', '');
+  setVal('u_item_id', '');
+  setVal('u_use_date', new Date().toISOString().slice(0, 10));
+  setVal('u_qty', '1');
+  setVal('u_memo', '');
+  document.getElementById('uUseUnit').textContent    = '-';
+  document.getElementById('uCurrentQty').textContent = '-';
+  var itemSel = document.getElementById('u_item_id');
+  if (itemSel) itemSel.innerHTML = '<option value="">먼저 부서를 선택하세요</option>';
+  openModal('useModal');
+}
+
+/** 부서 선택 시 해당 부서가 보유한(재고>0) 자재만 select 옵션으로 채움 */
+async function onUseDeptChange() {
+  var deptId = val('u_dept_id');
+  var itemSel = document.getElementById('u_item_id');
+  if (!itemSel) return;
+  if (!deptId) {
+    itemSel.innerHTML = '<option value="">먼저 부서를 선택하세요</option>';
+    updateUseInfo();
+    return;
+  }
+  var { data, error } = await supabaseClient
+    .from('stock_current')
+    .select('item_id, qty, items(item_name, use_unit, unit)')
+    .eq('dept_id', deptId)
+    .gt('qty', 0);
+  if (error) { alert('부서 재고 조회 실패: ' + error.message); return; }
+
+  if (!data || !data.length) {
+    itemSel.innerHTML = '<option value="">보유 재고가 없습니다</option>';
+  } else {
+    itemSel.innerHTML = '<option value="">자재 선택</option>' +
+      data.map(function(r) {
+        return '<option value="' + r.item_id + '" data-qty="' + r.qty + '" data-unit="' + ts(r.items?.use_unit || r.items?.unit || '') + '">' +
+          ts(r.items?.item_name || '-') + ' (재고 ' + r.qty + ')</option>';
+      }).join('');
+  }
+  updateUseInfo();
+}
+
+function updateUseInfo() {
+  var sel = document.getElementById('u_item_id');
+  var opt = sel?.selectedOptions?.[0];
+  if (opt && opt.value) {
+    document.getElementById('uUseUnit').textContent    = opt.dataset.unit || '-';
+    document.getElementById('uCurrentQty').textContent = (opt.dataset.qty || 0) + ' ' + (opt.dataset.unit || '');
+  } else {
+    document.getElementById('uUseUnit').textContent    = '-';
+    document.getElementById('uCurrentQty').textContent = '-';
+  }
+}
+
+async function saveUse() {
+  var deptId = val('u_dept_id');
+  var itemId = val('u_item_id');
+  if (!deptId) throw new Error('부서를 선택해주세요.');
+  if (!itemId) throw new Error('자재를 선택해주세요.');
+
+  var sel = document.getElementById('u_item_id');
+  var opt = sel?.selectedOptions?.[0];
+  var useUnit = opt?.dataset?.unit || '';
+  var current = Number(opt?.dataset?.qty || 0);
+
+  var qty = Number(val('u_qty') || 0);
+  if (qty < 1) throw new Error('사용 수량은 1 이상이어야 합니다.');
+  if (qty > current) throw new Error('사용 수량(' + qty + ')이 해당 부서 현재고(' + current + ')를 초과합니다.');
+
+  var { error } = await supabaseClient.from('stock_transactions').insert({
+    item_id:  itemId,
+    dept_id:  deptId,
+    tx_type:  'OUT',
+    tx_date:  val('u_use_date'),
+    qty:      -qty,
+    use_unit: useUnit,
+    ref_type: 'use',
+    memo:     val('u_memo'),
+  });
+  if (error) throw new Error(error.message);
+
+  await upsertStockCurrent(itemId, -qty, deptId);
+}
+
+/* ── 자재/부서 캐시 로드 ── */
+async function loadCaches() {
+  var { data: items } = await supabaseClient
     .from('items')
     .select('id, item_name, category, purchase_unit, use_unit, purchase_unit_qty, unit, reorder_point, safety_stock, standard_price')
     .eq('active', 'Y')
     .order('item_name');
-  itemCache = data || [];
+  itemCache = items || [];
 
-  // 입고/출고 모달 자재 select 채우기
+  var { data: depts } = await supabaseClient
+    .from('departments').select('id, dept_name').eq('active', 'Y').order('sort_order');
+  deptCache = depts || [];
+
+  // 입고/불출 모달 자재 select 채우기
   var opts = '<option value="">자재 선택</option>' +
     itemCache.map(function(it) { return '<option value="' + it.id + '">' + ts(it.item_name) + '</option>'; }).join('');
-  var rSel = document.getElementById('r_item_id');
-  var oSel = document.getElementById('o_item_id');
-  if (rSel) rSel.innerHTML = opts;
-  if (oSel) oSel.innerHTML = opts;
+  document.getElementById('d_item_id').innerHTML = opts;
 
-  // 현재고 캐시
-  var { data: sc } = await supabaseClient.from('stock_current').select('item_id, qty');
-  (sc || []).forEach(function(r) { currentCache[r.item_id] = r.qty; });
+  // 부서 select 채우기 (필터들 + 모달)
+  var deptOpts = deptCache.map(function(d) { return '<option value="' + d.id + '">' + ts(d.dept_name) + '</option>'; }).join('');
+  ['dispatchDeptFilter', 'd_dept_id', 'deptStockDeptFilter', 'useDeptFilter', 'u_dept_id'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    var placeholder = id === 'd_dept_id' || id === 'u_dept_id' ? '<option value="">부서 선택</option>' : '<option value="">전체</option>';
+    el.innerHTML = placeholder + deptOpts;
+  });
 
-  // 연결 발주 select (입고 모달)
+  // 중앙창고(dept_id=NULL) 현재고 캐시
+  var { data: sc } = await supabaseClient.from('stock_current').select('item_id, qty').is('dept_id', null);
+  (sc || []).forEach(function(r) { centralCache[r.item_id] = r.qty; });
+
+  // 연결 발주 select (입고 모달) — ORDERED/PARTIAL 상태만
   var { data: orders } = await supabaseClient
     .from('purchase_orders').select('id, order_no')
     .in('status', ['ORDERED', 'PARTIAL'])
     .order('created_at', { ascending: false });
-  var oSel2 = document.getElementById('r_order_id');
-  if (oSel2) {
-    oSel2.innerHTML = '<option value="">발주 없이 직접 입고</option>' +
+  var oSel = document.getElementById('r_order_id');
+  if (oSel) {
+    oSel.innerHTML = '<option value="">발주 없이 직접 입고</option>' +
       (orders || []).map(function(o) { return '<option value="' + o.id + '">' + ts(o.order_no) + '</option>'; }).join('');
   }
+}
+
+/* ── 채번 ── */
+async function genDocNo(prefix) {
+  var year = new Date().getFullYear();
+  var { data, error } = await supabaseClient.rpc('next_doc_seq', { p_prefix: prefix, p_year: year });
+  if (error || data == null) return prefix + '-' + year + '-' + Date.now().toString().slice(-6);
+  return prefix + '-' + year + '-' + String(data).padStart(4, '0');
 }
 
 /* ── 저장 버튼 공통 ── */
@@ -527,59 +860,84 @@ function bindSaveBtn(btnId, saveFn, modalId, refreshFn) {
   document.getElementById(btnId)?.addEventListener('click', async function() {
     var btn = document.getElementById(btnId);
     btn.disabled = true;
+    showGlobalLoading('저장하는 중...');
     try {
       await saveFn();
       closeModal(modalId);
       await refreshFn();
     } catch(e) {
-      alert('저장 실패: ' + e.message);
+      if (e.message !== '입고 취소됨') alert('저장 실패: ' + e.message);
     } finally {
       btn.disabled = false;
+      hideGlobalLoading();
     }
   });
 }
 
 /* ── 검색 이벤트 ── */
 function initSearch() {
-  document.getElementById('currentSearchBtn')?.addEventListener('click',  function() { loadCurrent(1);  });
   document.getElementById('receiptSearchBtn')?.addEventListener('click',  function() { loadReceipts(1); });
-  document.getElementById('txSearchBtn')?.addEventListener('click',        function() { loadTxLog(1);    });
-  document.getElementById('currentItemKeyword')?.addEventListener('keydown', function(e) { if (e.key==='Enter') loadCurrent(1);  });
+  document.getElementById('dispatchSearchBtn')?.addEventListener('click', function() { loadDispatches(1); });
+  document.getElementById('deptStockSearchBtn')?.addEventListener('click', function() { loadDeptStock(1); });
+  document.getElementById('useSearchBtn')?.addEventListener('click', function() { loadUseLog(1); });
+  document.getElementById('deptStockKeyword')?.addEventListener('keydown', function(e) { if (e.key==='Enter') loadDeptStock(1); });
 
-  // 입고 모달 — 자재/수량/단가 변경 시 자동 계산
+  // 입고 모달
+  document.getElementById('r_order_id')?.addEventListener('change', onReceiptOrderChange);
   document.getElementById('r_item_id')?.addEventListener('change', updateReceiptInfo);
-  document.getElementById('r_receipt_qty')?.addEventListener('input', updateReceiptInfo);
-  document.getElementById('r_unit_price')?.addEventListener('input', updateReceiptInfo);
+  document.getElementById('r_receipt_qty')?.addEventListener('input', recalcReceiptInfo);
+  document.getElementById('r_unit_price')?.addEventListener('input', recalcReceiptInfo);
 
-  // 출고 모달 — 자재 변경 시 정보 갱신
-  document.getElementById('o_item_id')?.addEventListener('change', updateOutInfo);
+  // 불출 모달
+  document.getElementById('d_item_id')?.addEventListener('change', updateDispatchInfo);
+
+  // 사용처리 모달
+  document.getElementById('u_dept_id')?.addEventListener('change', onUseDeptChange);
+  document.getElementById('u_item_id')?.addEventListener('change', updateUseInfo);
+}
+
+/* ── 접근 권한 (자재담당자 = manager 또는 admin) ── */
+async function guardAccess() {
+  var session = await auth.requireAuth();
+  if (!session) return null;
+  var user = await auth.getSession();
+  if (user.role !== 'admin' && user.role !== 'manager') {
+    alert('자재담당자(또는 관리자)만 접근할 수 있습니다.');
+    location.replace(CONFIG.SITE_BASE_URL + '/app.html');
+    return null;
+  }
+  return user;
 }
 
 /* ── 초기화 ── */
 async function init() {
-  var currentUser = await auth.requireAuth();
-  if (!currentUser) return;
+  var user = await guardAccess();
+  if (!user) return;
 
   initTabs();
   initSearch();
 
-  initCurrentGrid();  // current 탭이 기본 활성 → 즉시 초기화
-  // receiptGrid, txGrid는 탭 전환 시 lazy 초기화 (display:none 상태에서 height=0 방지)
+  initReceiptGrid();  // receipt 탭이 기본 활성 → 즉시 초기화
+  // dispatchGrid, deptStockGrid, useGrid는 탭 전환 시 lazy 초기화
 
   document.getElementById('addReceiptBtn')?.addEventListener('click', openAddReceipt);
-  document.getElementById('outBtn')?.addEventListener('click', openAddOut);
+  document.getElementById('addDispatchBtn')?.addEventListener('click', openAddDispatch);
+  document.getElementById('addUseBtn')?.addEventListener('click', openAddUse);
 
   bindSaveBtn('receiptSaveBtn', saveReceipt, 'receiptModal', function() {
-    return Promise.all([loadCurrent(1), loadReceipts(1)]);
+    return loadReceipts(1);
   });
-  bindSaveBtn('outSaveBtn', saveOut, 'outModal', function() {
-    return Promise.all([loadCurrent(1), loadTxLog(1)]);
+  bindSaveBtn('dispatchSaveBtn', saveDispatch, 'dispatchModal', function() {
+    return loadDispatches(1);
+  });
+  bindSaveBtn('useSaveBtn', saveUse, 'useModal', function() {
+    return loadUseLog(1);
   });
 
   showGlobalLoading('데이터를 불러오는 중...');
   try {
-    await loadItemCache();
-    await Promise.all([loadCurrent(1), loadReceipts(1), loadTxLog(1)]);
+    await loadCaches();
+    await loadReceipts(1);
   } catch(e) {
     alert('초기화 실패: ' + e.message);
   } finally {
