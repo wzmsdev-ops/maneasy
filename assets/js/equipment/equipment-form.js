@@ -59,50 +59,50 @@ async function loadEquipment(id) {
 }
 
 function fillForm(eq) {
-  setVal('equipmentName',       eq.equipment_name);
-  setVal('modelName',           eq.model_name);
+  setVal('equipment_name',       eq.equipment_name);
+  setVal('model_name',           eq.model_name);
   setVal('manufacturer',        eq.manufacturer);
-  setVal('manufactureDate',     eq.manufacture_date);
-  setVal('purchaseDate',        eq.purchase_date);
-  setVal('serialNo',            eq.serial_no);
+  setVal('manufacture_date',     eq.manufacture_date);
+  setVal('purchase_date',        eq.purchase_date);
+  setVal('serial_no',            eq.serial_no);
   setVal('vendor',              eq.vendor);
-  setVal('acquisitionCost',     eq.acquisition_cost ?? '');
-  setVal('maintenanceEndDate',  eq.maintenance_end_date);
-  setVal('clinicName',          eq.clinic_name);
-  setVal('teamName',            eq.team_name);
-  setVal('department',          eq.department);
+  setVal('acquisition_cost',     eq.acquisition_cost ?? '');
+  setVal('maintenance_end_date',  eq.maintenance_end_date);
+  // clinic_name, team_name은 select option에서 읽으므로 별도 세팅 불필요
+  setVal('department_preview',   eq.department);
   setVal('location',            eq.location);
-  setVal('currentUserName',     eq.current_user_name);
+  setVal('current_user',     eq.current_user_name);
   setVal('status',              eq.status);
   setVal('memo',                eq.memo);
-  setVal('managerName',         eq.manager_name);
-  setVal('managerPhone',        eq.manager_phone);
+  setVal('manager_name',         eq.manager_name);
+  setVal('manager_phone',        eq.manager_phone);
 
   // select 값 세팅 (의원/부서)
   const clinicSel = document.getElementById('clinic_code');
   const teamSel   = document.getElementById('team_code');
+
   if (clinicSel && eq.clinic_code) {
-    // 1) 의원 select에 해당 옵션이 실제로 있는지 확인 후 세팅
     const clinicOpt = Array.from(clinicSel.options).find(o => o.value === eq.clinic_code);
     if (clinicOpt) {
       clinicSel.value = eq.clinic_code;
-      clinicSel.dispatchEvent(new Event('change'));  // → fillDeptSelect 실행
+      clinicSel.dispatchEvent(new Event('change'));  // fillDeptSelect 실행 (동기)
     }
   }
+
   if (teamSel && eq.team_code) {
-    // fillDeptSelect가 동기라서 dispatchEvent 직후 옵션이 채워짐
-    // 그래도 nextTick으로 안전하게 처리
-    const setTeam = () => {
+    const trySetTeam = () => {
       const teamOpt = Array.from(teamSel.options).find(o => o.value === eq.team_code);
       if (teamOpt) {
         teamSel.value = eq.team_code;
-        // team_name도 수동으로 세팅 (change 이벤트 없이)
-        setVal('teamName', teamOpt.textContent.trim());
+        teamSel.dispatchEvent(new Event('change'));  // team_name hidden 세팅
+        return true;
       }
+      return false;
     };
-    // 즉시 시도 후 실패하면 setTimeout으로 재시도
-    setTeam();
-    if (teamSel.value !== eq.team_code) setTimeout(setTeam, 100);
+    if (!trySetTeam()) {
+      // fillDeptSelect가 아직 안 됐으면 재시도
+      setTimeout(trySetTeam, 150);
+    }
   }
 
   if (eq.photo_url) renderPhotoPreview(eq.photo_url);
@@ -113,24 +113,26 @@ async function saveEquipment() {
   const { data: { session } } = await supabaseClient.auth.getSession();
 
   const payload = {
-    equipment_name:       val('equipmentName'),
-    model_name:           val('modelName'),
+    equipment_name:       val('equipment_name'),
+    model_name:           val('model_name'),
     manufacturer:         val('manufacturer'),
-    manufacture_date:     val('manufactureDate') || null,
-    purchase_date:        val('purchaseDate') || null,
-    serial_no:            val('serialNo'),
+    manufacture_date:     val('manufacture_date') || null,
+    purchase_date:        val('purchase_date') || null,
+    serial_no:            val('serial_no'),
     vendor:               val('vendor'),
-    acquisition_cost:     val('acquisitionCost') ? Number(val('acquisitionCost')) : null,
-    maintenance_end_date: val('maintenanceEndDate') || null,
-    clinic_name:          val('clinicName'),
-    team_name:            val('teamName'),
-    department:           val('department'),
+    acquisition_cost:     val('acquisition_cost') ? Number(val('acquisition_cost')) : null,
+    maintenance_end_date: val('maintenance_end_date') || null,
+    clinic_code:          (function() { const s = document.getElementById('clinic_code'); return s ? s.value : ''; })(),
+    clinic_name:          (function() { const s = document.getElementById('clinic_code'); return s && s.selectedIndex > 0 ? s.options[s.selectedIndex].textContent.trim() : ''; })(),
+    team_code:            (function() { const s = document.getElementById('team_code'); return s ? s.value : ''; })(),
+    team_name:            (function() { const s = document.getElementById('team_code'); return s && s.selectedIndex > 0 ? s.options[s.selectedIndex].textContent.trim() : ''; })(),
+    department:           val('department_preview'),
     location:             val('location'),
-    current_user_name:    val('currentUserName'),
+    current_user_name:    val('current_user'),
     status:               val('status') || CONFIG.EQUIPMENT_STATUS.IN_USE,
     memo:                 val('memo'),
-    manager_name:         val('managerName'),
-    manager_phone:        val('managerPhone'),
+    manager_name:         val('manager_name'),
+    manager_phone:        val('manager_phone'),
   };
 
   if (!payload.equipment_name) throw new Error('장비명은 필수입니다.');
@@ -209,12 +211,9 @@ async function init() {
         `<option value="${r.clinic_code}">${r.clinic_name}</option>`
       ).join('');
 
-    // 의원 변경 시 부서 연동 + clinic_name 자동 세팅
+    // 의원 변경 시 부서 select 연동 (clinic_name/team_name은 저장 시 select에서 직접 읽음)
     clinicSel.addEventListener('change', () => {
       const code = clinicSel.value;
-      const found = (clinicRows || []).find(r => r.clinic_code === code);
-      setVal('clinicName', found ? found.clinic_name : '');
-      setVal('teamName', '');
       fillDeptSelect(teamSel, deptRows, code);
     });
   }
@@ -229,12 +228,7 @@ async function init() {
   }
   fillDeptSelect(teamSel, deptRows, clinicSel?.value || '');
 
-  // 부서 변경 시 team_name 자동 세팅
-  teamSel?.addEventListener('change', () => {
-    const code = teamSel.value;
-    const found = (deptRows || []).find(d => d.dept_code === code);
-    setVal('teamName', found ? found.dept_name : '');
-  });
+  // 부서 변경 시 team_name은 저장 시 select option에서 직접 읽음 (별도 hidden 불필요)
 
   // 수정 모드 확인
   const params = new URLSearchParams(location.search);
