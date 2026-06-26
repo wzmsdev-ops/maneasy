@@ -107,6 +107,8 @@ function renderHistories(rows) {
   ];
 
   if (_historyGrid) { updateMgGrid(_historyGrid, rows); return; }
+  const hEl = document.getElementById('historyList');
+  if (hEl) { hEl.classList.add('ag-theme-alpine'); if (!hEl.style.height) hEl.style.height = '320px'; }
   _historyGrid = createMgGrid('historyList', cols, rows, {
     pageSize: 10, fit: false, noRowsText: '이력이 없습니다.',
   });
@@ -137,6 +139,8 @@ function renderInventoryLogs(rows) {
   ];
 
   if (_inventoryGrid) { updateMgGrid(_inventoryGrid, rows); return; }
+  const iEl = document.getElementById('inventoryList');
+  if (iEl) { iEl.classList.add('ag-theme-alpine'); if (!iEl.style.height) iEl.style.height = '320px'; }
   _inventoryGrid = createMgGrid('inventoryList', cols, rows, {
     pageSize: 10, fit: false, noRowsText: '재고조사 이력이 없습니다.',
   });
@@ -178,6 +182,8 @@ function renderQcItems(rows) {
   ];
 
   if (_qcGrid) { updateMgGrid(_qcGrid, rows); return; }
+  const qEl = document.getElementById('qcItemList');
+  if (qEl) { qEl.classList.add('ag-theme-alpine'); if (!qEl.style.height) qEl.style.height = '320px'; }
   _qcGrid = createMgGrid('qcItemList', cols, rows, {
     pageSize: 10, fit: false, noRowsText: '등록된 정도관리 항목이 없습니다.',
   });
