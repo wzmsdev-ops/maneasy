@@ -308,4 +308,5 @@ async function init() {
   }
 }
 
+function initQcData() { init(); }
 document.addEventListener('DOMContentLoaded', init);
