@@ -14,77 +14,50 @@
 <div class="app-shell">
 
   <nav class="sidebar" id="sidebar" role="navigation" aria-label="메인 메뉴">
-
     <div class="sb-brand">
       <div class="sb-brand-logo">+</div>
       <div class="sb-brand-text">
         <div class="sb-brand-title">의료장비 관리 시스템</div>
-        <div class="sb-brand-sub" id="sbVersion">데모</div>
+        <div class="sb-brand-sub">데모</div>
       </div>
     </div>
-
     <div class="sb-user">
       <div class="sb-user-info">
         <div class="sb-user-line" id="sbUserLine">로딩 중...</div>
       </div>
     </div>
-
-    <div class="sb-nav" id="sbNav">
-
+    <div class="sb-nav">
       <div class="sb-section-label">의료장비 관리</div>
-
       <button class="sb-item" data-page="equipment/dashboard" onclick="navigate('equipment/dashboard')">
-        <div class="sb-item-inner">
-          <i class="ti ti-layout-dashboard" aria-hidden="true"></i>
-          <span>대시보드</span>
-        </div>
+        <div class="sb-item-inner"><i class="ti ti-layout-dashboard"></i><span>대시보드</span></div>
       </button>
       <button class="sb-item" data-page="equipment/list" onclick="navigate('equipment/list')">
-        <div class="sb-item-inner">
-          <i class="ti ti-list" aria-hidden="true"></i>
-          <span>장비 목록</span>
-        </div>
+        <div class="sb-item-inner"><i class="ti ti-list"></i><span>장비 목록</span></div>
       </button>
       <button class="sb-item" data-page="equipment/form" onclick="navigate('equipment/form')">
-        <div class="sb-item-inner">
-          <i class="ti ti-plus" aria-hidden="true"></i>
-          <span>장비 등록</span>
-        </div>
+        <div class="sb-item-inner"><i class="ti ti-plus"></i><span>장비 등록</span></div>
       </button>
-
       <div class="sb-section-label">정도관리</div>
-
       <button class="sb-item" data-page="qc/items" onclick="navigate('qc/items')">
-        <div class="sb-item-inner">
-          <i class="ti ti-clipboard-list" aria-hidden="true"></i>
-          <span>검사항목 관리</span>
-        </div>
+        <div class="sb-item-inner"><i class="ti ti-clipboard-list"></i><span>검사항목 관리</span></div>
       </button>
       <button class="sb-item" data-page="qc/data" onclick="navigate('qc/data')">
-        <div class="sb-item-inner">
-          <i class="ti ti-edit" aria-hidden="true"></i>
-          <span>데이터 입력</span>
-        </div>
+        <div class="sb-item-inner"><i class="ti ti-edit"></i><span>데이터 입력</span></div>
       </button>
-
     </div>
-
     <div class="sb-footer">
       <button class="sb-logout" onclick="doLogout()">
-        <i class="ti ti-logout" aria-hidden="true"></i>
-        <span>로그아웃</span>
+        <i class="ti ti-logout"></i><span>로그아웃</span>
       </button>
     </div>
-
   </nav>
 
   <div class="sb-overlay" id="sbOverlay" onclick="closeSidebar()"></div>
 
   <div class="shell-main">
     <header class="shell-topbar">
-      <button class="shell-topbar-hamburger" id="hamburgerBtn"
-              onclick="openSidebar()" aria-label="메뉴 열기">
-        <i class="ti ti-menu-2" aria-hidden="true"></i>
+      <button class="shell-topbar-hamburger" onclick="openSidebar()" aria-label="메뉴 열기">
+        <i class="ti ti-menu-2"></i>
       </button>
       <div class="shell-breadcrumb">
         <span class="shell-breadcrumb-app" id="breadcrumbApp">—</span>
@@ -92,7 +65,6 @@
         <span class="shell-breadcrumb-page" id="breadcrumbPage"></span>
       </div>
     </header>
-
     <div class="shell-content">
       <iframe class="shell-iframe" id="shellFrame" src="" title="콘텐츠 영역"></iframe>
     </div>
@@ -138,19 +110,15 @@ function navigate(page, skipHistory) {
   const meta = MENU_META[page] || { app: page, page: '' };
   document.getElementById('breadcrumbApp').textContent = meta.app;
   document.getElementById('breadcrumbPage').textContent = meta.page;
-  const sep = document.getElementById('breadcrumbSep');
-  if (sep) sep.style.display = meta.page ? '' : 'none';
+  document.getElementById('breadcrumbSep').style.display = meta.page ? '' : 'none';
 
-  document.getElementById('shellFrame').src = `${CONFIG.SITE_BASE_URL}/pages/${page}.html`;
+  document.getElementById('shellFrame').src =
+    `${CONFIG.SITE_BASE_URL}/pages/${page}.html`;
 
   document.querySelectorAll('.sb-item.active').forEach(el => el.classList.remove('active'));
-  const active = document.querySelector(`.sb-item[data-page="${page}"]`);
-  if (active) active.classList.add('active');
+  document.querySelector(`.sb-item[data-page="${page}"]`)?.classList.add('active');
 
-  if (!skipHistory) {
-    history.pushState({ page }, '', `?page=${page}`);
-  }
-
+  if (!skipHistory) history.pushState({ page }, '', `?page=${page}`);
   closeSidebar();
 }
 
@@ -158,18 +126,13 @@ function openSidebar() {
   document.getElementById('sidebar').classList.add('is-open');
   document.getElementById('sbOverlay').classList.add('is-visible');
 }
-
 function closeSidebar() {
   document.getElementById('sidebar').classList.remove('is-open');
   document.getElementById('sbOverlay').classList.remove('is-visible');
 }
-
-async function doLogout() {
-  await auth.logout();
-}
+async function doLogout() { await auth.logout(); }
 
 window.shellNavigate = navigate;
-
 window.addEventListener('popstate', e => {
   if (e.state?.page) navigate(e.state.page, true);
 });
