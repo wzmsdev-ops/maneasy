@@ -331,7 +331,8 @@ function createMgGrid(containerId, colDefs, rows, options) {
     sortable: true,
     resizable: true,
     suppressMovable: true,
-    cellStyle: { display: 'flex', alignItems: 'center' },
+    headerClass: 'ag-center-header',
+    cellStyle: { display: 'flex', alignItems: 'center', justifyContent: 'flex-start', fontSize: '13px' },
   };
 
   var gridOptions = {
@@ -342,7 +343,7 @@ function createMgGrid(containerId, colDefs, rows, options) {
     headerHeight: baseH + rem,
     suppressHorizontalScroll: true,
     suppressScrollOnNewData: true,
-    overlayNoRowsTemplate: '<span style="color:#9ca3af;font-size:13px;">' + noRowsText + '</span>',
+    overlayNoRowsTemplate: '<span style="color:#9ca3af;font-size:12px;">' + noRowsText + '</span>',
     onGridReady: function(params) {
       params.api.sizeColumnsToFit();
       window.addEventListener('resize', function() { params.api.sizeColumnsToFit(); });
