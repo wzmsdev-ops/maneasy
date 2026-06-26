@@ -104,6 +104,32 @@
     .badge-role-edit    { background:#ede9fe;color:#6d28d9;padding:1px 7px;border-radius:999px;font-size:10px;font-weight:700; }
     .badge-role-manager { background:#fef3c7;color:#92400e;padding:1px 7px;border-radius:999px;font-size:10px;font-weight:700; }
     .badge-role-user    { background:#f3f4f6;color:#6b7280;padding:1px 7px;border-radius:999px;font-size:10px;font-weight:700; }
+  
+    /* ── AG Grid 스타일 — list.html 동일 ── */
+    .ag-theme-alpine {
+      --ag-font-size: 11px !important;
+      --ag-font-family: "Pretendard", "Noto Sans KR", sans-serif !important;
+      --ag-header-background-color: #f8fafc;
+      --ag-header-foreground-color: #4b5563;
+      --ag-border-color: #e5e7eb;
+      --ag-row-border-color: #f0f0f0;
+      --ag-background-color: #fff;
+      --ag-odd-row-background-color: #fff;
+      --ag-row-hover-color: #f0f5ff;
+      --ag-cell-horizontal-padding: 8px;
+    }
+    .ag-theme-alpine .ag-root-wrapper { border-radius: 8px; overflow: hidden; }
+    .ag-theme-alpine .ag-body-viewport { overflow-x: hidden !important; overflow-y: auto !important; }
+    .ag-theme-alpine .ag-body-horizontal-scroll { display: none !important; }
+    .ag-theme-alpine .ag-header { font-size: 11px; }
+    .ag-theme-alpine .ag-cell { font-size: 11px !important; font-family: "Pretendard", "Noto Sans KR", sans-serif !important; }
+    .ag-theme-alpine .ag-cell * { font-size: 11px !important; }
+    .ag-theme-alpine .ag-header-cell-text { font-size: 11px !important; }
+    .ag-theme-alpine .ag-header-cell-label { justify-content: center; font-weight: 700; }
+    .ag-left-header .ag-header-cell-label { justify-content: flex-start !important; }
+    .ag-theme-alpine .ag-cell { border-right: 1px solid #e5e7eb !important; }
+    .ag-theme-alpine .ag-cell:last-child { border-right: none !important; }
+    .ag-center-header .ag-header-cell-label { justify-content: center; }
   </style>
   <link rel="stylesheet" href="../../assets/libs/ag-grid/ag-grid.min.css" />
   <link rel="stylesheet" href="../../assets/libs/ag-grid/ag-theme-alpine.min.css" />
@@ -127,7 +153,7 @@
           <button class="btn btn-sm btn-primary" id="addClinicBtn"><i class="ti ti-plus"></i> 추가</button>
         </div>
         <div class="m-card-body">
-          <div id="clinicEmpty" class="m-empty">등록된 의원이 없습니다.</div>
+          <div id="clinicEmpty" class="m-empty" style="display:none;">등록된 의원이 없습니다.</div>
           <div id="clinicList" class="m-table-wrap"></div>
         </div>
       </div>
@@ -148,7 +174,7 @@
           </select>
         </div>
         <div class="m-card-body">
-          <div id="deptEmpty" class="m-empty">등록된 부서가 없습니다.</div>
+          <div id="deptEmpty" class="m-empty" style="display:none;">등록된 부서가 없습니다.</div>
           <div id="deptList" class="m-table-wrap"></div>
         </div>
       </div>
@@ -172,7 +198,7 @@
           </select>
         </div>
         <div class="m-card-body">
-          <div id="userEmpty" class="m-empty">등록된 사용자가 없습니다.</div>
+          <div id="userEmpty" class="m-empty" style="display:none;">등록된 사용자가 없습니다.</div>
           <div id="userList" class="m-table-wrap"></div>
         </div>
       </div>
