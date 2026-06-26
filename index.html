@@ -1,135 +1,197 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>업무지원 시스템</title>
-  <link rel="stylesheet" href="assets/css/common.css">
-  <link rel="stylesheet" href="assets/css/pages/auth.css">
-  <link rel="stylesheet" href="assets/font/tabler-icons/tabler-icons.min.css">
-  <style>
-    .auth-tab-bar {
-      display: flex; gap: 0; margin-bottom: 20px;
-      border-bottom: 2px solid #e5e7eb;
-    }
-    .auth-tab {
-      flex: 1; padding: 10px; border: none; background: none;
-      font-size: 14px; font-weight: 600; color: #9ca3af; cursor: pointer;
-      border-bottom: 2px solid transparent; margin-bottom: -2px;
-      transition: color 0.15s, border-color 0.15s;
-    }
-    .auth-tab.is-active { color: #2563eb; border-bottom-color: #2563eb; }
-    .auth-message.is-warn {
-      background: #fffbeb; color: #92400e;
-      border: 1px solid #fcd34d; border-radius: 6px;
-      padding: 8px 12px; font-size: 13px; margin-bottom: 8px;
-    }
-    .auth-message.is-success {
-      background: #f0fdf4; color: #166534;
-      border: 1px solid #bbf7d0; border-radius: 6px;
-      padding: 8px 12px; font-size: 13px; margin-bottom: 8px;
-    }
-  </style>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="assets/css/common.css" />
+  <link rel="stylesheet" href="assets/css/shell.css" />
+  <link rel="stylesheet" href="assets/font/tabler-icons/tabler-icons.min.css" />
 </head>
-<body class="auth-page">
+<body>
 
-  <div class="auth-layout">
-    <div class="auth-panel">
-      <div class="auth-panel-inner">
-        <div class="auth-panel-logo"><span>+</span></div>
-        <h1 class="auth-panel-title">업무지원<br>시스템</h1>
+<div class="app-shell">
+
+  <nav class="sidebar" id="sidebar" role="navigation" aria-label="메인 메뉴">
+    <div class="sb-brand">
+      <img class="sb-brand-img"
+           src="assets/images/logo.png"
+           alt="관리이지 — 의료장비 관리 시스템" />
+    </div>
+    <div class="sb-user">
+      <div class="sb-user-info">
+        <div class="sb-user-line" id="sbUserLine">로딩 중...</div>
+        <div class="sb-user-role" id="sbUserRole"></div>
       </div>
     </div>
+    <div class="sb-nav">
 
-    <div class="auth-form-panel">
-      <div class="auth-form-wrap">
+      <!-- 의료장비 관리 -->
+      <div class="sb-section-label">의료장비 관리</div>
+      <button class="sb-item" data-page="equipment/dashboard" onclick="navigate('equipment/dashboard')">
+        <div class="sb-item-inner"><i class="ti ti-layout-dashboard"></i><span>대시보드</span></div>
+      </button>
+      <button class="sb-item" data-page="equipment/list" onclick="navigate('equipment/list')">
+        <div class="sb-item-inner"><i class="ti ti-list"></i><span>장비 목록</span></div>
+      </button>
+      <button class="sb-item" data-page="equipment/form" onclick="navigate('equipment/form')" id="sbItemEquipmentForm">
+        <div class="sb-item-inner"><i class="ti ti-plus"></i><span>장비 등록</span></div>
+      </button>
 
-        <!-- 탭 -->
-        <div class="auth-tab-bar">
-          <button class="auth-tab" id="tabLogin">로그인</button>
-          <button class="auth-tab" id="tabSignup">회원가입</button>
-        </div>
+      <!-- 정도관리 -->
+      <div class="sb-section-label">정도관리</div>
+      <button class="sb-item" data-page="qc/items" onclick="navigate('qc/items')">
+        <div class="sb-item-inner"><i class="ti ti-clipboard-list"></i><span>검사항목 관리</span></div>
+      </button>
+      <button class="sb-item" data-page="qc/data" onclick="navigate('qc/data')">
+        <div class="sb-item-inner"><i class="ti ti-edit"></i><span>데이터 입력</span></div>
+      </button>
 
-        <div id="authMessage" class="auth-message"></div>
+      <!-- 마스터 관리 — admin만 표시 -->
+      <div class="sb-section-label sb-admin-only" id="sbSectionMaster" style="display:none;">마스터 관리</div>
+      <button class="sb-item sb-admin-only" data-page="master/org" onclick="navigate('master/org')"
+              id="sbItemMasterOrg" style="display:none;">
+        <div class="sb-item-inner"><i class="ti ti-building-hospital"></i><span>의원·부서·사용자</span></div>
+      </button>
+      <button class="sb-item sb-admin-only" data-page="master/supply" onclick="navigate('master/supply')"
+              id="sbItemMasterSupply" style="display:none;">
+        <div class="sb-item-inner"><i class="ti ti-package"></i><span>자재·거래처</span></div>
+      </button>
 
-        <!-- 로그인 패널 -->
-        <div id="panelLogin" class="auth-form">
-          <div class="auth-field">
-            <label for="userEmail">이메일</label>
-            <div class="auth-input-wrap">
-              <i class="ti ti-mail"></i>
-              <input type="email" id="userEmail" placeholder="이메일 주소" autocomplete="username">
-            </div>
-          </div>
-          <div class="auth-field">
-            <label for="userPassword">비밀번호</label>
-            <div class="auth-input-wrap">
-              <i class="ti ti-lock"></i>
-              <input type="password" id="userPassword" placeholder="비밀번호" autocomplete="current-password">
-            </div>
-          </div>
-          <button type="button" class="auth-btn" id="loginBtn">로그인</button>
-          <div class="auth-cache-reset">
-            <button type="button" id="clearCacheBtn">
-              <i class="ti ti-refresh"></i> 접속 문제 · 캐시 초기화
-            </button>
-          </div>
-        </div>
+    </div>
+    <div class="sb-footer">
+      <button class="sb-logout" onclick="doLogout()">
+        <i class="ti ti-logout"></i><span>로그아웃</span>
+      </button>
+    </div>
+  </nav>
 
-        <!-- 회원가입 패널 -->
-        <div id="panelSignup" class="auth-form" style="display:none;">
-          <div class="auth-field">
-            <label for="signupName">이름</label>
-            <div class="auth-input-wrap">
-              <i class="ti ti-user"></i>
-              <input type="text" id="signupName" placeholder="실명을 입력하세요">
-            </div>
-          </div>
-          <div class="auth-field">
-            <label for="signupEmail">이메일</label>
-            <div class="auth-input-wrap">
-              <i class="ti ti-mail"></i>
-              <input type="email" id="signupEmail" placeholder="이메일 주소" autocomplete="username">
-            </div>
-          </div>
-          <div class="auth-field">
-            <label for="signupPassword">비밀번호</label>
-            <div class="auth-input-wrap">
-              <i class="ti ti-lock"></i>
-              <input type="password" id="signupPassword" placeholder="6자 이상" autocomplete="new-password">
-            </div>
-          </div>
-          <div class="auth-field">
-            <label for="signupPassword2">비밀번호 확인</label>
-            <div class="auth-input-wrap">
-              <i class="ti ti-lock-check"></i>
-              <input type="password" id="signupPassword2" placeholder="비밀번호 재입력" autocomplete="new-password">
-            </div>
-          </div>
-          <button type="button" class="auth-btn" id="signupBtn">가입 신청</button>
-          <p style="font-size:12px;color:#9ca3af;text-align:center;margin-top:10px;">
-            가입 후 관리자 승인이 필요합니다.
-          </p>
-        </div>
+  <div class="sb-overlay" id="sbOverlay" onclick="closeSidebar()"></div>
 
+  <div class="shell-main">
+    <header class="shell-topbar">
+      <button class="shell-topbar-hamburger" onclick="openSidebar()" aria-label="메뉴 열기">
+        <i class="ti ti-menu-2"></i>
+      </button>
+      <div class="shell-breadcrumb">
+        <span class="shell-breadcrumb-app" id="breadcrumbApp">—</span>
+        <span class="shell-breadcrumb-sep" id="breadcrumbSep" style="display:none">›</span>
+        <span class="shell-breadcrumb-page" id="breadcrumbPage"></span>
       </div>
+    </header>
+    <div class="shell-content">
+      <iframe class="shell-iframe" id="shellFrame" src="" title="콘텐츠 영역"></iframe>
     </div>
   </div>
 
-  <div id="globalLoading" aria-hidden="true">
-    <div class="global-loading__dialog">
-      <div class="global-loading__spinner"></div>
-      <div class="global-loading__text" id="globalLoadingText">로딩 중...</div>
-    </div>
-  </div>
+</div>
 
-  <script src="assets/libs/supabase.js"></script>
-  <script src="assets/js/core/config.js"></script>
-  <script src="assets/js/core/utils.js"></script>
-  <script src="assets/js/core/supabase.js"></script>
-  <script src="assets/js/core/auth.js"></script>
-  <script>
-    document.addEventListener('DOMContentLoaded', () => auth.initLoginPage());
-  </script>
+<script src="assets/libs/supabase.js"></script>
+<script src="assets/js/core/config.js"></script>
+<script src="assets/js/core/utils.js"></script>
+<script src="assets/js/core/supabase.js"></script>
+<script src="assets/js/core/auth.js"></script>
+<script>
+'use strict';
+
+const MENU_META = {
+  'equipment/dashboard': { app: '의료장비 관리', page: '대시보드' },
+  'equipment/list':      { app: '의료장비 관리', page: '장비 목록' },
+  'equipment/form':      { app: '의료장비 관리', page: '장비 등록·수정' },
+  'equipment/detail':    { app: '의료장비 관리', page: '장비 상세' },
+  'qc/items':            { app: '정도관리', page: '검사항목 관리' },
+  'qc/data':             { app: '정도관리', page: '데이터 입력' },
+  'master/org':          { app: '마스터 관리', page: '의원·부서·사용자' },
+  'master/supply':       { app: '마스터 관리', page: '자재·거래처' },
+};
+
+document.addEventListener('DOMContentLoaded', async () => {
+  const session = await auth.requireAuth();
+  if (!session) return;
+
+  const user = await auth.getSession();
+  if (user) {
+    const name   = user.user_name || user.email;
+    const clinic = user.clinic_name ? ` · ${user.clinic_name}` : '';
+    document.getElementById('sbUserLine').textContent = name + clinic;
+
+    // 역할 표시
+    const roleEl = document.getElementById('sbUserRole');
+    if (roleEl) {
+      const roleLabel = { admin: '관리자', edit: '편집자', manager: '담당자', user: '일반' };
+      roleEl.textContent = roleLabel[user.role] || user.role || '';
+    }
+
+    // admin이면 마스터 관리 메뉴 노출
+    if (user.role === 'admin') {
+      document.getElementById('sbSectionMaster').style.display = '';
+      document.getElementById('sbItemMasterOrg').style.display = '';
+      document.getElementById('sbItemMasterSupply').style.display = '';
+    }
+
+    // edit 이하 역할이면 장비 등록 버튼 숨김
+    if (user.role === 'user') {
+      document.getElementById('sbItemEquipmentForm').style.display = 'none';
+    }
+  }
+
+  const params = new URLSearchParams(location.search);
+  navigate(params.get('page') || 'equipment/dashboard', true);
+});
+
+function navigate(page, tab, skipHistory, extraQuery) {
+  if (!page) return;
+
+  // extraQuery 객체가 있으면 쿼리스트링으로 변환해서 page에 합침
+  if (extraQuery && typeof extraQuery === 'object') {
+    var qs = Object.entries(extraQuery).map(function([k, v]) {
+      return encodeURIComponent(k) + '=' + encodeURIComponent(v);
+    }).join('&');
+    if (qs) page = page + '?' + qs;
+  }
+
+  const pagePath  = page.split('?')[0];
+  const pageQuery = page.split('?')[1] || '';
+
+  const meta = MENU_META[pagePath] || { app: pagePath, page: '' };
+  document.getElementById('breadcrumbApp').textContent  = meta.app;
+  document.getElementById('breadcrumbPage').textContent = meta.page;
+  document.getElementById('breadcrumbSep').style.display = meta.page ? '' : 'none';
+
+  document.getElementById('shellFrame').src =
+    `${CONFIG.SITE_BASE_URL}/pages/${pagePath}.html${pageQuery ? '?' + pageQuery : ''}`;
+
+  document.querySelectorAll('.sb-item.active').forEach(el => el.classList.remove('active'));
+  document.querySelector(`.sb-item[data-page="${pagePath}"]`)?.classList.add('active');
+
+  if (!skipHistory) history.pushState({ page }, '', `?page=${page}`);
+  closeSidebar();
+}
+
+function openSidebar() {
+  document.getElementById('sidebar').classList.add('is-open');
+  document.getElementById('sbOverlay').classList.add('is-visible');
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('is-open');
+  document.getElementById('sbOverlay').classList.remove('is-visible');
+}
+async function doLogout() { await auth.logout(); }
+
+window.shellNavigate = navigate;
+window.addEventListener('popstate', e => {
+  if (e.state?.page) navigate(e.state.page, true);
+});
+</script>
+
+<style>
+  /* 사용자 역할 표시 */
+  .sb-user-role {
+    font-size: 10px;
+    color: rgba(255,255,255,0.4);
+    margin-top: 2px;
+  }
+</style>
 </body>
 </html>
