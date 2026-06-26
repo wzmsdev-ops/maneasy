@@ -91,6 +91,13 @@ function initMainTabs() {
    A. 발주요청확인 — 목록
 ══════════════════════════════════════════ */
 function initRvListGrid() {
+  // po-main-panel position:absolute 구조에서 clientHeight=0 방지
+  var rvEl = document.getElementById('rvGrid');
+  if (rvEl && !rvEl.style.height) {
+    var panel = document.getElementById('panel-review');
+    rvEl.style.height = (panel ? panel.clientHeight - 80 : 500) + 'px';
+    if (parseInt(rvEl.style.height) < 200) rvEl.style.height = '500px';
+  }
   _rvListGrid = createMgGrid('rvGrid', [
     { headerName: '요청번호', field: 'request_no', width: 150,
       headerClass: 'ag-left-header',
@@ -558,6 +565,12 @@ async function syncRequestStatus(requestId) {
    1. 발주 목록 그리드 (createMgGrid 활용)
 ══════════════════════════════════════════ */
 function initPoListGrid() {
+  var poEl = document.getElementById('poGrid');
+  if (poEl && !poEl.style.height) {
+    var panel = document.getElementById('panel-orders');
+    poEl.style.height = (panel ? panel.clientHeight - 80 : 500) + 'px';
+    if (parseInt(poEl.style.height) < 200) poEl.style.height = '500px';
+  }
   _poListGrid = createMgGrid('poGrid', [
     { headerName: '발주번호', field: 'order_no', width: 140,
       headerClass: 'ag-left-header',
