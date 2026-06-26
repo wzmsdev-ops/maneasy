@@ -1,151 +1,206 @@
 /**
- * equipment/equipment-form.js
- * Supabase SDK 직접 호출 버전 — 등록/수정/사진 업로드
+ * equipment/equipment-detail.js
+ * Supabase SDK 직접 호출 버전
+ * 장비 상세 + 이력 + 재고조사 + 정도관리 탭 통합
  */
 
 'use strict';
 
 let currentUser = null;
-let editingId   = null;
-let selectedPhotoFile = null;
-let removePhotoRequested = false;
+let equipmentId = null;
+let currentEquipment = null;
 
 /* ── 유틸 ─────────────────────────────────── */
+function textSafe(v) {
+  return String(v == null ? '' : v)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function formatDate(v) {
+  const s = String(v || '').trim();
+  if (!s) return '-';
+  const m = s.match(/^(\d{4}-\d{2}-\d{2})/);
+  return m ? m[1] : s;
+}
+function formatTs(v) {
+  if (!v) return '-';
+  return new Date(v).toLocaleString('ko-KR', { hour12: false }).slice(0,16);
+}
 function qs(sel) { return document.querySelector(sel); }
-function val(id) { return (document.getElementById(id)?.value || '').trim(); }
-function setVal(id, v) { const el = document.getElementById(id); if (el) el.value = v ?? ''; }
+function setText(id, v) { const el = document.getElementById(id); if (el) el.textContent = v ?? '-'; }
 
-/* ── 사진 UI ───────────────────────────────── */
-function initPhotoUi() {
-  const input     = qs('#photoInput');
-  const removeBtn = qs('#removePhotoBtn');
-
-  input?.addEventListener('change', e => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    selectedPhotoFile = file;
-    removePhotoRequested = false;
-    const reader = new FileReader();
-    reader.onload = ev => renderPhotoPreview(ev.target.result);
-    reader.readAsDataURL(file);
-  });
-
-  removeBtn?.addEventListener('click', () => {
-    selectedPhotoFile = null;
-    removePhotoRequested = true;
-    renderPhotoPreview('');
-  });
-}
-
-function renderPhotoPreview(src) {
-  const preview  = qs('#photoPreviewImage');
-  const empty    = qs('#photoPreviewEmpty');
-  const removeBtn = qs('#removePhotoBtn');
-  if (preview) { preview.src = src || ''; preview.style.display = src ? '' : 'none'; }
-  if (empty)    empty.style.display    = src ? 'none' : '';
-  if (removeBtn) removeBtn.style.display = src ? '' : 'none';
-}
-
-/* ── 폼 로드 (수정 모드) ───────────────────── */
-async function loadEquipment(id) {
+/* ── 장비 상세 로드 ────────────────────────── */
+async function loadEquipment() {
   const { data, error } = await supabaseClient
     .from('equipments')
     .select('*')
-    .eq('id', id)
+    .eq('id', equipmentId)
     .single();
-
   if (error) throw new Error(error.message);
   return data;
 }
 
-function fillForm(eq) {
-  setVal('equipmentName',       eq.equipment_name);
-  setVal('modelName',           eq.model_name);
-  setVal('manufacturer',        eq.manufacturer);
-  setVal('manufactureDate',     eq.manufacture_date);
-  setVal('purchaseDate',        eq.purchase_date);
-  setVal('serialNo',            eq.serial_no);
-  setVal('vendor',              eq.vendor);
-  setVal('acquisitionCost',     eq.acquisition_cost ?? '');
-  setVal('maintenanceEndDate',  eq.maintenance_end_date);
-  setVal('clinicName',          eq.clinic_name);
-  setVal('teamName',            eq.team_name);
-  setVal('department',          eq.department);
-  setVal('location',            eq.location);
-  setVal('currentUserName',     eq.current_user_name);
-  setVal('status',              eq.status);
-  setVal('memo',                eq.memo);
-  setVal('managerName',         eq.manager_name);
-  setVal('managerPhone',        eq.manager_phone);
+function renderEquipment(eq) {
+  const STATUS_LABEL = CONFIG.EQUIPMENT_STATUS_LABEL || {};
+  setText('detailEquipmentName',    eq.equipment_name);
+  setText('detailModelName',        eq.model_name || '-');
+  setText('detailManufacturer',     eq.manufacturer || '-');
+  setText('detailManufactureDate',  formatDate(eq.manufacture_date));
+  setText('detailPurchaseDate',     formatDate(eq.purchase_date));
+  setText('detailSerialNo',         eq.serial_no || '-');
+  setText('detailVendor',           eq.vendor || '-');
+  setText('detailAcquisitionCost',  eq.acquisition_cost != null ? Number(eq.acquisition_cost).toLocaleString('ko-KR') + '원' : '-');
+  setText('detailMaintenanceEndDate', formatDate(eq.maintenance_end_date));
+  setText('detailClinicName',       eq.clinic_name || eq.team_name || '-');
+  setText('detailDepartment',       eq.department || '-');
+  setText('detailLocation',         eq.location || '-');
+  setText('detailCurrentUser',      eq.current_user_name || '-');
+  setText('detailStatus',           STATUS_LABEL[eq.status] || eq.status || '-');
+  setText('detailMemo',             eq.memo || '-');
+  setText('detailManagerName',      eq.manager_name || '-');
+  setText('detailManagerPhone',     eq.manager_phone || '-');
+  setText('detailCreatedAt',        formatTs(eq.created_at));
+  setText('detailUpdatedAt',        formatTs(eq.updated_at));
 
-  if (eq.photo_url) renderPhotoPreview(eq.photo_url);
+  if (eq.photo_url) {
+    const img = document.getElementById('detailPhoto');
+    if (img) { img.src = eq.photo_url; img.style.display = ''; }
+  }
 }
 
-/* ── 저장 ──────────────────────────────────── */
-async function saveEquipment() {
-  const { data: { session } } = await supabaseClient.auth.getSession();
+/* ── 이력 ──────────────────────────────────── */
+async function loadHistories() {
+  const { data, error } = await supabaseClient
+    .from('histories')
+    .select('*')
+    .eq('equipment_id', equipmentId)
+    .order('work_date', { ascending: false });
+  if (error) throw new Error(error.message);
+  return data || [];
+}
 
-  const payload = {
-    equipment_name:       val('equipmentName'),
-    model_name:           val('modelName'),
-    manufacturer:         val('manufacturer'),
-    manufacture_date:     val('manufactureDate') || null,
-    purchase_date:        val('purchaseDate') || null,
-    serial_no:            val('serialNo'),
-    vendor:               val('vendor'),
-    acquisition_cost:     val('acquisitionCost') ? Number(val('acquisitionCost')) : null,
-    maintenance_end_date: val('maintenanceEndDate') || null,
-    clinic_name:          val('clinicName'),
-    team_name:            val('teamName'),
-    department:           val('department'),
-    location:             val('location'),
-    current_user_name:    val('currentUserName'),
-    status:               val('status') || CONFIG.EQUIPMENT_STATUS.IN_USE,
-    memo:                 val('memo'),
-    manager_name:         val('managerName'),
-    manager_phone:        val('managerPhone'),
-  };
+function renderHistories(rows) {
+  const wrap  = document.getElementById('historyList');
+  const empty = document.getElementById('historyEmpty');
+  if (!wrap) return;
 
-  if (!payload.equipment_name) throw new Error('장비명은 필수입니다.');
-
-  let equipmentId = editingId;
-
-  if (editingId) {
-    // 수정
-    const { error } = await supabaseClient
-      .from('equipments')
-      .update({ ...payload, updated_at: new Date().toISOString() })
-      .eq('id', editingId);
-    if (error) throw new Error(error.message);
-  } else {
-    // 등록
-    payload.created_by = session?.user?.id || null;
-    payload.deleted_yn = 'N';
-    const { data, error } = await supabaseClient
-      .from('equipments')
-      .insert(payload)
-      .select()
-      .single();
-    if (error) throw new Error(error.message);
-    equipmentId = data.id;
+  if (!rows.length) {
+    if (empty) empty.style.display = '';
+    wrap.innerHTML = '';
+    return;
   }
+  if (empty) empty.style.display = 'none';
 
-  // 사진 처리
-  if (removePhotoRequested && editingId) {
-    const { data: eq } = await supabaseClient
-      .from('equipments').select('photo_path').eq('id', editingId).single();
-    if (eq?.photo_path) await db.deletePhoto(eq.photo_path);
-    await supabaseClient.from('equipments')
-      .update({ photo_url: '', photo_path: '' }).eq('id', editingId);
+  wrap.innerHTML = `
+    <table class="data-table">
+      <thead><tr><th>유형</th><th>작업일</th><th>담당자</th><th>금액</th><th>결과</th><th>설명</th></tr></thead>
+      <tbody>${rows.map(r => `
+        <tr>
+          <td>${textSafe(r.history_type || '-')}</td>
+          <td>${formatDate(r.work_date)}</td>
+          <td>${textSafe(r.requester || '-')}</td>
+          <td>${r.amount != null ? Number(r.amount).toLocaleString('ko-KR') + '원' : '-'}</td>
+          <td>${textSafe(r.result_status || '-')}</td>
+          <td>${textSafe(r.description || '-')}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+/* ── 재고조사 ──────────────────────────────── */
+async function loadInventoryLogs() {
+  const { data, error } = await supabaseClient
+    .from('inventory_logs')
+    .select('*')
+    .eq('equipment_id', equipmentId)
+    .order('checked_at', { ascending: false });
+  if (error) throw new Error(error.message);
+  return data || [];
+}
+
+function renderInventoryLogs(rows) {
+  const wrap  = document.getElementById('inventoryList');
+  const empty = document.getElementById('inventoryEmpty');
+  if (!wrap) return;
+
+  if (!rows.length) {
+    if (empty) empty.style.display = '';
+    wrap.innerHTML = '';
+    return;
   }
+  if (empty) empty.style.display = 'none';
 
-  if (selectedPhotoFile && equipmentId) {
-    const { path, url } = await db.uploadPhoto(selectedPhotoFile, equipmentId);
-    await supabaseClient.from('equipments')
-      .update({ photo_url: url, photo_path: path }).eq('id', equipmentId);
+  wrap.innerHTML = `
+    <table class="data-table">
+      <thead><tr><th>조사일시</th><th>조사자</th><th>상태</th><th>위치</th><th>메모</th></tr></thead>
+      <tbody>${rows.map(r => `
+        <tr>
+          <td>${formatTs(r.checked_at)}</td>
+          <td>${textSafe(r.checked_by_name || '-')}</td>
+          <td>${textSafe(r.status_at_check || '-')}</td>
+          <td>${textSafe(r.location_at_check || '-')}</td>
+          <td>${textSafe(r.memo || '-')}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+/* ── 정도관리 항목 ─────────────────────────── */
+async function loadQcItems() {
+  const { data, error } = await supabaseClient
+    .from('lj_items')
+    .select('*, lj_entries(count)')
+    .eq('equipment_id', equipmentId)
+    .order('created_at', { ascending: true });
+  if (error) throw new Error(error.message);
+  return data || [];
+}
+
+function renderQcItems(rows) {
+  const wrap  = document.getElementById('qcItemList');
+  const empty = document.getElementById('qcItemEmpty');
+  if (!wrap) return;
+
+  if (!rows.length) {
+    if (empty) empty.style.display = '';
+    wrap.innerHTML = '';
+    return;
   }
+  if (empty) empty.style.display = 'none';
 
-  return equipmentId;
+  wrap.innerHTML = `
+    <table class="data-table">
+      <thead><tr><th>항목명</th><th>유형</th><th>단위</th><th>평균(Mean)</th><th>SD</th><th>데이터 수</th><th></th></tr></thead>
+      <tbody>${rows.map(r => `
+        <tr>
+          <td>${textSafe(r.item_name)}</td>
+          <td>${textSafe(r.item_type === 'quantitative' ? '정량' : '정성')}</td>
+          <td>${textSafe(r.unit || '-')}</td>
+          <td>${r.mean != null ? r.mean : '-'}</td>
+          <td>${r.sd != null ? r.sd : '-'}</td>
+          <td>${r.lj_entries?.[0]?.count ?? 0}건</td>
+          <td>
+            <button class="btn btn-sm" onclick="goQcData('${r.id}')">데이터 입력</button>
+          </td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+function goQcData(itemId) {
+  parent.shellNavigate?.(`qc/data?equipment_id=${equipmentId}&item_id=${itemId}`);
+}
+
+/* ── 탭 전환 ───────────────────────────────── */
+function initTabs() {
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const target = btn.dataset.tab;
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById(`tab-${target}`)?.classList.add('active');
+    });
+  });
 }
 
 /* ── 초기화 ────────────────────────────────── */
@@ -153,57 +208,42 @@ async function init() {
   currentUser = await auth.requireAuth();
   if (!currentUser) return;
 
-  initPhotoUi();
-
-  // 상태 옵션
-  const statusSel = document.getElementById('status');
-  if (statusSel) {
-    const STATUS_LABEL = CONFIG.EQUIPMENT_STATUS_LABEL || {};
-    statusSel.innerHTML = Object.entries(STATUS_LABEL)
-      .map(([k, v]) => `<option value="${k}">${v}</option>`).join('');
-  }
-
-  // 수정 모드 확인
   const params = new URLSearchParams(location.search);
-  editingId = params.get('id') || null;
+  equipmentId = params.get('id');
+  if (!equipmentId) { alert('장비 ID가 없습니다.'); return; }
 
-  if (editingId) {
-    document.querySelector('h2, .page-title')?.textContent !== undefined &&
-      (document.querySelector('h2, .page-title').textContent = '장비 수정');
-    showGlobalLoading('장비 정보를 불러오는 중...');
-    try {
-      const eq = await loadEquipment(editingId);
-      fillForm(eq);
-    } catch (e) {
-      alert('장비 정보를 불러오지 못했습니다: ' + e.message);
-      return;
-    } finally {
-      hideGlobalLoading();
-    }
+  initTabs();
+
+  // 수정 버튼
+  document.getElementById('editBtn')?.addEventListener('click', () => {
+    parent.shellNavigate?.(`equipment/form?id=${equipmentId}`);
+  });
+
+  // 정도관리 항목 추가 버튼
+  document.getElementById('addQcItemBtn')?.addEventListener('click', () => {
+    parent.shellNavigate?.(`qc/items?equipment_id=${equipmentId}`);
+  });
+
+  showGlobalLoading('장비 정보를 불러오는 중...');
+  try {
+    const [eq, histories, inventoryLogs, qcItems] = await Promise.all([
+      loadEquipment(),
+      loadHistories(),
+      loadInventoryLogs(),
+      loadQcItems(),
+    ]);
+    currentEquipment = eq;
+    renderEquipment(eq);
+    renderHistories(histories);
+    renderInventoryLogs(inventoryLogs);
+    renderQcItems(qcItems);
+  } catch (e) {
+    console.error('[equipment-detail]', e);
+    alert('데이터를 불러오지 못했습니다: ' + e.message);
+  } finally {
+    hideGlobalLoading();
   }
-
-  // 저장 버튼
-  qs('#saveBtn')?.addEventListener('click', async () => {
-    const btn = qs('#saveBtn');
-    btn.disabled = true;
-    btn.textContent = '저장 중...';
-    try {
-      const id = await saveEquipment();
-      alert(editingId ? '장비 정보가 수정됐습니다.' : '장비가 등록됐습니다.');
-      parent.shellNavigate?.(`equipment/detail?id=${id}`);
-    } catch (e) {
-      alert('저장 실패: ' + e.message);
-      btn.disabled = false;
-      btn.textContent = '저장';
-    }
-  });
-
-  // 취소 버튼
-  qs('#cancelBtn')?.addEventListener('click', () => {
-    if (editingId) parent.shellNavigate?.(`equipment/detail?id=${editingId}`);
-    else parent.shellNavigate?.('equipment/list');
-  });
 }
 
-function initEquipmentForm() { init(); }
+function initEquipmentDetail() { init(); }
 document.addEventListener('DOMContentLoaded', init);
