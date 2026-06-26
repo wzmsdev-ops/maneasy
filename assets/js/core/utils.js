@@ -363,7 +363,12 @@ function createMgGrid(containerId, colDefs, rows, options) {
     suppressHorizontalScroll: true,
     overlayNoRowsTemplate: '<span style="color:#9ca3af;font-size:12px;">' + noRowsText + '</span>',
     onGridReady: function(params) {
-      params.api.sizeColumnsToFit();
+      // display:none 탭 안에 있으면 width=0 → requestAnimationFrame으로 재시도
+      if (el.offsetWidth > 0) {
+        params.api.sizeColumnsToFit();
+      } else {
+        requestAnimationFrame(function() { params.api.sizeColumnsToFit(); });
+      }
       window.addEventListener('resize', function() {
         if (params.api) params.api.sizeColumnsToFit();
       });
