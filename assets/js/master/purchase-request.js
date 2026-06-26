@@ -53,7 +53,7 @@ window.closeModal = closeModal;
    1. 발주요청 목록
 ══════════════════════════════════════════ */
 function initPrListGrid() {
-  _prListGrid = (function(){ var _g = document.getElementById('prGrid'); if(_g) _g.style.height = Math.max(300, window.innerHeight - 130) + 'px'; })();
+  _prListGrid = (function(){ var _g = document.getElementById('prGrid'); if(_g) _g.style.height = Math.max(300, window.innerHeight - 166) + 'px'; })();
   createMgGrid('prGrid', [
     { headerName: '요청번호', field: 'request_no', width: 150,
       headerClass: 'ag-left-header',
