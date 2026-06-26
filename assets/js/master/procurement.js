@@ -442,10 +442,14 @@ function openAddPo() {
   setVal('po_expected_date', '');
   setVal('po_vendor_id',     '');
   setVal('po_memo',          '');
-  clearPoItemGrid();
   document.getElementById('poModalTitle').textContent = '발주 등록';
   openModal('poModal');
-  setTimeout(function() { _poItemGrid?.sizeColumnsToFit(); }, 50);
+  // 모달 표시 후 그리드 초기화 (display:block 상태에서 height 확보)
+  setTimeout(function() {
+    if (!_poItemGrid) initPoItemGrid();
+    clearPoItemGrid();
+    if (_poItemGrid) _poItemGrid.sizeColumnsToFit();
+  }, 50);
 }
 
 async function openEditPo(id) {
@@ -463,23 +467,25 @@ async function openEditPo(id) {
     setVal('po_vendor_id',     po.vendor_id);
     setVal('po_memo',          po.memo);
 
-    clearPoItemGrid();
-    (items || []).forEach(function(r) {
-      addPoItemRow({
-        _existingId:   r.id,
-        item_id:       r.item_id,
-        purchase_unit: r.purchase_unit || r.items?.purchase_unit || '',
-        use_unit:      r.use_unit      || r.items?.use_unit      || '',
-        order_qty:     r.order_qty,
-        unit_price:    r.unit_price,
-        supply_price:  r.supply_price || (r.order_qty * r.unit_price),
-        memo:          r.memo,
-      });
-    });
-
     document.getElementById('poModalTitle').textContent = '발주 수정';
     openModal('poModal');
-    setTimeout(function() { _poItemGrid?.sizeColumnsToFit(); }, 50);
+    setTimeout(function() {
+      if (!_poItemGrid) initPoItemGrid();
+      clearPoItemGrid();
+      (items || []).forEach(function(r) {
+        addPoItemRow({
+          _existingId:   r.id,
+          item_id:       r.item_id,
+          purchase_unit: r.purchase_unit || r.items?.purchase_unit || '',
+          use_unit:      r.use_unit      || r.items?.use_unit      || '',
+          order_qty:     r.order_qty,
+          unit_price:    r.unit_price,
+          supply_price:  r.supply_price || (r.order_qty * r.unit_price),
+          memo:          r.memo,
+        });
+      });
+      if (_poItemGrid) _poItemGrid.sizeColumnsToFit();
+    }, 50);
   } catch(e) {
     alert('발주 로드 실패: ' + e.message);
   } finally {
@@ -578,10 +584,15 @@ async function openPoDetail(id) {
         memo:         r.memo || '',
       };
     });
-    if (_poDetailGrid) {
-      _poDetailGrid.setGridOption('rowData', gridRows);
-      setTimeout(function() { _poDetailGrid.sizeColumnsToFit(); }, 30);
-    }
+    document.getElementById('poDetailTitle').textContent = '발주 상세 — ' + po.order_no;
+    openModal('poDetailModal');
+    setTimeout(function() {
+      if (!_poDetailGrid) initPoDetailGrid();
+      if (_poDetailGrid) {
+        _poDetailGrid.setGridOption('rowData', gridRows);
+        _poDetailGrid.sizeColumnsToFit();
+      }
+    }, 50);
 
     // 합계
     var supplyTotal = po.supply_price || 0;
@@ -609,9 +620,7 @@ async function openPoDetail(id) {
       foot.insertBefore(cb, foot.firstChild);
     }
 
-    document.getElementById('poDetailTitle').textContent = '발주 상세 — ' + po.order_no;
-    openModal('poDetailModal');
-    setTimeout(function() { _poDetailGrid?.sizeColumnsToFit(); }, 50);
+    // (모달 열기 및 그리드 초기화는 위 setTimeout에서 처리)
   } catch(e) {
     alert('발주 상세 로드 실패: ' + e.message);
   } finally {
@@ -666,8 +675,7 @@ async function init() {
 
   initStatusTabs();
   initPoListGrid();
-  initPoItemGrid();
-  initPoDetailGrid();
+  // poItemGrid, poDetailGrid는 모달 열 때 lazy 초기화 (display:none 상태에서 height=0 방지)
 
   document.getElementById('addPoBtn')?.addEventListener('click', openAddPo);
   document.getElementById('addItemRowBtn')?.addEventListener('click', function() { addPoItemRow(null); });
