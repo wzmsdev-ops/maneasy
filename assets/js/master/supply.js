@@ -64,32 +64,29 @@ function renderVendors(rows) {
   const empty = document.getElementById('vendorEmpty');
   if (!list) return;
 
-  if (!rows.length) { empty.style.display = ''; list.innerHTML = ''; return; }
-  empty.style.display = 'none';
+  if (empty) empty.style.display = 'none';
 
-  list.innerHTML = `
-    <table class="data-table">
-      <thead><tr>
-        <th>코드</th><th>거래처명</th><th>사업자번호</th><th>대표자</th><th>전화</th><th>카테고리</th><th>상태</th><th class="action-cell"></th>
-      </tr></thead>
-      <tbody>${rows.map(r => `
-        <tr>
-          <td><code>${ts(r.vendor_code)}</code></td>
-          <td>${ts(r.vendor_name)}</td>
-          <td>${ts(r.biz_no || '-')}</td>
-          <td>${ts(r.ceo_name || '-')}</td>
-          <td>${ts(r.phone || '-')}</td>
-          <td>${ts(r.category || '-')}</td>
-          <td>${badgeActive(r.active)}</td>
-          <td class="action-cell">
-            <button class="btn btn-sm" onclick="openEditVendor('${r.id}')">수정</button>
-            <button class="btn btn-sm btn-danger" onclick="deleteVendor('${r.id}')">삭제</button>
-          </td>
-        </tr>`).join('')}
-      </tbody>
-    </table>`;
-
-  // 자재 모달 거래처 select 동기화
+  if (!window._vendorGrid) {
+    window._vendorGrid = createMgGrid('vendorList', [
+      { headerName: '코드',     field: 'vendor_code', flex: 1, minWidth: 90 },
+      { headerName: '거래처명', field: 'vendor_name', flex: 2, minWidth: 120 },
+      { headerName: '사업자번호', field: 'biz_no',   flex: 1, minWidth: 110, valueFormatter: p => p.value || '-' },
+      { headerName: '대표자',   field: 'ceo_name',   flex: 1, minWidth: 80,  valueFormatter: p => p.value || '-' },
+      { headerName: '전화',     field: 'phone',      flex: 1, minWidth: 110, valueFormatter: p => p.value || '-' },
+      { headerName: '카테고리', field: 'category',   flex: 1, minWidth: 90,  valueFormatter: p => p.value || '-' },
+      { headerName: '상태',     field: 'active',     flex: 0, width: 70,
+        cellRenderer: p => { const s = document.createElement('span'); s.innerHTML = badgeActive(p.value); return s; } },
+      { headerName: '', flex: 0, width: 120, sortable: false,
+        cellRenderer: p => {
+          const wrap = document.createElement('div'); wrap.style.cssText = 'display:flex;gap:4px;align-items:center;';
+          const e = document.createElement('button'); e.className = 'btn btn-sm'; e.textContent = '수정'; e.onclick = () => openEditVendor(p.data.id);
+          const d = document.createElement('button'); d.className = 'btn btn-sm btn-danger'; d.textContent = '삭제'; d.onclick = () => deleteVendor(p.data.id);
+          wrap.append(e, d); return wrap;
+        }},
+    ], rows, { pageSize: 15, fit: true, noRowsText: '등록된 거래처가 없습니다.' });
+  } else {
+    updateMgGrid(window._vendorGrid, rows);
+  }
   populateVendorSelect(rows);
 }
 
@@ -187,31 +184,32 @@ function renderItems(rows) {
   const empty = document.getElementById('itemEmpty');
   if (!list) return;
 
-  if (!rows.length) { empty.style.display = ''; list.innerHTML = ''; return; }
-  empty.style.display = 'none';
+  if (empty) empty.style.display = 'none';
 
-  list.innerHTML = `
-    <table class="data-table">
-      <thead><tr>
-        <th>코드</th><th>자재명</th><th>카테고리</th><th>단위</th><th>규격</th><th>기준단가</th><th>거래처</th><th>상태</th><th class="action-cell"></th>
-      </tr></thead>
-      <tbody>${rows.map(r => `
-        <tr>
-          <td><code>${ts(r.item_code)}</code></td>
-          <td>${ts(r.item_name)}</td>
-          <td>${ts(r.category || '-')}</td>
-          <td>${ts(r.unit || '-')}</td>
-          <td>${ts(r.spec || '-')}</td>
-          <td style="text-align:right">${fmtPrice(r.standard_price)}</td>
-          <td>${ts(r.vendors?.vendor_name || '-')}</td>
-          <td>${badgeActive(r.active)}</td>
-          <td class="action-cell">
-            <button class="btn btn-sm" onclick="openEditItem('${r.id}')">수정</button>
-            <button class="btn btn-sm btn-danger" onclick="deleteItem('${r.id}')">삭제</button>
-          </td>
-        </tr>`).join('')}
-      </tbody>
-    </table>`;
+  if (!window._itemGrid) {
+    window._itemGrid = createMgGrid('itemList', [
+      { headerName: '코드',   field: 'item_code',  flex: 1, minWidth: 90 },
+      { headerName: '자재명', field: 'item_name',  flex: 2, minWidth: 120 },
+      { headerName: '카테고리', field: 'category', flex: 1, minWidth: 90,  valueFormatter: p => p.value || '-' },
+      { headerName: '단위',   field: 'unit',       flex: 0, width: 70,     valueFormatter: p => p.value || '-' },
+      { headerName: '규격',   field: 'spec',       flex: 1, minWidth: 90,  valueFormatter: p => p.value || '-' },
+      { headerName: '기준단가', field: 'standard_price', flex: 1, minWidth: 90,
+        valueFormatter: p => fmtPrice(p.value) },
+      { headerName: '거래처', flex: 1, minWidth: 100,
+        valueGetter: p => p.data.vendors?.vendor_name || '-' },
+      { headerName: '상태',   field: 'active',     flex: 0, width: 70,
+        cellRenderer: p => { const s = document.createElement('span'); s.innerHTML = badgeActive(p.value); return s; } },
+      { headerName: '', flex: 0, width: 120, sortable: false,
+        cellRenderer: p => {
+          const wrap = document.createElement('div'); wrap.style.cssText = 'display:flex;gap:4px;align-items:center;';
+          const e = document.createElement('button'); e.className = 'btn btn-sm'; e.textContent = '수정'; e.onclick = () => openEditItem(p.data.id);
+          const d = document.createElement('button'); d.className = 'btn btn-sm btn-danger'; d.textContent = '삭제'; d.onclick = () => deleteItem(p.data.id);
+          wrap.append(e, d); return wrap;
+        }},
+    ], rows, { pageSize: 15, fit: true, noRowsText: '등록된 자재가 없습니다.' });
+  } else {
+    updateMgGrid(window._itemGrid, rows);
+  }
 }
 
 function openAddItem() {
