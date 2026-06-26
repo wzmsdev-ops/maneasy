@@ -316,7 +316,6 @@ function createMgGrid(containerId, colDefs, rows, options) {
   if (!el) return null;
   if (typeof agGrid === 'undefined') return null;
 
-  var pageSize   = options.pageSize   || 15;
   var noRowsText = options.noRowsText || '조회된 데이터가 없습니다.';
 
   // ag-theme-alpine 자동 추가
@@ -324,24 +323,17 @@ function createMgGrid(containerId, colDefs, rows, options) {
     el.classList.add('ag-theme-alpine');
   }
 
-  // 높이 계산 — 컨테이너 또는 부모에서 실제 높이 확인
-  var baseH = 34;
-  var gridH = el.clientHeight;
-  if (!gridH) {
-    // 부모 체인에서 높이 탐색
+  // 높이 없으면 부모에서 탐색하여 설정
+  if (!el.style.height && el.clientHeight === 0) {
     var p = el.parentElement;
-    while (p && !gridH) { gridH = p.clientHeight; p = p.parentElement; }
+    var h = 0;
+    while (p && !h) { h = p.clientHeight; p = p.parentElement; }
+    el.style.height = (h || 500) + 'px';
   }
-  if (!gridH) gridH = baseH * pageSize + baseH;
-  // 높이 명시적 설정 (ag-grid domLayout:normal 필요)
-  el.style.height = gridH + 'px';
 
-  // rowHeight 계산 — equipment-list.js 동일 방식
-  var gridH = el.clientHeight || gridH;
-  var dataH = gridH - baseH;
-  var rowH  = Math.max(26, Math.floor(dataH / pageSize));
-  var rem   = dataH - (rowH * pageSize);
-  var headerH = baseH + rem;
+  // rowHeight / headerHeight — equipment-list.js 동일 고정값
+  var ROW_H    = 34;
+  var HEADER_H = 34;
 
   // equipment-list.js defaultColDef와 동일
   var defaultColDef = {
@@ -356,14 +348,13 @@ function createMgGrid(containerId, colDefs, rows, options) {
     columnDefs: colDefs,
     defaultColDef: defaultColDef,
     rowData: rows,
-    rowHeight: rowH,
-    headerHeight: headerH,
+    rowHeight: ROW_H,
+    headerHeight: HEADER_H,
     suppressPaginationPanel: true,
     suppressScrollOnNewData: true,
     suppressHorizontalScroll: true,
     overlayNoRowsTemplate: '<span style="color:#9ca3af;font-size:12px;">' + noRowsText + '</span>',
     onGridReady: function(params) {
-      // offsetWidth > 0 이 될 때까지 반복 재시도 (탭/iframe 등 숨겨진 상태 대응)
       var _api = params.api;
       var attempts = 0;
       function trySizeColumnsToFit() {
@@ -378,18 +369,6 @@ function createMgGrid(containerId, colDefs, rows, options) {
       window.addEventListener('resize', function() {
         if (_api) _api.sizeColumnsToFit();
       });
-    },
-    onFirstDataRendered: function(params) {
-      var viewport = el.querySelector('.ag-body-viewport');
-      if (!viewport) return;
-      var viewH = viewport.clientHeight;
-      var rH    = Math.max(26, Math.floor(viewH / pageSize));
-      var r     = viewH - (rH * pageSize);
-      if (rH !== params.api.getGridOption('rowHeight')) {
-        params.api.setGridOption('rowHeight', rH);
-        params.api.setGridOption('headerHeight', baseH + r);
-        params.api.resetRowHeights();
-      }
     },
   };
 
