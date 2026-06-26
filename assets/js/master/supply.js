@@ -260,7 +260,7 @@ window.openEditItem = openEditItem;
 async function saveItem() {
   const priceStr = val('i_standard_price');
   const payload = {
-    item_code:      val('i_item_code'),
+    item_code:      editingItemId ? val('i_item_code') : await genDocNo('ITEM'),
     item_name:      val('i_item_name'),
     category:       val('i_category'),
     purchase_unit:     val('i_purchase_unit'),
@@ -275,7 +275,7 @@ async function saveItem() {
     active:         val('i_active'),
     updated_at:     new Date().toISOString(),
   };
-  if (!payload.item_code) throw new Error('자재 코드는 필수입니다.');
+  // item_code는 자동생성
   if (!payload.item_name) throw new Error('자재명은 필수입니다.');
   if (!payload.purchase_unit) throw new Error('입고 단위는 필수입니다.');
   if (!payload.use_unit)      throw new Error('사용(출고) 단위는 필수입니다.');
@@ -351,3 +351,10 @@ async function init() {
 }
 
 document.addEventListener('DOMContentLoaded', init);
+
+async function genDocNo(prefix) {
+  var year = new Date().getFullYear();
+  var { data, error } = await supabaseClient.rpc('next_doc_seq', { p_prefix: prefix, p_year: year });
+  if (error || data == null) return prefix + '-' + year + '-' + Date.now().toString().slice(-6);
+  return prefix + '-' + year + '-' + String(data).padStart(4, '0');
+}
