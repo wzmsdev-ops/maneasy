@@ -199,7 +199,9 @@ function renderItems(rows) {
       { headerName: '코드',   field: 'item_code',  flex: 1, minWidth: 90 },
       { headerName: '자재명', field: 'item_name',  flex: 2, minWidth: 120 },
       { headerName: '카테고리', field: 'category', flex: 1, minWidth: 90,  valueFormatter: p => p.value || '-' },
-      { headerName: '단위',   field: 'unit',       flex: 0, width: 70,     valueFormatter: p => p.value || '-' },
+      { headerName: '입고단위', field: 'purchase_unit', flex: 0, width: 80, valueFormatter: p => p.value || '-' },
+      { headerName: '사용단위', field: 'use_unit',    flex: 0, width: 80, valueFormatter: p => p.value || '-' },
+      { headerName: '환산',    field: 'purchase_unit_qty', flex: 0, width: 55, valueFormatter: p => p.value != null ? p.value : 1 },
       { headerName: '규격',   field: 'spec',       flex: 1, minWidth: 90,  valueFormatter: p => p.value || '-' },
       { headerName: '기준단가', field: 'standard_price', flex: 1, minWidth: 90,
         valueFormatter: p => fmtPrice(p.value) },
@@ -222,7 +224,10 @@ function renderItems(rows) {
 
 function openAddItem() {
   editingItemId = null;
-  ['i_item_code','i_item_name','i_category','i_unit','i_spec','i_memo'].forEach(id => setVal(id, ''));
+  ['i_item_code','i_item_name','i_category','i_spec','i_purchase_unit','i_use_unit','i_memo'].forEach(id => setVal(id, ''));
+  setVal('i_purchase_unit_qty', '1');
+  setVal('i_reorder_point', '');
+  setVal('i_safety_stock', '');
   setVal('i_standard_price', '');
   setVal('i_vendor_id', '');
   setVal('i_active', 'Y');
@@ -237,7 +242,11 @@ function openEditItem(id) {
   setVal('i_item_code',       row.item_code);
   setVal('i_item_name',       row.item_name);
   setVal('i_category',        row.category);
-  setVal('i_unit',            row.unit);
+  setVal('i_purchase_unit',     row.purchase_unit);
+  setVal('i_purchase_unit_qty', row.purchase_unit_qty ?? 1);
+  setVal('i_use_unit',          row.use_unit);
+  setVal('i_reorder_point',     row.reorder_point ?? '');
+  setVal('i_safety_stock',      row.safety_stock ?? '');
   setVal('i_spec',            row.spec);
   setVal('i_standard_price',  row.standard_price ?? '');
   setVal('i_vendor_id',       row.vendor_id || '');
@@ -254,7 +263,11 @@ async function saveItem() {
     item_code:      val('i_item_code'),
     item_name:      val('i_item_name'),
     category:       val('i_category'),
-    unit:           val('i_unit'),
+    purchase_unit:     val('i_purchase_unit'),
+    purchase_unit_qty: Number(val('i_purchase_unit_qty') || 1),
+    use_unit:          val('i_use_unit'),
+    reorder_point:     val('i_reorder_point') !== '' ? Number(val('i_reorder_point')) : null,
+    safety_stock:      val('i_safety_stock')  !== '' ? Number(val('i_safety_stock'))  : null,
     spec:           val('i_spec'),
     standard_price: priceStr !== '' ? Number(priceStr) : null,
     vendor_id:      val('i_vendor_id') || null,
@@ -264,6 +277,9 @@ async function saveItem() {
   };
   if (!payload.item_code) throw new Error('자재 코드는 필수입니다.');
   if (!payload.item_name) throw new Error('자재명은 필수입니다.');
+  if (!payload.purchase_unit) throw new Error('입고 단위는 필수입니다.');
+  if (!payload.use_unit)      throw new Error('사용(출고) 단위는 필수입니다.');
+  if (!payload.purchase_unit_qty || payload.purchase_unit_qty < 1) throw new Error('환산수는 1 이상이어야 합니다.');
 
   if (editingItemId) {
     const { error } = await supabaseClient.from('items').update(payload).eq('id', editingItemId);
