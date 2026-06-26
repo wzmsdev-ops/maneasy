@@ -379,6 +379,7 @@ function renderUsers(rows, filterClinicCode, filterDeptCode) {
     window._userGrid =
   createMgGrid('userList', [
       { headerName: '이름',   field: 'user_name',  flex: 1, minWidth: 80, valueFormatter: p => p.value || '-' },
+      { headerName: '이메일', field: 'email',      flex: 2, minWidth: 160, valueFormatter: p => p.value || '-' },
       { headerName: '역할',   field: 'role',       flex: 0, width: 90,
         cellRenderer: p => { const s = document.createElement('span'); s.innerHTML = badgeRole(p.value); return s; } },
       { headerName: '의원',   field: 'clinic_name', flex: 1, minWidth: 90, valueFormatter: p => p.value || '-' },
@@ -428,6 +429,7 @@ function openEditUser(id) {
   if (!row) return;
   editingUserId = id;
 
+  setVal('u_email',      row.email || '');
   setVal('u_user_name',  row.user_name);
   setVal('u_phone',      row.phone);
   setVal('u_role',       row.role);
