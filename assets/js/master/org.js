@@ -114,7 +114,7 @@ function renderClinics(rows) {
   const empty = document.getElementById('clinicEmpty');
   if (!list) return;
 
-  if (empty) empty.style.display = rows.length ? 'none' : '';
+  if (empty) empty.style.display = 'none';
 
   if (!window._clinicGrid) {
     window._clinicGrid =
@@ -244,7 +244,7 @@ function renderDepts(rows, filterClinicId) {
     ? rows.filter(r => r.clinic_id === filterClinicId)
     : rows;
 
-  if (empty) empty.style.display = filtered.length ? 'none' : '';
+  if (empty) empty.style.display = 'none';
 
   if (!window._deptGrid) {
     window._deptGrid =
@@ -373,7 +373,7 @@ function renderUsers(rows, filterClinicCode, filterDeptCode) {
   if (filterClinicCode) filtered = filtered.filter(r => r.clinic_code === filterClinicCode);
   if (filterDeptCode)   filtered = filtered.filter(r => r.team_code   === filterDeptCode);
 
-  if (empty) empty.style.display = filtered.length ? 'none' : '';
+  if (empty) empty.style.display = 'none';
 
   if (!window._userGrid) {
     window._userGrid =
