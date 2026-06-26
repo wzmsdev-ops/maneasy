@@ -23,22 +23,23 @@
 
     /* ── 액션바 ── */
     .pr-actionbar {
-      display: flex; align-items: center; gap: 8px;
+      display: flex; align-items: center; gap: 6px;
       background: #fff; border: 1px solid #e5e7eb; border-radius: 8px;
       padding: 7px 12px; flex-shrink: 0; height: 44px; box-sizing: border-box;
     }
     .pr-actionbar input[type=text] {
+      flex: 1; min-width: 0;
       height: 28px; padding: 0 10px; border: 1px solid #e5e7eb;
       border-radius: 6px; font-size: 12px; outline: none;
     }
     .pr-actionbar input[type=text]:focus { border-color: #2563eb; }
     .pr-actionbar input[type=date] {
       height: 28px; padding: 0 6px; border: 1px solid #e5e7eb;
-      border-radius: 6px; font-size: 12px; outline: none; width: 130px;
+      border-radius: 6px; font-size: 12px; outline: none; width: 130px; flex-shrink: 0;
     }
     .pr-actionbar input[type=date]:focus { border-color: #2563eb; }
-    .pr-actionbar .pr-divider {
-      width: 1px; height: 20px; background: #e5e7eb; flex-shrink: 0; margin: 0 2px;
+    .pr-divider {
+      width: 1px; height: 20px; background: #d1d5db; flex-shrink: 0; margin: 0 4px;
     }
 
     /* ── 상태 탭 필터 ── */
@@ -224,11 +225,13 @@
       <button class="pr-status-tab" data-status="REJECTED">반려</button>
       <button class="pr-status-tab" data-status="CANCELLED">취소</button>
     </div>
-    <input type="text" id="prKeyword" placeholder="자재명 검색..." style="width:220px;" />
+    <div class="pr-divider"></div>
     <input type="date" id="prDateFrom" />
-    <span style="font-size:11px;color:#9ca3af;">~</span>
+    <span style="font-size:11px;color:#9ca3af;flex-shrink:0;">~</span>
     <input type="date" id="prDateTo" />
-    <button class="btn btn-sm" id="prSearchBtn"><i class="ti ti-search"></i> 검색</button>
+    <div class="pr-divider"></div>
+    <input type="text" id="prKeyword" placeholder="자재명 검색..." />
+    <button class="btn btn-sm btn-primary" id="prSearchBtn"><i class="ti ti-search"></i> 조회</button>
   </div>
 
   <!-- 요청 목록 그리드 -->
@@ -308,7 +311,7 @@
         <label>자재 검색</label>
         <div class="pr-search-wrap">
           <input type="text" id="pr_search_kw" placeholder="자재명을 입력해 검색하세요..." autocomplete="off" />
-          <button class="btn btn-sm" id="prSearchBtn" type="button">검색</button>
+          <button class="btn btn-sm btn-primary" id="prSearchBtn" type="button"><i class="ti ti-search"></i> 조회</button>
           <div id="prSearchResults" class="pr-search-results"></div>
         </div>
       </div>
