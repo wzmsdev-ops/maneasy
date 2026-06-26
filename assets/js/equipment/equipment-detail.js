@@ -964,18 +964,18 @@ async function submitHistoryModal() {
   var actor = user && (user.email || user.user_email) || '';
 
   var equipment = currentEquipmentData || {};
+  var updateEquipmentStatus = historyModalGetField('m_update_equipment_status');
+
   var payload = {
     equipment_id:   currentEquipmentId,
     history_type:   historyType,
     work_date:      workDate,
     requester:      historyModalGetField('m_requester'),
     vendor_name:    historyModalGetField('m_vendor_name'),
-    amount:         historyModalGetField('m_amount').replace(/[^\d.-]/g, ''),
+    amount:         historyModalGetField('m_amount').replace(/[^\d.-]/g, '') || null,
     result_status:  historyModalGetField('m_result_status'),
     description:    description,
-    update_equipment_status: historyModalGetField('m_update_equipment_status'),
     created_by:     actor,
-    updated_by:     actor,
     request_clinic_code: equipment.clinic_code || '',
     request_clinic_name: equipment.clinic_name || '',
     request_team_code:   equipment.team_code   || '',
@@ -983,10 +983,7 @@ async function submitHistoryModal() {
     request_department:  equipment.department_display || equipment.department || ''
   };
 
-  if (_historyModalMode === 'edit' && _historyModalId) {
-    payload.history_id = _historyModalId;
-    payload.client_updated_at = (_historyModalData && _historyModalData.updated_at) || '';
-  }
+  // edit 모드: id는 .eq() 조건으로 처리, payload에 불필요한 컬럼 없음
 
   var submitBtn = qs('#historyModalSubmit');
   try {
@@ -1009,7 +1006,11 @@ async function submitHistoryModal() {
     var user2 = getCurrentUser();
     var email2 = user2 && (user2.email || user2.user_email) || '';
     await loadHistorySection(currentEquipmentId, email2);
-    if (payload.update_equipment_status) {
+    if (updateEquipmentStatus) {
+      await supabaseClient
+        .from('equipments')
+        .update({ status: updateEquipmentStatus })
+        .eq('id', currentEquipmentId);
       await loadEquipmentCore(currentEquipmentId, email2, { resetSkeleton: false });
     }
   } catch(e) {
