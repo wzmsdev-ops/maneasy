@@ -104,10 +104,18 @@ document.addEventListener('DOMContentLoaded', async () => {
   navigate(params.get('page') || 'equipment/dashboard', true);
 });
 
-function navigate(page, skipHistory) {
+function navigate(page, tab, skipHistory, extraQuery) {
   if (!page) return;
 
-  const meta = MENU_META[page] || { app: page, page: '' };
+  // extraQuery 객체가 있으면 쿼리스트링으로 변환해서 page에 합침
+  if (extraQuery && typeof extraQuery === 'object') {
+    var qs = Object.entries(extraQuery).map(function([k,v]) {
+      return encodeURIComponent(k) + '=' + encodeURIComponent(v);
+    }).join('&');
+    if (qs) page = page + '?' + qs;
+  }
+
+  const meta = MENU_META[page.split('?')[0]] || { app: page, page: '' };
   document.getElementById('breadcrumbApp').textContent = meta.app;
   document.getElementById('breadcrumbPage').textContent = meta.page;
   document.getElementById('breadcrumbSep').style.display = meta.page ? '' : 'none';
