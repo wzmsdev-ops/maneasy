@@ -151,6 +151,12 @@
 
   <!-- 액션바 -->
   <div class="pr-actionbar">
+    <input type="text" id="prKeyword" placeholder="자재명 검색..."
+      style="height:30px;padding:0 10px;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;outline:none;width:200px;" />
+    <input type="date" id="prDateFrom" style="height:30px;padding:0 8px;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;outline:none;" />
+    <span style="font-size:11px;color:#9ca3af;">~</span>
+    <input type="date" id="prDateTo" style="height:30px;padding:0 8px;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;outline:none;" />
+    <button class="btn btn-sm" id="prSearchBtn"><i class="ti ti-search"></i> 검색</button>
     <div class="pr-status-tabs">
       <button class="pr-status-tab active" data-status="">전체</button>
       <button class="pr-status-tab" data-status="REQUESTED">요청</button>
