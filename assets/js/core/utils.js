@@ -323,28 +323,25 @@ function createMgGrid(containerId, colDefs, rows, options) {
     el.classList.add('ag-theme-alpine');
   }
 
-  // 컨테이너 높이 설정
-  // display:none 탭 안에 있으면 clientHeight=0 → height:100% 세팅 (flex parent가 결정)
-  // display 상태에서는 clientHeight로 계산
-  var gridH = el.clientHeight;
-  if (!el.style.height) {
-    if (gridH > 0) {
-      el.style.height = gridH + 'px';
-    } else {
-      // 비활성 탭 등 — 부모 flex가 결정하도록 100% 세팅
-      el.style.height = '100%';
-    }
-  }
-  if (!gridH) {
+  // 높이 결정 — el 자체 → 가시 부모 → window.innerHeight 순으로 폴백
+  function resolveHeight() {
+    // 1) el 본인 높이
+    if (el.clientHeight > 40) return el.clientHeight;
+    // 2) 가시 부모 체인
     var p = el.parentElement;
-    while (p && !gridH) { gridH = p.clientHeight; p = p.parentElement; }
+    while (p) {
+      if (p.clientHeight > 40) return p.clientHeight;
+      p = p.parentElement;
+    }
+    // 3) window 기반 추정 (헤더+툴바 약 120px 차감)
+    return Math.max(300, window.innerHeight - 120);
   }
-  if (!gridH) gridH = 400;
 
-  // rowHeight 고정 34px, 컨테이너 높이로 pageSize 자동 계산
+  var gridH = resolveHeight();
+  el.style.height = gridH + 'px';
+
   var ROW_H    = 34;
   var HEADER_H = 34;
-  var pageSize = Math.max(1, Math.floor((gridH - HEADER_H) / ROW_H));
 
   // equipment-list.js defaultColDef와 동일
   var defaultColDef = {
@@ -367,25 +364,20 @@ function createMgGrid(containerId, colDefs, rows, options) {
     overlayNoRowsTemplate: '<span style="color:#9ca3af;font-size:12px;">' + noRowsText + '</span>',
     onGridReady: function(params) {
       var _api = params.api;
-      // iframe/탭 안에서 초기화 시 offsetWidth=0 → setTimeout으로 DOM 완전 렌더 후 호출
       setTimeout(function() {
-        if (_api) _api.sizeColumnsToFit();
+        if (_api) {
+          // 탭 전환 후 실제 높이로 재조정
+          var h = resolveHeight();
+          if (h !== gridH) el.style.height = h + 'px';
+          _api.sizeColumnsToFit();
+        }
       }, 0);
       window.addEventListener('resize', function() {
-        if (_api) _api.sizeColumnsToFit();
+        if (_api) {
+          el.style.height = resolveHeight() + 'px';
+          _api.sizeColumnsToFit();
+        }
       });
-    },
-    onFirstDataRendered: function(params) {
-      // viewport 실제 높이로 pageSize 재계산
-      var viewport = el.querySelector('.ag-body-viewport');
-      if (!viewport) return;
-      var viewH = viewport.clientHeight;
-      if (!viewH) return;
-      var rH = Math.max(26, Math.floor(viewH / Math.max(1, Math.floor(viewH / ROW_H))));
-      if (rH !== params.api.getGridOption('rowHeight')) {
-        params.api.setGridOption('rowHeight', ROW_H);
-        params.api.resetRowHeights();
-      }
     },
   };
 
@@ -397,7 +389,7 @@ function createMgGrid(containerId, colDefs, rows, options) {
   }
 
   var api = agGrid.createGrid(el, gridOptions);
-  api._pageSize = pageSize;  // 외부에서 페이지네이션 시 참조 가능
+  api._resolveHeight = resolveHeight;
   return api;
 }
 
