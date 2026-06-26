@@ -78,6 +78,17 @@ function fillForm(eq) {
   setVal('managerName',         eq.manager_name);
   setVal('managerPhone',        eq.manager_phone);
 
+  // select 값 세팅 (의원/부서)
+  const clinicSel = document.getElementById('clinic_code');
+  const teamSel   = document.getElementById('team_code');
+  if (clinicSel && eq.clinic_code) {
+    clinicSel.value = eq.clinic_code;
+    clinicSel.dispatchEvent(new Event('change'));
+  }
+  if (teamSel && eq.team_code) {
+    setTimeout(() => { teamSel.value = eq.team_code; }, 50);
+  }
+
   if (eq.photo_url) renderPhotoPreview(eq.photo_url);
 }
 
@@ -166,6 +177,48 @@ async function init() {
     statusSel.innerHTML = Object.entries(STATUS_LABEL)
       .map(([k, v]) => `<option value="${k}">${v}</option>`).join('');
   }
+
+  // 의원 select — clinics 테이블에서 로드
+  const clinicSel = document.getElementById('clinic_code');
+  const teamSel   = document.getElementById('team_code');
+
+  const { data: clinicRows } = await supabaseClient
+    .from('clinics').select('clinic_code, clinic_name').eq('active', 'Y').order('sort_order');
+  const { data: deptRows } = await supabaseClient
+    .from('departments').select('dept_code, dept_name, clinic_id, clinics(clinic_code)').eq('active', 'Y').order('sort_order');
+
+  if (clinicSel) {
+    clinicSel.innerHTML = '<option value="">의원 선택</option>' +
+      (clinicRows || []).map(r =>
+        `<option value="${r.clinic_code}">${r.clinic_name}</option>`
+      ).join('');
+
+    // 의원 변경 시 부서 연동 + clinic_name 자동 세팅
+    clinicSel.addEventListener('change', () => {
+      const code = clinicSel.value;
+      const found = (clinicRows || []).find(r => r.clinic_code === code);
+      setVal('clinicName', found ? found.clinic_name : '');
+      setVal('teamName', '');
+      fillDeptSelect(teamSel, deptRows, code);
+    });
+  }
+
+  function fillDeptSelect(el, rows, clinicCode) {
+    if (!el) return;
+    const filtered = clinicCode
+      ? (rows || []).filter(d => d.clinics && d.clinics.clinic_code === clinicCode)
+      : (rows || []);
+    el.innerHTML = '<option value="">부서 선택</option>' +
+      filtered.map(d => `<option value="${d.dept_code}">${d.dept_name}</option>`).join('');
+  }
+  fillDeptSelect(teamSel, deptRows, clinicSel?.value || '');
+
+  // 부서 변경 시 team_name 자동 세팅
+  teamSel?.addEventListener('change', () => {
+    const code = teamSel.value;
+    const found = (deptRows || []).find(d => d.dept_code === code);
+    setVal('teamName', found ? found.dept_name : '');
+  });
 
   // 수정 모드 확인
   const params = new URLSearchParams(location.search);
