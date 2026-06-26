@@ -323,17 +323,19 @@ function createMgGrid(containerId, colDefs, rows, options) {
     el.classList.add('ag-theme-alpine');
   }
 
-  // 높이 없으면 부모에서 탐색하여 설정
-  if (!el.style.height && el.clientHeight === 0) {
+  // 컨테이너 높이 확인 — 없으면 부모 체인 탐색
+  var gridH = el.clientHeight;
+  if (!gridH) {
     var p = el.parentElement;
-    var h = 0;
-    while (p && !h) { h = p.clientHeight; p = p.parentElement; }
-    el.style.height = (h || 500) + 'px';
+    while (p && !gridH) { gridH = p.clientHeight; p = p.parentElement; }
   }
+  if (!gridH) gridH = 500;
+  if (!el.style.height) el.style.height = gridH + 'px';
 
-  // rowHeight / headerHeight — equipment-list.js 동일 고정값
+  // rowHeight 고정 34px, 컨테이너 높이로 pageSize 자동 계산
   var ROW_H    = 34;
   var HEADER_H = 34;
+  var pageSize = Math.max(1, Math.floor((gridH - HEADER_H) / ROW_H));
 
   // equipment-list.js defaultColDef와 동일
   var defaultColDef = {
@@ -370,6 +372,18 @@ function createMgGrid(containerId, colDefs, rows, options) {
         if (_api) _api.sizeColumnsToFit();
       });
     },
+    onFirstDataRendered: function(params) {
+      // viewport 실제 높이로 pageSize 재계산
+      var viewport = el.querySelector('.ag-body-viewport');
+      if (!viewport) return;
+      var viewH = viewport.clientHeight;
+      if (!viewH) return;
+      var rH = Math.max(26, Math.floor(viewH / Math.max(1, Math.floor(viewH / ROW_H))));
+      if (rH !== params.api.getGridOption('rowHeight')) {
+        params.api.setGridOption('rowHeight', ROW_H);
+        params.api.resetRowHeights();
+      }
+    },
   };
 
   if (options.onRowClick) {
@@ -379,7 +393,9 @@ function createMgGrid(containerId, colDefs, rows, options) {
     gridOptions.rowStyle = { cursor: 'pointer' };
   }
 
-  return agGrid.createGrid(el, gridOptions);
+  var api = agGrid.createGrid(el, gridOptions);
+  api._pageSize = pageSize;  // 외부에서 페이지네이션 시 참조 가능
+  return api;
 }
 
 
