@@ -247,4 +247,5 @@ async function init() {
   }
 }
 
+function initQcItems() { init(); }
 document.addEventListener('DOMContentLoaded', init);
