@@ -61,10 +61,22 @@ function initTabs() {
       document.getElementById('tab-' + target)?.classList.add('active');
 
       requestAnimationFrame(function() {
-        if (target === 'receipt')   { if (!_gridReceipt)   initReceiptGrid();   if (_gridReceipt)   _gridReceipt.sizeColumnsToFit();   loadReceipts(1); }
-        if (target === 'dispatch')  { if (!_gridDispatch)  initDispatchGrid();  if (_gridDispatch)  _gridDispatch.sizeColumnsToFit();  loadDispatches(1); }
-        if (target === 'deptstock') { if (!_gridDeptStock) initDeptStockGrid(); if (_gridDeptStock) _gridDeptStock.sizeColumnsToFit(); loadDeptStock(1); }
-        if (target === 'use')       { if (!_gridUse)       initUseGrid();       if (_gridUse)       _gridUse.sizeColumnsToFit();       loadUseLog(1); }
+        var tabGridMap = {
+          receipt:   { api: '_gridReceipt',   id: 'receiptGrid',   init: initReceiptGrid,   load: function(){loadReceipts(1);} },
+          dispatch:  { api: '_gridDispatch',  id: 'dispatchGrid',  init: initDispatchGrid,  load: function(){loadDispatches(1);} },
+          deptstock: { api: '_gridDeptStock', id: 'deptStockGrid', init: initDeptStockGrid, load: function(){loadDeptStock(1);} },
+        };
+        var tg = tabGridMap[target];
+        if (tg) {
+          if (!window[tg.api]) tg.init();
+          setTimeout(function() {
+            var el = document.getElementById(tg.id);
+            var api = window[tg.api];
+            if (el) el.style.height = Math.max(300, window.innerHeight - 130) + 'px';
+            if (api) api.sizeColumnsToFit();
+            if (tg.load) tg.load();
+          }, 0);
+        }
       });
     });
   });
@@ -168,7 +180,8 @@ function initReceiptGrid() {
       cellRenderer: function(p) { return '<strong>' + fmtN(p.value) + '원</strong>'; }
     },
   ];
-  _gridReceipt = createMgGrid('receiptGrid', colDefs, [], { noRowsText: '입고 내역이 없습니다.' });
+  _gridReceipt = (function(){ var _g = document.getElementById('receiptGrid'); if(_g) _g.style.height = Math.max(300, window.innerHeight - 130) + 'px'; })();
+  createMgGrid('receiptGrid', colDefs, [], { noRowsText: '입고 내역이 없습니다.' });
 }
 
 async function loadReceipts(page) {
@@ -461,7 +474,8 @@ function initDispatchGrid() {
       cellRenderer: function(p) { return ts(p.value || '-'); }
     },
   ];
-  _gridDispatch = createMgGrid('dispatchGrid', colDefs, [], { noRowsText: '불출 내역이 없습니다.' });
+  _gridDispatch = (function(){ var _g = document.getElementById('dispatchGrid'); if(_g) _g.style.height = Math.max(300, window.innerHeight - 130) + 'px'; })();
+  createMgGrid('dispatchGrid', colDefs, [], { noRowsText: '불출 내역이 없습니다.' });
 }
 
 async function loadDispatches(page) {
@@ -592,7 +606,8 @@ function initDeptStockGrid() {
       }
     },
   ];
-  _gridDeptStock = createMgGrid('deptStockGrid', colDefs, [], { noRowsText: '부서별 재고 데이터가 없습니다.' });
+  _gridDeptStock = (function(){ var _g = document.getElementById('deptStockGrid'); if(_g) _g.style.height = Math.max(300, window.innerHeight - 130) + 'px'; })();
+  createMgGrid('deptStockGrid', colDefs, [], { noRowsText: '부서별 재고 데이터가 없습니다.' });
 }
 
 async function loadDeptStock(page) {
