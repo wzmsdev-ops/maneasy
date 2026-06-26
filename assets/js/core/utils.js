@@ -358,16 +358,10 @@ function createMgGrid(containerId, colDefs, rows, options) {
     overlayNoRowsTemplate: '<span style="color:#9ca3af;font-size:12px;">' + noRowsText + '</span>',
     onGridReady: function(params) {
       var _api = params.api;
-      var attempts = 0;
-      function trySizeColumnsToFit() {
-        if (el.offsetWidth > 0) {
-          _api.sizeColumnsToFit();
-        } else if (attempts < 20) {
-          attempts++;
-          requestAnimationFrame(trySizeColumnsToFit);
-        }
-      }
-      trySizeColumnsToFit();
+      // iframe/탭 안에서 초기화 시 offsetWidth=0 → setTimeout으로 DOM 완전 렌더 후 호출
+      setTimeout(function() {
+        if (_api) _api.sizeColumnsToFit();
+      }, 0);
       window.addEventListener('resize', function() {
         if (_api) _api.sizeColumnsToFit();
       });
