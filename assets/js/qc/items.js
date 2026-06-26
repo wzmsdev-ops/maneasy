@@ -45,41 +45,51 @@ async function loadItems() {
 }
 
 /* ── 렌더링 ────────────────────────────────── */
+let _itemGrid = null;
 function renderItems(rows) {
-  const wrap  = document.getElementById('itemList');
   const empty = document.getElementById('itemListEmpty');
-  if (!wrap) return;
+  if (empty) empty.style.display = rows.length ? 'none' : '';
 
-  if (!rows.length) {
-    if (empty) empty.style.display = '';
-    wrap.innerHTML = '';
-    return;
-  }
-  if (empty) empty.style.display = 'none';
+  const cols = [
+    { headerName: '항목명', field: 'item_name', flex: 2, minWidth: 120 },
+    { headerName: '유형',   field: 'item_type', flex: 1, minWidth: 70,
+      valueFormatter: p => p.value === 'quantitative' ? '정량' : '정성' },
+    { headerName: '단위',   field: 'unit',      flex: 1, minWidth: 70, valueFormatter: p => p.value || '-' },
+    { headerName: 'Mean',   field: 'mean',      flex: 1, minWidth: 70, valueFormatter: p => p.value != null ? p.value : '-' },
+    { headerName: 'SD',     field: 'sd',        flex: 1, minWidth: 70, valueFormatter: p => p.value != null ? p.value : '-' },
+    { headerName: '소수점', field: 'decimal_places', flex: 1, minWidth: 70,
+      valueFormatter: p => (p.value ?? 2) + '자리' },
+    { headerName: '데이터', flex: 1, minWidth: 70,
+      valueGetter: p => (p.data.lj_entries?.[0]?.count ?? 0) + '건' },
+    { headerName: '관리', flex: 1, minWidth: 180, sortable: false,
+      cellRenderer: p => {
+        const wrap = document.createElement('div');
+        wrap.style.cssText = 'display:flex;gap:4px;align-items:center;';
+        const btnEdit = document.createElement('button');
+        btnEdit.className = 'btn btn-sm btn-secondary';
+        btnEdit.textContent = '수정';
+        btnEdit.onclick = () => openEditModal(p.data.id);
+        const btnDel = document.createElement('button');
+        btnDel.className = 'btn btn-sm btn-danger';
+        btnDel.textContent = '삭제';
+        btnDel.onclick = () => deleteItem(p.data.id);
+        const btnData = document.createElement('button');
+        btnData.className = 'btn btn-sm';
+        btnData.textContent = '데이터 입력';
+        btnData.onclick = () => goData(p.data.id);
+        wrap.append(btnEdit, btnDel, btnData);
+        return wrap;
+      }},
+  ];
 
-  wrap.innerHTML = `
-    <table class="data-table">
-      <thead><tr>
-        <th>항목명</th><th>유형</th><th>단위</th>
-        <th>Mean</th><th>SD</th><th>소수점</th><th>데이터</th><th>관리</th>
-      </tr></thead>
-      <tbody>${rows.map(r => `
-        <tr>
-          <td>${textSafe(r.item_name)}</td>
-          <td>${r.item_type === 'quantitative' ? '정량' : '정성'}</td>
-          <td>${textSafe(r.unit || '-')}</td>
-          <td>${r.mean != null ? r.mean : '-'}</td>
-          <td>${r.sd != null ? r.sd : '-'}</td>
-          <td>${r.decimal_places ?? 2}자리</td>
-          <td>${r.lj_entries?.[0]?.count ?? 0}건</td>
-          <td class="action-cell">
-            <button class="btn btn-sm btn-secondary" onclick="openEditModal('${r.id}')">수정</button>
-            <button class="btn btn-sm btn-danger"    onclick="deleteItem('${r.id}')">삭제</button>
-            <button class="btn btn-sm"               onclick="goData('${r.id}')">데이터 입력</button>
-          </td>
-        </tr>`).join('')}
-      </tbody>
-    </table>`;
+  if (_itemGrid) { updateMgGrid(_itemGrid, rows); return; }
+  _itemGrid = (function(){
+    var _el = document.getElementById('itemList');
+    if (_el) { _el.classList.add('ag-theme-alpine'); if (!_el.style.height) _el.style.height = '400px'; }
+  })();
+  createMgGrid('itemList', cols, rows, {
+    pageSize: 15, fit: true, noRowsText: '등록된 검사항목이 없습니다.',
+  });
 }
 
 function goData(itemId) {
