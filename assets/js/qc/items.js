@@ -239,11 +239,14 @@ async function init() {
     else parent.shellNavigate?.('equipment/list');
   });
 
+  showGlobalLoading('검사항목을 불러오는 중...');
   try {
     await refresh();
   } catch (e) {
     console.error('[qc/items]', e);
     alert('항목 목록을 불러오지 못했습니다: ' + e.message);
+  } finally {
+    hideGlobalLoading();
   }
 }
 
