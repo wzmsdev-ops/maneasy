@@ -110,10 +110,7 @@ function renderClinics(rows) {
   if (empty) empty.style.display = rows.length ? 'none' : '';
 
   if (!window._clinicGrid) {
-    window._clinicGrid = (function(){
-    var _el = document.getElementById('clinicList');
-    if (_el) { _el.classList.add('ag-theme-alpine'); if (!_el.style.height) _el.style.height = '520px'; }
-  })();
+    window._clinicGrid =
   createMgGrid('clinicList', [
       { headerName: '코드',   field: 'clinic_code', flex: 1, minWidth: 90 },
       { headerName: '의원명', field: 'clinic_name', flex: 2, minWidth: 120 },
@@ -243,10 +240,7 @@ function renderDepts(rows, filterClinicId) {
   if (empty) empty.style.display = filtered.length ? 'none' : '';
 
   if (!window._deptGrid) {
-    window._deptGrid = (function(){
-    var _el = document.getElementById('deptList');
-    if (_el) { _el.classList.add('ag-theme-alpine'); if (!_el.style.height) _el.style.height = '520px'; }
-  })();
+    window._deptGrid =
   createMgGrid('deptList', [
       { headerName: '코드',     field: 'dept_code',  flex: 1, minWidth: 90 },
       { headerName: '부서명',   field: 'dept_name',  flex: 2, minWidth: 100 },
@@ -375,10 +369,7 @@ function renderUsers(rows, filterClinicCode, filterDeptCode) {
   if (empty) empty.style.display = filtered.length ? 'none' : '';
 
   if (!window._userGrid) {
-    window._userGrid = (function(){
-    var _el = document.getElementById('userList');
-    if (_el) { _el.classList.add('ag-theme-alpine'); if (!_el.style.height) _el.style.height = '520px'; }
-  })();
+    window._userGrid =
   createMgGrid('userList', [
       { headerName: '이름',   field: 'user_name',  flex: 1, minWidth: 80, valueFormatter: p => p.value || '-' },
       { headerName: '역할',   field: 'role',       flex: 0, width: 90,
