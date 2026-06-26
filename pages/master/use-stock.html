@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>사용처리</title>
+  <link rel="stylesheet" href="../../assets/css/common.css" />
+  <link rel="stylesheet" href="../../assets/font/tabler-icons/tabler-icons.min.css" />
+  <link rel="stylesheet" href="../../assets/libs/ag-grid/ag-grid.min.css" />
+  <link rel="stylesheet" href="../../assets/libs/ag-grid/ag-theme-alpine.min.css" />
+  <style>
+    html, body { height:100%; margin:0; background:#f0f2f5; }
+    .us-page {
+      display:flex; flex-direction:column; height:100vh;
+      padding:12px 16px; gap:10px; box-sizing:border-box;
+    }
+    .us-header {
+      display:flex; align-items:center; justify-content:space-between;
+      flex-shrink:0;
+    }
+    .us-title { font-size:15px; font-weight:700; color:#111827; }
+    .us-dept-badge {
+      display:inline-flex; align-items:center; gap:6px;
+      background:#eff6ff; color:#1e40af; border:1px solid #bfdbfe;
+      border-radius:6px; padding:4px 10px; font-size:12px; font-weight:600;
+    }
+    .us-card {
+      background:#fff; border:1px solid #e5e7eb; border-radius:8px;
+      display:flex; flex-direction:column; flex:1; min-height:0; overflow:hidden;
+    }
+    .us-toolbar {
+      display:flex; align-items:center; gap:8px; padding:10px 12px;
+      border-bottom:1px solid #f3f4f6; flex-shrink:0; flex-wrap:wrap;
+    }
+    .us-toolbar input, .us-toolbar select {
+      padding:6px 10px; border:1px solid #e5e7eb; border-radius:6px;
+      font-size:12px; outline:none;
+    }
+    .us-toolbar input:focus, .us-toolbar select:focus { border-color:#2563eb; }
+    .us-grid-wrap { flex:1; min-height:0; }
+
+    /* 재고 현황 카드 */
+    .us-stock-section {
+      flex-shrink:0; background:#fff; border:1px solid #e5e7eb;
+      border-radius:8px; padding:12px 16px;
+    }
+    .us-stock-title {
+      font-size:12px; font-weight:700; color:#6b7280; margin-bottom:8px;
+      text-transform:uppercase; letter-spacing:0.5px;
+    }
+    .us-stock-grid-wrap { height:180px; }
+
+    /* 사용처리 모달 */
+    .us-modal-overlay {
+      display:none; position:fixed; inset:0; background:rgba(0,0,0,0.4);
+      z-index:1000; align-items:center; justify-content:center;
+    }
+    .us-modal-overlay.is-open { display:flex; }
+    .us-modal {
+      background:#fff; border-radius:12px; width:420px; max-width:90vw;
+      box-shadow:0 20px 60px rgba(0,0,0,0.2);
+    }
+    .us-modal-head {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:14px 18px; border-bottom:1px solid #f3f4f6;
+    }
+    .us-modal-title { font-size:14px; font-weight:700; color:#111827; }
+    .us-modal-close { background:none; border:none; cursor:pointer; color:#9ca3af; font-size:18px; }
+    .us-modal-body { padding:18px; display:flex; flex-direction:column; gap:12px; }
+    .us-modal-foot { padding:12px 18px; border-top:1px solid #f3f4f6; display:flex; justify-content:flex-end; gap:8px; }
+    .us-field { display:flex; flex-direction:column; gap:4px; }
+    .us-label { font-size:12px; font-weight:600; color:#374151; }
+    .us-label .req { color:#ef4444; margin-left:2px; }
+    .us-input, .us-select {
+      padding:8px 10px; border:1px solid #e5e7eb; border-radius:6px;
+      font-size:13px; outline:none;
+    }
+    .us-input:focus, .us-select:focus { border-color:#2563eb; }
+    .us-info-row {
+      display:flex; gap:16px; background:#f8fafc; border-radius:6px;
+      padding:8px 12px; font-size:12px;
+    }
+    .us-info-item { display:flex; flex-direction:column; gap:2px; }
+    .us-info-label { color:#6b7280; }
+    .us-info-value { font-weight:700; color:#111827; }
+
+    /* ag-grid 커스텀 */
+    .ag-theme-alpine {
+      --ag-font-size: 11px !important;
+      --ag-font-family: "Pretendard", "Noto Sans KR", sans-serif !important;
+      --ag-header-background-color: #f8fafc;
+      --ag-border-color: #e5e7eb;
+      --ag-row-hover-color: #f0f5ff;
+    }
+    .ag-theme-alpine .ag-cell { font-size:11px !important; }
+    .ag-theme-alpine .ag-header-cell-label { font-weight:700; justify-content:center; }
+    .ag-left-header .ag-header-cell-label { justify-content:flex-start !important; }
+  </style>
+</head>
+<body>
+
+<div class="us-page">
+
+  <!-- 헤더 -->
+  <div class="us-header">
+    <div class="us-title"><i class="ti ti-clipboard-check"></i> 사용처리</div>
+    <div id="deptBadge" class="us-dept-badge" style="display:none;">
+      <i class="ti ti-building"></i>
+      <span id="deptBadgeText">-</span>
+    </div>
+  </div>
+
+  <!-- 부서 재고 현황 -->
+  <div class="us-stock-section">
+    <div class="us-stock-title">내 부서 보유 재고</div>
+    <div id="stockGrid" class="us-stock-grid-wrap ag-theme-alpine"></div>
+  </div>
+
+  <!-- 사용처리 이력 -->
+  <div class="us-card">
+    <div class="us-toolbar">
+      <input type="date" id="dateFrom" />
+      <span style="font-size:12px;color:#9ca3af;">~</span>
+      <input type="date" id="dateTo" />
+      <button class="btn btn-sm" onclick="loadUseLog(1)">조회</button>
+      <div style="flex:1;"></div>
+      <button class="btn btn-primary" onclick="openUseModal()">
+        <i class="ti ti-plus"></i> 사용처리
+      </button>
+    </div>
+    <div id="useGrid" class="us-grid-wrap ag-theme-alpine"></div>
+    <div id="usePagination" style="padding:8px 12px;flex-shrink:0;"></div>
+  </div>
+
+</div>
+
+<!-- 사용처리 모달 -->
+<div class="us-modal-overlay" id="useModal">
+  <div class="us-modal">
+    <div class="us-modal-head">
+      <span class="us-modal-title">사용처리</span>
+      <button class="us-modal-close" onclick="closeUseModal()"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="us-modal-body">
+      <div class="us-field">
+        <label class="us-label">자재 선택<span class="req">*</span></label>
+        <select class="us-select" id="m_item_id" onchange="onItemChange()">
+          <option value="">자재를 선택하세요</option>
+        </select>
+      </div>
+      <div class="us-info-row" id="itemInfoRow" style="display:none;">
+        <div class="us-info-item">
+          <span class="us-info-label">단위</span>
+          <span class="us-info-value" id="infoUnit">-</span>
+        </div>
+        <div class="us-info-item">
+          <span class="us-info-label">현재고</span>
+          <span class="us-info-value" id="infoQty">-</span>
+        </div>
+      </div>
+      <div class="us-field">
+        <label class="us-label">사용일<span class="req">*</span></label>
+        <input type="date" class="us-input" id="m_use_date" />
+      </div>
+      <div class="us-field">
+        <label class="us-label">사용 수량<span class="req">*</span></label>
+        <input type="number" class="us-input" id="m_qty" min="1" value="1" />
+      </div>
+      <div class="us-field">
+        <label class="us-label">메모</label>
+        <input type="text" class="us-input" id="m_memo" placeholder="사용 목적 등" />
+      </div>
+    </div>
+    <div class="us-modal-foot">
+      <button class="btn" onclick="closeUseModal()">취소</button>
+      <button class="btn btn-primary" id="useSaveBtn" onclick="saveUse()">처리</button>
+    </div>
+  </div>
+</div>
+
+<div id="globalLoading" aria-hidden="true">
+  <div class="global-loading__dialog">
+    <div class="global-loading__spinner"></div>
+    <div class="global-loading__text" id="globalLoadingText">불러오는 중...</div>
+  </div>
+</div>
+
+<script src="../../assets/libs/ag-grid/ag-grid-community.min.js"></script>
+<script src="../../assets/libs/supabase.js"></script>
+<script src="../../assets/js/core/config.js"></script>
+<script src="../../assets/js/core/utils.js"></script>
+<script src="../../assets/js/core/supabase.js"></script>
+<script src="../../assets/js/core/auth.js"></script>
+<script src="../../assets/js/core/db.js"></script>
+<script src="../../assets/js/master/use-stock.js"></script>
+</body>
+</html>
