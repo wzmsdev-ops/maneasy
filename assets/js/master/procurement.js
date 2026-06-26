@@ -1216,7 +1216,14 @@ async function init() {
   if (!user) return;
 
   initMainTabs();
-  initRvStatusTabs();
+  
+  // 발주요청확인 검색
+  document.getElementById('rvSearchBtn')?.addEventListener('click', function() { loadRvList(1); });
+  document.getElementById('rvKeyword')?.addEventListener('keydown', function(e) { if (e.key === 'Enter') loadRvList(1); });
+  // 발주목록 검색
+  document.getElementById('poSearchBtn')?.addEventListener('click', function() { loadPoList(1); });
+  document.getElementById('poKeyword')?.addEventListener('keydown', function(e) { if (e.key === 'Enter') loadPoList(1); });
+initRvStatusTabs();
   initRvListGrid();   // review 탭이 기본 활성 → 즉시 초기화
   initStatusTabs();
   // poListGrid, poItemGrid, poDetailGrid, rvSplitGrid는 탭/모달 전환 시 lazy 초기화
