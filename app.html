@@ -58,6 +58,14 @@
               id="sbItemMasterSupply" style="display:none;">
         <div class="sb-item-inner"><i class="ti ti-package"></i><span>자재·거래처</span></div>
       </button>
+      <button class="sb-item sb-admin-only" data-page="master/procurement" onclick="navigate('master/procurement')"
+              id="sbItemProcurement" style="display:none;">
+        <div class="sb-item-inner"><i class="ti ti-file-invoice"></i><span>발주 관리</span></div>
+      </button>
+      <button class="sb-item sb-admin-only" data-page="master/stock" onclick="navigate('master/stock')"
+              id="sbItemStock" style="display:none;">
+        <div class="sb-item-inner"><i class="ti ti-building-warehouse"></i><span>재고 관리</span></div>
+      </button>
 
     </div>
     <div class="sb-footer">
@@ -104,6 +112,8 @@ const MENU_META = {
   'qc/data':             { app: '정도관리', page: '데이터 입력' },
   'master/org':          { app: '마스터 관리', page: '의원·부서·사용자' },
   'master/supply':       { app: '마스터 관리', page: '자재·거래처' },
+  'master/procurement':  { app: '마스터 관리', page: '발주 관리' },
+  'master/stock':        { app: '마스터 관리', page: '재고 관리' },
 };
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -128,6 +138,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       document.getElementById('sbSectionMaster').style.display = '';
       document.getElementById('sbItemMasterOrg').style.display = '';
       document.getElementById('sbItemMasterSupply').style.display = '';
+      document.getElementById('sbItemProcurement').style.display = '';
+      document.getElementById('sbItemStock').style.display = '';
     }
 
     // edit 이하 역할이면 장비 등록 버튼 숨김
