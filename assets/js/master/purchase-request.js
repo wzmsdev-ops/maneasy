@@ -594,28 +594,34 @@ async function init() {
 
 document.addEventListener('DOMContentLoaded', init);
 
+
 /* ═══════════════════════════════════════════════════════
    부서별 안전재고 설정 & 자동채우기
+   ─ ag-grid quickFilter 사용: 필터해도 편집값 보존
+   ─ onCellValueChanged: 즉시 메모리 반영 (저장은 "전체저장" 버튼)
 ═══════════════════════════════════════════════════════ */
 
-var _ssItems    = [];   // 전체 품목 + 현재고 + 기존 설정
-var _ssFiltered = [];   // 필터링된 목록
-var _ssMyDeptId = null;
+var _ssGrid   = null;
+var _ssItems  = [];
+var _ssDeptId = null;
+var _ssChanged = {};  // item_id → {safety_stock, reorder_qty}
 
 async function getMyDeptId() {
-  if (_ssMyDeptId) return _ssMyDeptId;
-  var session = await supabaseClient.auth.getSession();
-  var userId  = session.data?.session?.user?.id;
-  if (!userId) return null;
+  if (_ssDeptId) return _ssDeptId;
+  var { data: { session } } = await supabaseClient.auth.getSession();
+  if (!session) return null;
 
   var { data: profile } = await supabaseClient
-    .from('user_profiles').select('team_name').eq('id', userId).single();
+    .from('user_profiles').select('team_name').eq('id', session.user.id).single();
   if (!profile?.team_name) return null;
 
   var { data: dept } = await supabaseClient
-    .from('departments').select('id').eq('dept_name', profile.team_name).single();
-  _ssMyDeptId = dept?.id || null;
-  return _ssMyDeptId;
+    .from('departments').select('id, dept_name').eq('dept_name', profile.team_name).single();
+  _ssDeptId = dept?.id || null;
+
+  var badge = document.getElementById('ssDeptLabel');
+  if (badge && dept) badge.textContent = '(' + dept.dept_name + ')';
+  return _ssDeptId;
 }
 
 async function openSsSetting() {
@@ -624,16 +630,15 @@ async function openSsSetting() {
 
   showGlobalLoading('안전재고 설정을 불러오는 중...');
   try {
-    // 전체 품목
     var { data: items } = await supabaseClient
-      .from('items').select('id, item_code, item_name, category, use_unit').eq('active', 'Y')
+      .from('items')
+      .select('id, item_code, item_name, category, use_unit, purchase_unit, purchase_unit_qty')
+      .eq('active', 'Y')
       .order('category').order('item_name');
 
-    // 내 부서 현재고
     var { data: stocks } = await supabaseClient
       .from('stock_current').select('item_id, qty').eq('dept_id', deptId);
 
-    // 기존 설정
     var { data: settings } = await supabaseClient
       .from('dept_item_settings')
       .select('id, item_id, safety_stock, reorder_qty')
@@ -645,31 +650,43 @@ async function openSsSetting() {
     (settings || []).forEach(function(s) { settingMap[s.item_id] = s; });
 
     _ssItems = (items || []).map(function(i) {
+      var ss  = settingMap[i.id];
       return {
-        id:          i.id,
-        item_code:   i.item_code,
-        item_name:   i.item_name,
-        category:    i.category || '-',
-        use_unit:    i.use_unit || '',
-        current_qty: stockMap[i.id] || 0,
-        safety_stock:  settingMap[i.id]?.safety_stock ?? 0,
-        reorder_qty:   settingMap[i.id]?.reorder_qty  ?? 0,
-        setting_id:    settingMap[i.id]?.id || null,
-        changed:       false,
+        id:            i.id,
+        item_code:     i.item_code,
+        item_name:     i.item_name,
+        category:      i.category || '-',
+        purchase_unit: i.purchase_unit || i.use_unit || '',
+        purchase_unit_qty: i.purchase_unit_qty || 1,
+        use_unit:      i.use_unit || '',
+        current_qty:   stockMap[i.id] || 0,
+        safety_stock:  ss?.safety_stock ?? 0,
+        reorder_qty:   ss?.reorder_qty  ?? 0,
+        setting_id:    ss?.id || null,
       };
     });
 
-    // 카테고리 필터 옵션
+    _ssChanged = {};
+
+    // 카테고리 필터
     var cats = [...new Set(_ssItems.map(function(i){ return i.category; }))].sort();
     var catSel = document.getElementById('ssCategoryFilter');
-    catSel.innerHTML = '<option value="">전체 카테고리</option>' +
-      cats.map(function(c){ return '<option value="' + c + '">' + c + '</option>'; }).join('');
+    if (catSel) {
+      catSel.innerHTML = '<option value="">전체 카테고리</option>' +
+        cats.map(function(c){ return '<option value="' + c + '">' + c + '</option>'; }).join('');
+    }
 
     document.getElementById('ssKeyword').value = '';
-    _ssFiltered = _ssItems.slice();
-    renderSsTable(_ssFiltered);
-    updateSsFootInfo();
+    if (catSel) catSel.value = '';
 
+    // ag-grid 초기화 or 데이터 교체
+    if (!_ssGrid) {
+      _initSsGrid();
+    } else {
+      _ssGrid.setGridOption('rowData', _ssItems);
+    }
+
+    updateSsFootInfo();
     document.getElementById('ssModal').classList.add('is-open');
   } catch(e) {
     alert('설정 로드 실패: ' + e.message);
@@ -678,70 +695,149 @@ async function openSsSetting() {
   }
 }
 
-function closeSsSetting() {
-  if (document.getElementById('ssModal').contains(document.activeElement)) document.body.focus();
-  document.getElementById('ssModal').classList.remove('is-open');
-}
+function _initSsGrid() {
+  var el = document.getElementById('ssGrid');
+  if (!el || typeof agGrid === 'undefined') return;
 
-function renderSsTable(rows) {
-  var tbody = document.getElementById('ssTableBody');
-  if (!rows.length) {
-    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:32px;color:#9ca3af;">항목이 없습니다.</td></tr>';
-    return;
-  }
-  tbody.innerHTML = rows.map(function(r) {
-    var low = r.current_qty <= r.safety_stock;
-    var qtyClass = low ? 'ss-stock-low' : 'ss-stock-ok';
-    return '<tr data-id="' + r.id + '">' +
-      '<td><input type="checkbox" class="ss-row-check" data-id="' + r.id + '" /></td>' +
-      '<td style="font-family:Consolas,monospace;font-size:11px;color:#6b7280;">' + r.item_code + '</td>' +
-      '<td style="font-weight:600;">' + r.item_name + '</td>' +
-      '<td><span style="background:#f3f4f6;color:#374151;padding:1px 6px;border-radius:4px;font-size:10px;">' + r.category + '</span></td>' +
-      '<td style="color:#6b7280;">' + r.use_unit + '</td>' +
-      '<td style="text-align:right;" class="' + qtyClass + '">' + r.current_qty.toLocaleString('ko-KR') + '</td>' +
-      '<td style="text-align:center;"><input type="number" class="ss-input" min="0" value="' + r.safety_stock + '" data-field="safety_stock" data-id="' + r.id + '" /></td>' +
-      '<td style="text-align:center;"><input type="number" class="ss-input" min="0" value="' + r.reorder_qty + '" placeholder="자동" data-field="reorder_qty" data-id="' + r.id + '" /></td>' +
-      '</tr>';
-  }).join('');
+  var colDefs = [
+    { headerName: '카테고리', field: 'category',
+      flex: 0, width: 100,
+      cellStyle: { justifyContent: 'center' },
+      cellRenderer: function(p) {
+        return '<span style="background:#f3f4f6;color:#374151;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:600;">' + (p.value || '-') + '</span>';
+      }
+    },
+    { headerName: '자재코드', field: 'item_code',
+      flex: 0, width: 120,
+      cellStyle: { fontFamily:'Consolas,monospace', fontSize:'11px', color:'#6b7280', justifyContent:'center' }
+    },
+    { headerName: '자재명', field: 'item_name',
+      flex: 2, minWidth: 160,
+      headerClass: 'ag-left-header',
+      cellStyle: { fontWeight: 600, justifyContent: 'flex-start' }
+    },
+    { headerName: '입고단위', field: 'purchase_unit',
+      flex: 0, width: 80,
+      cellStyle: { justifyContent: 'center', color: '#6b7280' }
+    },
+    { headerName: '사용단위', field: 'use_unit',
+      flex: 0, width: 80,
+      cellStyle: { justifyContent: 'center', color: '#6b7280' }
+    },
+    { headerName: '환산비율', flex: 0, width: 80,
+      cellStyle: { justifyContent: 'center', fontSize: '11px', color: '#9ca3af' },
+      valueGetter: function(p) {
+        return p.data.purchase_unit_qty > 1
+          ? '1' + (p.data.purchase_unit||'') + '=' + p.data.purchase_unit_qty + (p.data.use_unit||'')
+          : '-';
+      }
+    },
+    { headerName: '현재고', field: 'current_qty',
+      flex: 0, width: 80,
+      cellStyle: function(p) {
+        var low = p.data.safety_stock > 0 && p.value <= p.data.safety_stock;
+        return { justifyContent: 'flex-end', fontWeight: '700',
+                 color: low ? '#dc2626' : '#059669' };
+      },
+      valueFormatter: function(p) {
+        return (p.value || 0).toLocaleString('ko-KR') + ' ' + (p.data.purchase_unit || p.data.use_unit || '');
+      }
+    },
+    { headerName: '안전재고 (입고단위)', field: 'safety_stock',
+      flex: 0, width: 140, editable: true,
+      cellStyle: { justifyContent: 'center' },
+      cellEditor: 'agNumberCellEditor',
+      cellEditorParams: { min: 0, precision: 0 },
+      valueFormatter: function(p) {
+        return (p.value || 0) + ' ' + (p.data.purchase_unit || '');
+      }
+    },
+    { headerName: '발주기본수량 (입고단위)', field: 'reorder_qty',
+      flex: 0, width: 160, editable: true,
+      cellStyle: { justifyContent: 'center', color: '#2563eb' },
+      cellEditor: 'agNumberCellEditor',
+      cellEditorParams: { min: 0, precision: 0 },
+      valueFormatter: function(p) {
+        if (!p.value) return '자동 (부족분)';
+        return p.value + ' ' + (p.data.purchase_unit || '');
+      }
+    },
+  ];
 
-  // input 이벤트 — 변경 추적
-  tbody.querySelectorAll('.ss-input').forEach(function(inp) {
-    inp.addEventListener('change', function() {
-      var id    = this.dataset.id;
-      var field = this.dataset.field;
-      var item  = _ssItems.find(function(i){ return i.id === id; });
-      if (item) { item[field] = parseInt(this.value) || 0; item.changed = true; }
-    });
+  var el2 = document.getElementById('ssGrid');
+  if (el2 && !el2.style.height) el2.style.height = (window.innerHeight * 0.65) + 'px';
+
+  _ssGrid = agGrid.createGrid(el, {
+    columnDefs: colDefs,
+    rowData: _ssItems,
+    rowHeight: 34,
+    headerHeight: 34,
+    defaultColDef: {
+      sortable: true, resizable: true, suppressMovable: true,
+      cellStyle: { display:'flex', alignItems:'center', justifyContent:'center' },
+    },
+    suppressHorizontalScroll: true,
+    stopEditingWhenCellsLoseFocus: true,
+    // 셀 편집 완료 시 메모리에 반영 (저장은 별도 버튼)
+    onCellValueChanged: function(e) {
+      var id    = e.data.id;
+      var field = e.colDef.field;
+      var val   = parseInt(e.newValue) || 0;
+      // _ssItems 업데이트
+      var item = _ssItems.find(function(i){ return i.id === id; });
+      if (item) item[field] = val;
+      // 변경 추적
+      if (!_ssChanged[id]) _ssChanged[id] = {};
+      _ssChanged[id][field] = val;
+      updateSsFootInfo();
+    },
+    onGridReady: function(params) {
+      setTimeout(function() { params.api.sizeColumnsToFit(); }, 0);
+      window.addEventListener('resize', function() { params.api.sizeColumnsToFit(); });
+    },
+    overlayNoRowsTemplate: '<span style="color:#9ca3af;font-size:12px;">조회된 자재가 없습니다.</span>',
   });
 }
 
-function filterSsTable(kw) {
-  kw = (kw || '').toLowerCase();
+// quickFilter — 행 데이터 교체 없이 필터 → 편집값 보존
+function filterSsGrid() {
+  if (!_ssGrid) return;
+  var kw  = (document.getElementById('ssKeyword')?.value  || '').toLowerCase();
   var cat = document.getElementById('ssCategoryFilter')?.value || '';
-  _ssFiltered = _ssItems.filter(function(r) {
-    var matchKw  = !kw  || r.item_name.toLowerCase().includes(kw) || r.item_code.toLowerCase().includes(kw);
-    var matchCat = !cat || r.category === cat;
-    return matchKw && matchCat;
-  });
-  renderSsTable(_ssFiltered);
-}
 
-function toggleSsAll(checked) {
-  document.querySelectorAll('.ss-row-check').forEach(function(cb){ cb.checked = checked; });
+  _ssGrid.setGridOption('rowData',
+    _ssItems.filter(function(r) {
+      var matchCat = !cat || r.category === cat;
+      var matchKw  = !kw  || r.item_name.toLowerCase().includes(kw) || r.item_code.toLowerCase().includes(kw);
+      return matchCat && matchKw;
+    })
+  );
 }
 
 function updateSsFootInfo() {
-  var changed = _ssItems.filter(function(i){ return i.changed; }).length;
   var el = document.getElementById('ssFootInfo');
-  if (el) el.textContent = changed ? '변경된 항목 ' + changed + '개' : '저장되지 않은 변경 없음';
+  var cnt = Object.keys(_ssChanged).length;
+  if (el) el.textContent = cnt ? '미저장 변경 ' + cnt + '개 항목' : '변경사항 없음';
+}
+
+function closeSsSetting() {
+  var changed = Object.keys(_ssChanged).length;
+  if (changed > 0) {
+    if (!confirm('저장하지 않은 변경사항 ' + changed + '개가 있습니다. 닫으시겠습니까?')) return;
+  }
+  if (document.getElementById('ssModal').contains(document.activeElement)) document.body.focus();
+  document.getElementById('ssModal').classList.remove('is-open');
 }
 
 async function saveSsAll() {
   var deptId = await getMyDeptId();
   if (!deptId) return;
 
-  var toSave = _ssItems.filter(function(i){ return i.changed || i.safety_stock > 0 || i.reorder_qty > 0; });
-  if (!toSave.length) { alert('저장할 항목이 없습니다.'); return; }
+  // 설정값이 있는 모든 항목 저장 (변경 여부 무관하게 현재 그리드 값 전체 저장)
+  var toSave = _ssItems.filter(function(i) {
+    return i.safety_stock > 0 || i.reorder_qty > 0 || _ssChanged[i.id];
+  });
+  if (!toSave.length) { alert('저장할 안전재고 설정이 없습니다.\n안전재고를 먼저 입력해주세요.'); return; }
 
   showGlobalLoading('안전재고 설정을 저장하는 중...');
   try {
@@ -749,8 +845,8 @@ async function saveSsAll() {
       return {
         dept_id:      deptId,
         item_id:      i.id,
-        safety_stock: i.safety_stock,
-        reorder_qty:  i.reorder_qty,
+        safety_stock: i.safety_stock || 0,
+        reorder_qty:  i.reorder_qty  || 0,
         active:       'Y',
       };
     });
@@ -760,9 +856,9 @@ async function saveSsAll() {
       .upsert(upsertData, { onConflict: 'dept_id,item_id' });
     if (error) throw new Error(error.message);
 
-    _ssItems.forEach(function(i){ i.changed = false; });
+    _ssChanged = {};
     updateSsFootInfo();
-    alert('안전재고 설정이 저장됐습니다.');
+    alert(toSave.length + '개 항목의 안전재고 설정을 저장했습니다.');
   } catch(e) {
     alert('저장 실패: ' + e.message);
   } finally {
@@ -781,7 +877,7 @@ async function autoFillByStock() {
       .from('dept_stock_alert')
       .select('*')
       .eq('dept_id', deptId)
-      .lt('shortage', 0);  // shortage < 0 = 현재고 < 안전재고
+      .lt('shortage', 0);
 
     if (error) throw new Error(error.message);
     if (!alerts || !alerts.length) {
@@ -789,17 +885,14 @@ async function autoFillByStock() {
       return;
     }
 
-    // 부족 품목 목록 확인 후 발주요청 모달 열기
     var msg = '아래 ' + alerts.length + '개 품목이 안전재고 이하입니다.\n발주요청서에 자동으로 추가할까요?\n\n' +
       alerts.slice(0, 10).map(function(a) {
         var needQty = a.reorder_qty > 0 ? a.reorder_qty : Math.abs(a.shortage);
-        return '· ' + a.item_name + ' (현재고:' + a.current_qty + ', 안전재고:' + a.safety_stock + ', 요청수량:' + needQty + a.use_unit + ')';
+        return '· ' + a.item_name + ' (현재고:' + a.current_qty + ', 안전재고:' + a.safety_stock + ', 요청수량:' + needQty + ')';
       }).join('\n') +
       (alerts.length > 10 ? '\n... 외 ' + (alerts.length - 10) + '개' : '');
 
     if (!confirm(msg)) return;
-
-    // 발주요청 모달 열고 품목 자동 추가
     openAddPrModal(alerts);
   } catch(e) {
     alert('조회 실패: ' + e.message);
@@ -812,5 +905,8 @@ async function autoFillByStock() {
 document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('ssModal')?.addEventListener('click', function(e) {
     if (e.target === this) closeSsSetting();
+  });
+  document.getElementById('ssKeyword')?.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') filterSsGrid();
   });
 });
