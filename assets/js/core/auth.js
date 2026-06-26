@@ -43,7 +43,21 @@ window.auth = (function () {
   }
 
   async function clearSession() {
-    await supabaseClient.auth.signOut();
+    try {
+      await supabaseClient.auth.signOut({ scope: 'local' });
+    } catch(e) {
+      console.warn('[auth] signOut error:', e);
+    }
+    // localStorage 세션 키 직접 제거 (iframe 공유 키 포함)
+    try {
+      localStorage.removeItem('maneasy-auth');
+      // Supabase가 내부적으로 쓰는 키들도 제거
+      Object.keys(localStorage).forEach(function(k) {
+        if (k.startsWith('sb-') || k.startsWith('supabase')) {
+          localStorage.removeItem(k);
+        }
+      });
+    } catch(e) {}
   }
 
   /* ── 인증 가드 ─────────────────────────────────── */
@@ -224,7 +238,10 @@ window.auth = (function () {
 
   async function logout() {
     await clearSession();
-    location.replace(getLoginUrl());
+    // 세션 정리 완료 후 이동 (비동기 처리 여유)
+    setTimeout(function() {
+      location.replace(getLoginUrl());
+    }, 100);
   }
 
   return { getSession, clearSession, requireAuth, requireAdmin, initLoginPage, logout };
