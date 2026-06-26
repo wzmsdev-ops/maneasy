@@ -316,27 +316,34 @@ function createMgGrid(containerId, colDefs, rows, options) {
   if (!el) return null;
   if (typeof agGrid === 'undefined') return null;
 
-  var pageSize   = options.pageSize || 15;
+  var pageSize   = options.pageSize   || 15;
   var noRowsText = options.noRowsText || '조회된 데이터가 없습니다.';
-  var rowH    = 34;
-  var headerH = 34;
 
-  // ag-theme-alpine 클래스 자동 추가
+  // ag-theme-alpine 자동 추가
   if (!el.classList.contains('ag-theme-alpine')) {
     el.classList.add('ag-theme-alpine');
   }
 
-  // 높이: 없으면 pageSize 기반으로 설정
+  // 높이 없으면 pageSize 기반으로 설정
+  var baseH = 34;
   if (!el.style.height && el.clientHeight === 0) {
-    el.style.height = (rowH * pageSize + headerH) + 'px';
+    el.style.height = (baseH * pageSize + baseH) + 'px';
   }
+
+  // rowHeight 계산 — equipment-list.js 동일 방식
+  var gridH = el.clientHeight || (baseH * pageSize + baseH);
+  var dataH = gridH - baseH;
+  var rowH  = Math.max(26, Math.floor(dataH / pageSize));
+  var rem   = dataH - (rowH * pageSize);
+  var headerH = baseH + rem;
 
   // equipment-list.js defaultColDef와 동일
   var defaultColDef = {
     sortable: true,
     resizable: true,
     suppressMovable: true,
-    cellStyle: { display: 'flex', alignItems: 'center' },
+    headerClass: 'ag-center-header',
+    cellStyle: { display: 'flex', alignItems: 'center', justifyContent: 'center' },
   };
 
   var gridOptions = {
@@ -345,14 +352,27 @@ function createMgGrid(containerId, colDefs, rows, options) {
     rowData: rows,
     rowHeight: rowH,
     headerHeight: headerH,
-    suppressHorizontalScroll: true,
+    suppressPaginationPanel: true,
     suppressScrollOnNewData: true,
+    suppressHorizontalScroll: true,
     overlayNoRowsTemplate: '<span style="color:#9ca3af;font-size:12px;">' + noRowsText + '</span>',
     onGridReady: function(params) {
       params.api.sizeColumnsToFit();
       window.addEventListener('resize', function() {
         if (params.api) params.api.sizeColumnsToFit();
       });
+    },
+    onFirstDataRendered: function(params) {
+      var viewport = el.querySelector('.ag-body-viewport');
+      if (!viewport) return;
+      var viewH = viewport.clientHeight;
+      var rH    = Math.max(26, Math.floor(viewH / pageSize));
+      var r     = viewH - (rH * pageSize);
+      if (rH !== params.api.getGridOption('rowHeight')) {
+        params.api.setGridOption('rowHeight', rH);
+        params.api.setGridOption('headerHeight', baseH + r);
+        params.api.resetRowHeights();
+      }
     },
   };
 
@@ -363,8 +383,7 @@ function createMgGrid(containerId, colDefs, rows, options) {
     gridOptions.rowStyle = { cursor: 'pointer' };
   }
 
-  var api = agGrid.createGrid(el, gridOptions);
-  return api;
+  return agGrid.createGrid(el, gridOptions);
 }
 
 
