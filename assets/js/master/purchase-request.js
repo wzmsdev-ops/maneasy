@@ -325,7 +325,9 @@ function clearPrItemGrid() {
 /* ══════════════════════════════════════════
    발주요청 작성 모달
 ══════════════════════════════════════════ */
-function openAddPr() {
+function openAddPr() { openAddPrModal(null); }
+
+function openAddPrModal(alerts) {
   setVal('pr_search_kw', '');
   setVal('pr_memo', '');
   document.getElementById('prSearchResults')?.classList.remove('is-open');
@@ -334,6 +336,22 @@ function openAddPr() {
     if (!_prItemGrid) initPrItemGrid();
     clearPrItemGrid();
     if (_prItemGrid) _prItemGrid.sizeColumnsToFit();
+
+    // 안전재고 자동채우기
+    if (alerts && alerts.length) {
+      var rows = alerts.map(function(a) {
+        var needQty = a.reorder_qty > 0 ? a.reorder_qty : Math.abs(a.shortage || 1);
+        return {
+          item_id:     a.item_id,
+          item_code:   a.item_code,
+          item_name:   a.item_name,
+          request_qty: needQty,
+          use_unit:    a.use_unit || '',
+          memo:        '안전재고 기준 자동요청 (현재고:' + a.current_qty + ')',
+        };
+      });
+      if (_prItemGrid) _prItemGrid.setGridOption('rowData', rows);
+    }
   }, 50);
 }
 
@@ -569,3 +587,224 @@ async function init() {
 }
 
 document.addEventListener('DOMContentLoaded', init);
+
+/* ═══════════════════════════════════════════════════════
+   부서별 안전재고 설정 & 자동채우기
+═══════════════════════════════════════════════════════ */
+
+var _ssItems    = [];   // 전체 품목 + 현재고 + 기존 설정
+var _ssFiltered = [];   // 필터링된 목록
+var _ssMyDeptId = null;
+
+async function getMyDeptId() {
+  if (_ssMyDeptId) return _ssMyDeptId;
+  var session = await supabaseClient.auth.getSession();
+  var userId  = session.data?.session?.user?.id;
+  if (!userId) return null;
+
+  var { data: profile } = await supabaseClient
+    .from('user_profiles').select('team_name').eq('id', userId).single();
+  if (!profile?.team_name) return null;
+
+  var { data: dept } = await supabaseClient
+    .from('departments').select('id').eq('dept_name', profile.team_name).single();
+  _ssMyDeptId = dept?.id || null;
+  return _ssMyDeptId;
+}
+
+async function openSsSetting() {
+  var deptId = await getMyDeptId();
+  if (!deptId) { alert('소속 부서 정보가 없습니다.'); return; }
+
+  showGlobalLoading('안전재고 설정을 불러오는 중...');
+  try {
+    // 전체 품목
+    var { data: items } = await supabaseClient
+      .from('items').select('id, item_code, item_name, category, use_unit').eq('active', 'Y')
+      .order('category').order('item_name');
+
+    // 내 부서 현재고
+    var { data: stocks } = await supabaseClient
+      .from('stock_current').select('item_id, qty').eq('dept_id', deptId);
+
+    // 기존 설정
+    var { data: settings } = await supabaseClient
+      .from('dept_item_settings')
+      .select('id, item_id, safety_stock, reorder_qty')
+      .eq('dept_id', deptId).eq('active', 'Y');
+
+    var stockMap   = {};
+    (stocks   || []).forEach(function(s) { stockMap[s.item_id]   = s.qty; });
+    var settingMap = {};
+    (settings || []).forEach(function(s) { settingMap[s.item_id] = s; });
+
+    _ssItems = (items || []).map(function(i) {
+      return {
+        id:          i.id,
+        item_code:   i.item_code,
+        item_name:   i.item_name,
+        category:    i.category || '-',
+        use_unit:    i.use_unit || '',
+        current_qty: stockMap[i.id] || 0,
+        safety_stock:  settingMap[i.id]?.safety_stock ?? 0,
+        reorder_qty:   settingMap[i.id]?.reorder_qty  ?? 0,
+        setting_id:    settingMap[i.id]?.id || null,
+        changed:       false,
+      };
+    });
+
+    // 카테고리 필터 옵션
+    var cats = [...new Set(_ssItems.map(function(i){ return i.category; }))].sort();
+    var catSel = document.getElementById('ssCategoryFilter');
+    catSel.innerHTML = '<option value="">전체 카테고리</option>' +
+      cats.map(function(c){ return '<option value="' + c + '">' + c + '</option>'; }).join('');
+
+    document.getElementById('ssKeyword').value = '';
+    _ssFiltered = _ssItems.slice();
+    renderSsTable(_ssFiltered);
+    updateSsFootInfo();
+
+    document.getElementById('ssModal').classList.add('is-open');
+  } catch(e) {
+    alert('설정 로드 실패: ' + e.message);
+  } finally {
+    hideGlobalLoading();
+  }
+}
+
+function closeSsSetting() {
+  if (document.getElementById('ssModal').contains(document.activeElement)) document.body.focus();
+  document.getElementById('ssModal').classList.remove('is-open');
+}
+
+function renderSsTable(rows) {
+  var tbody = document.getElementById('ssTableBody');
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:32px;color:#9ca3af;">항목이 없습니다.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = rows.map(function(r) {
+    var low = r.current_qty <= r.safety_stock;
+    var qtyClass = low ? 'ss-stock-low' : 'ss-stock-ok';
+    return '<tr data-id="' + r.id + '">' +
+      '<td><input type="checkbox" class="ss-row-check" data-id="' + r.id + '" /></td>' +
+      '<td style="font-family:Consolas,monospace;font-size:11px;color:#6b7280;">' + r.item_code + '</td>' +
+      '<td style="font-weight:600;">' + r.item_name + '</td>' +
+      '<td><span style="background:#f3f4f6;color:#374151;padding:1px 6px;border-radius:4px;font-size:10px;">' + r.category + '</span></td>' +
+      '<td style="color:#6b7280;">' + r.use_unit + '</td>' +
+      '<td style="text-align:right;" class="' + qtyClass + '">' + r.current_qty.toLocaleString('ko-KR') + '</td>' +
+      '<td style="text-align:center;"><input type="number" class="ss-input" min="0" value="' + r.safety_stock + '" data-field="safety_stock" data-id="' + r.id + '" /></td>' +
+      '<td style="text-align:center;"><input type="number" class="ss-input" min="0" value="' + r.reorder_qty + '" placeholder="자동" data-field="reorder_qty" data-id="' + r.id + '" /></td>' +
+      '</tr>';
+  }).join('');
+
+  // input 이벤트 — 변경 추적
+  tbody.querySelectorAll('.ss-input').forEach(function(inp) {
+    inp.addEventListener('change', function() {
+      var id    = this.dataset.id;
+      var field = this.dataset.field;
+      var item  = _ssItems.find(function(i){ return i.id === id; });
+      if (item) { item[field] = parseInt(this.value) || 0; item.changed = true; }
+    });
+  });
+}
+
+function filterSsTable(kw) {
+  kw = (kw || '').toLowerCase();
+  var cat = document.getElementById('ssCategoryFilter')?.value || '';
+  _ssFiltered = _ssItems.filter(function(r) {
+    var matchKw  = !kw  || r.item_name.toLowerCase().includes(kw) || r.item_code.toLowerCase().includes(kw);
+    var matchCat = !cat || r.category === cat;
+    return matchKw && matchCat;
+  });
+  renderSsTable(_ssFiltered);
+}
+
+function toggleSsAll(checked) {
+  document.querySelectorAll('.ss-row-check').forEach(function(cb){ cb.checked = checked; });
+}
+
+function updateSsFootInfo() {
+  var changed = _ssItems.filter(function(i){ return i.changed; }).length;
+  var el = document.getElementById('ssFootInfo');
+  if (el) el.textContent = changed ? '변경된 항목 ' + changed + '개' : '저장되지 않은 변경 없음';
+}
+
+async function saveSsAll() {
+  var deptId = await getMyDeptId();
+  if (!deptId) return;
+
+  var toSave = _ssItems.filter(function(i){ return i.changed || i.safety_stock > 0 || i.reorder_qty > 0; });
+  if (!toSave.length) { alert('저장할 항목이 없습니다.'); return; }
+
+  showGlobalLoading('안전재고 설정을 저장하는 중...');
+  try {
+    var upsertData = toSave.map(function(i) {
+      return {
+        dept_id:      deptId,
+        item_id:      i.id,
+        safety_stock: i.safety_stock,
+        reorder_qty:  i.reorder_qty,
+        active:       'Y',
+      };
+    });
+
+    var { error } = await supabaseClient
+      .from('dept_item_settings')
+      .upsert(upsertData, { onConflict: 'dept_id,item_id' });
+    if (error) throw new Error(error.message);
+
+    _ssItems.forEach(function(i){ i.changed = false; });
+    updateSsFootInfo();
+    alert('안전재고 설정이 저장됐습니다.');
+  } catch(e) {
+    alert('저장 실패: ' + e.message);
+  } finally {
+    hideGlobalLoading();
+  }
+}
+
+/* ── 안전재고 기준 자동 발주요청 ─────────────── */
+async function autoFillByStock() {
+  var deptId = await getMyDeptId();
+  if (!deptId) { alert('소속 부서 정보가 없습니다.'); return; }
+
+  showGlobalLoading('부족 재고를 확인하는 중...');
+  try {
+    var { data: alerts, error } = await supabaseClient
+      .from('dept_stock_alert')
+      .select('*')
+      .eq('dept_id', deptId)
+      .lt('shortage', 0);  // shortage < 0 = 현재고 < 안전재고
+
+    if (error) throw new Error(error.message);
+    if (!alerts || !alerts.length) {
+      alert('현재 안전재고 이하인 품목이 없습니다.');
+      return;
+    }
+
+    // 부족 품목 목록 확인 후 발주요청 모달 열기
+    var msg = '아래 ' + alerts.length + '개 품목이 안전재고 이하입니다.\n발주요청서에 자동으로 추가할까요?\n\n' +
+      alerts.slice(0, 10).map(function(a) {
+        var needQty = a.reorder_qty > 0 ? a.reorder_qty : Math.abs(a.shortage);
+        return '· ' + a.item_name + ' (현재고:' + a.current_qty + ', 안전재고:' + a.safety_stock + ', 요청수량:' + needQty + a.use_unit + ')';
+      }).join('\n') +
+      (alerts.length > 10 ? '\n... 외 ' + (alerts.length - 10) + '개' : '');
+
+    if (!confirm(msg)) return;
+
+    // 발주요청 모달 열고 품목 자동 추가
+    openAddPrModal(alerts);
+  } catch(e) {
+    alert('조회 실패: ' + e.message);
+  } finally {
+    hideGlobalLoading();
+  }
+}
+
+// ssModal 외부 클릭 닫기
+document.addEventListener('DOMContentLoaded', function() {
+  document.getElementById('ssModal')?.addEventListener('click', function(e) {
+    if (e.target === this) closeSsSetting();
+  });
+});
