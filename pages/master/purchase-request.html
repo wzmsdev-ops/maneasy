@@ -231,6 +231,9 @@
     <input type="date" id="prDateTo" />
     <div class="pr-divider"></div>
     <input type="text" id="prKeyword" placeholder="자재명 검색..." />
+    <div class="pr-divider"></div>
+    <button class="btn btn-sm" id="ssSettingBtn" onclick="openSsSetting()"><i class="ti ti-settings"></i> 안전재고 설정</button>
+    <button class="btn btn-sm btn-warning" id="autoFillBtn" onclick="autoFillByStock()"><i class="ti ti-refresh"></i> 안전재고 기준 자동요청</button>
     <button class="btn btn-sm btn-primary" id="prSearchBtn"><i class="ti ti-search"></i> 조회</button>
   </div>
 
@@ -238,8 +241,6 @@
   <div class="m-card">
     <div class="m-card-head">
       <span class="m-card-title">내 발주요청 목록</span>
-      <button class="btn btn-sm" id="ssSettingBtn" onclick="openSsSetting()"><i class="ti ti-settings"></i> 안전재고 설정</button>
-      <button class="btn btn-sm btn-warning" id="autoFillBtn" onclick="autoFillByStock()"><i class="ti ti-refresh"></i> 안전재고 기준 자동요청</button>
       <button class="btn btn-sm btn-primary" id="addPrBtn"><i class="ti ti-plus"></i> 발주요청 작성</button>
     </div>
     <div class="m-card-body">
