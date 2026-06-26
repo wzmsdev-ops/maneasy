@@ -130,10 +130,12 @@ window.auth = (function () {
       if (!password) return setMessage('비밀번호를 입력해 주세요.', 'error');
 
       loginBtn.disabled = true;
-      setMessage('로그인 중...', '');
+      setMessage('', '');
+      if (typeof showGlobalLoading === 'function') showGlobalLoading('로그인 중...');
 
       const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
       if (error) {
+        if (typeof hideGlobalLoading === 'function') hideGlobalLoading();
         setMessage('이메일 또는 비밀번호가 올바르지 않습니다.', 'error');
         loginBtn.disabled = false;
         return;
@@ -143,6 +145,7 @@ window.auth = (function () {
       const user = await getSession();
       if (!user || user.active !== 'Y') {
         await clearSession();
+        if (typeof hideGlobalLoading === 'function') hideGlobalLoading();
         setMessage('계정 승인 대기 중입니다. 관리자 승인 후 로그인할 수 있습니다.', 'warn');
         loginBtn.disabled = false;
         return;
@@ -174,7 +177,8 @@ window.auth = (function () {
       if (pw1 !== pw2)    return setMessage('비밀번호가 일치하지 않습니다.', 'error');
 
       signupBtn.disabled = true;
-      setMessage('가입 중...', '');
+      setMessage('', '');
+      if (typeof showGlobalLoading === 'function') showGlobalLoading('가입 처리 중...');
 
       const { data, error } = await supabaseClient.auth.signUp({
         email, password: pw1,
@@ -182,6 +186,7 @@ window.auth = (function () {
       });
 
       if (error) {
+        if (typeof hideGlobalLoading === 'function') hideGlobalLoading();
         setMessage(error.message || '회원가입에 실패했습니다.', 'error');
         signupBtn.disabled = false;
         return;
@@ -198,6 +203,7 @@ window.auth = (function () {
       // 자동 로그인 방지
       await clearSession();
 
+      if (typeof hideGlobalLoading === 'function') hideGlobalLoading();
       setMessage('가입이 완료됐습니다. 관리자 승인 후 로그인할 수 있습니다.', 'success');
       signupBtn.disabled = false;
       showTab('login');
