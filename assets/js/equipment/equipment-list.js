@@ -313,13 +313,14 @@ function getStatusBadge(status) {
 }
 
 function getActionButtons(item) {
-  var id = escapeHtml(item.equipment_id || '');
-  var btns = '<button class="tbl-btn" onclick="saveListState();parent.shellNavigate(\'equipment/detail?id=' + id + '\')">상세</button>';
+  var displayId = escapeHtml(item.equipment_id || '');  // ME-2026-0001
+  var uuid      = escapeHtml(item._uuid || item.id || '');  // UUID (상세/수정 이동용)
+  var btns = '<button class="tbl-btn" onclick="saveListState();parent.shellNavigate(\'equipment/detail?id=' + uuid + '\')">상세</button>';
   if (equipmentListState.canEdit && canEditItem(item)) {
-    btns += '<button class="tbl-btn tbl-btn--primary" onclick="saveListState();openEditForm(\'' + id + '\')">수정</button>';
+    btns += '<button class="tbl-btn tbl-btn--primary" onclick="saveListState();openEditForm(\'' + uuid + '\')">수정</button>';
   }
   if (equipmentListState.canEdit) {
-    btns += '<button class="tbl-btn" onclick="openListLabelModal(\'' + id + '\')">라벨</button>';
+    btns += '<button class="tbl-btn" onclick="openListLabelModal(\'' + displayId + '\')">라벨</button>';
   }
   return btns;
 }
@@ -673,8 +674,9 @@ async function loadEquipmentList(nextPage) {
     var totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
 
     var rows = (sbResult.data || []).map(function(r) {
-      r.equipment_id = r.id;  // 원본 필드명 호환
-      r.qr_value     = r.qr_value || r.id;
+      r.equipment_id = r.equipment_no || r.id;  // 표시용: ME-2026-0001
+      r._uuid        = r.id;                    // 상세이동용: UUID
+      r.qr_value     = r.equipment_no || r.id;
       return r;
     });
 
@@ -804,8 +806,9 @@ async function exportEquipmentExcel() {
     if (exportResult.error) throw new Error(exportResult.error.message);
 
     var data = (exportResult.data || []).map(function(r) {
-      r.equipment_id = r.id;
-      r.qr_value = r.qr_value || r.id;
+      r.equipment_id = r.equipment_no || r.id;
+      r._uuid        = r.id;
+      r.qr_value     = r.equipment_no || r.id;
       return r;
     });
 
