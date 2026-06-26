@@ -952,81 +952,71 @@ function initListFiltersSync() {
   setValue('page_size', String(equipmentListState.pageSize));
 }
 
-// 비동기 초기화 — org API 호출 후 필터 UI 세팅
+
+// departments 테이블 기반 부서 필터 채우기
+function populateDeptFilter(el, deptRows, clinicCode, query) {
+  if (!el) return;
+  var filtered = clinicCode
+    ? (deptRows || []).filter(function(d) { return d.clinics && d.clinics.clinic_code === clinicCode; })
+    : (deptRows || []);
+  var opts = '<option value="">전체 부서</option>';
+  filtered.forEach(function(d) {
+    opts += '<option value="' + escapeHtml(d.dept_code) + '">' + escapeHtml(d.dept_name) + '</option>';
+  });
+  el.innerHTML = opts;
+  el.disabled = false;
+  if (query && query.team_suffix) el.value = query.team_suffix;
+}
+
+// 비동기 초기화 — clinics/departments 테이블에서 필터 UI 세팅
 async function initListFiltersAsync() {
   var query     = getListQueryParams();
-  var clinicEl  = document.getElementById('clinic_code');  // 의원 select
-  var teamSufEl = document.getElementById('team_suffix');  // 부서 select (team_suffix 기준)
-  var teamEl    = document.getElementById('team_code');    // hidden
+  var clinicEl  = document.getElementById('clinic_code');
+  var teamSufEl = document.getElementById('team_suffix');
+  var teamEl    = document.getElementById('team_code');
 
-  // 데모: 전체 조회 허용, 의원/팀 필터는 Supabase에서 직접 가져옴
-  var { data: clinicData } = await supabaseClient
-    .from('equipments')
+  // clinics 테이블에서 로드
+  var { data: clinicRows } = await supabaseClient
+    .from('clinics')
     .select('clinic_code, clinic_name')
-    .eq('deleted_yn', 'N')
-    .not('clinic_code', 'is', null);
+    .eq('active', 'Y')
+    .order('sort_order', { ascending: true });
 
-  var clinicMap = {};
-  (clinicData || []).forEach(function(r) {
-    if (r.clinic_code) clinicMap[r.clinic_code] = r.clinic_name || r.clinic_code;
+  // departments 테이블에서 로드
+  var { data: deptRows } = await supabaseClient
+    .from('departments')
+    .select('dept_code, dept_name, clinic_id, clinics(clinic_code)')
+    .eq('active', 'Y')
+    .order('sort_order', { ascending: true });
+
+  var clinics = (clinicRows || []).map(function(r) {
+    return { code_value: r.clinic_code, code_name: r.clinic_name };
   });
-  var clinics = Object.entries(clinicMap).map(function([v, n]) { return { code_value: v, code_name: n }; });
 
-  var scopedData = { clinics: clinics, teams: [], scope: 'all' };
-  var scope = 'all';
-  equipmentListState.userScope = scope;
-
+  equipmentListState.userScope = 'all';
   if (teamEl) teamEl.value = '';
 
   // ── 의원 select ──────────────────────────────────────────────
   if (clinicEl) {
-    if (scope === 'team' || scope === 'clinic') {
-      // 본인 의원 고정
-      clinicEl.innerHTML = '<option value="' + escapeHtml(equipmentListState.userClinicCode || '') + '">' +
-        escapeHtml((scopedData.clinics[0] && scopedData.clinics[0].code_name) || equipmentListState.userClinicCode || '') +
-        '</option>';
-      clinicEl.disabled = true;
-    } else {
-      // scope=all: 전체 의원 선택 가능
-      var clinicOpts = '<option value="">전체 의원</option>';
-      (scopedData.clinics || []).forEach(function(c) {
-        clinicOpts += '<option value="' + escapeHtml(c.code_value) + '">' + escapeHtml(c.code_name) + '</option>';
-      });
-      clinicEl.innerHTML = clinicOpts;
-      clinicEl.disabled = false;
-      clinicEl.value = query.clinic_code || '';
-    }
+    var clinicOpts = '<option value="">전체 의원</option>';
+    clinics.forEach(function(c) {
+      clinicOpts += '<option value="' + escapeHtml(c.code_value) + '">' + escapeHtml(c.code_name) + '</option>';
+    });
+    clinicEl.innerHTML = clinicOpts;
+    clinicEl.disabled = false;
+    clinicEl.value = query.clinic_code || '';
   }
 
-  // ── 부서 select: team_suffix 기준 중복 제거 ──────────────────
+  // 의원 변경 시 부서 필터 연동
+  if (clinicEl && teamSufEl) {
+    clinicEl.addEventListener('change', function() {
+      populateDeptFilter(teamSufEl, deptRows, this.value, query);
+    });
+  }
+
+  // ── 부서 select: departments 테이블 기준 ─────────────────────
   if (teamSufEl) {
-    if (scope === 'team') {
-      // 본인 팀만 고정
-      var myTeam   = scopedData.teams[0] || null;
-      var mySuffix = myTeam ? (myTeam.team_suffix || (myTeam.code_value || '').split('_')[1] || '') : '';
-      teamSufEl.innerHTML = '<option value="' + escapeHtml(mySuffix) + '">' +
-        escapeHtml(myTeam ? myTeam.code_name : '') + '</option>';
-      teamSufEl.disabled = true;
-    } else {
-      // scope=all/clinic: 사용 가능한 팀 목록 team_suffix 기준 중복 제거
-      var teams = scopedData.teams || [];
-      var seen  = {}, unique = [];
-      teams.forEach(function(t) {
-        var suffix = t.team_suffix || (t.code_value || '').split('_')[1] || '';
-        if (suffix && !seen[suffix]) {
-          seen[suffix] = true;
-          unique.push({ suffix: suffix, name: t.code_name });
-        }
-      });
-      unique.sort(function(a, b) { return a.name.localeCompare(b.name, 'ko'); });
-      var teamOpts = '<option value="">전체 부서</option>';
-      unique.forEach(function(u) {
-        teamOpts += '<option value="' + escapeHtml(u.suffix) + '">' + escapeHtml(u.name) + '</option>';
-      });
-      teamSufEl.innerHTML = teamOpts;
-      teamSufEl.disabled = false;
-      teamSufEl.value = query.team_suffix || '';
-    }
+    populateDeptFilter(teamSufEl, deptRows, query.clinic_code || '', query);
   }
 }
 
