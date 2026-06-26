@@ -22,8 +22,11 @@
     }
 
     /* ── 액션바 ── */
-    .pr-actionbar { display:flex; align-items:center; gap:8px; flex-shrink:0; }
+    .pr-actionbar { display:flex; align-items:center; gap:6px; flex-shrink:0; flex-wrap:nowrap; }
     .pr-actionbar .spacer { flex:1; }
+    .pr-actionbar input[type=text]  { height:30px; padding:0 10px; border:1px solid #e5e7eb; border-radius:6px; font-size:12px; outline:none; }
+    .pr-actionbar input[type=date]  { height:30px; padding:0 6px; border:1px solid #e5e7eb; border-radius:6px; font-size:12px; outline:none; width:130px; }
+    .pr-actionbar input[type=text]:focus, .pr-actionbar input[type=date]:focus { border-color:#2563eb; }
 
     /* ── 상태 탭 필터 ── */
     .pr-status-tabs { display:flex; gap:3px; flex-shrink:0; flex-wrap:wrap; }
@@ -151,12 +154,6 @@
 
   <!-- 액션바 -->
   <div class="pr-actionbar">
-    <input type="text" id="prKeyword" placeholder="자재명 검색..."
-      style="height:30px;padding:0 10px;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;outline:none;width:200px;" />
-    <input type="date" id="prDateFrom" style="height:30px;padding:0 8px;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;outline:none;" />
-    <span style="font-size:11px;color:#9ca3af;">~</span>
-    <input type="date" id="prDateTo" style="height:30px;padding:0 8px;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;outline:none;" />
-    <button class="btn btn-sm" id="prSearchBtn"><i class="ti ti-search"></i> 검색</button>
     <div class="pr-status-tabs">
       <button class="pr-status-tab active" data-status="">전체</button>
       <button class="pr-status-tab" data-status="REQUESTED">요청</button>
@@ -167,8 +164,12 @@
       <button class="pr-status-tab" data-status="REJECTED">반려</button>
       <button class="pr-status-tab" data-status="CANCELLED">취소</button>
     </div>
+    <input type="text" id="prKeyword" placeholder="자재명 검색..." style="width:220px;" />
+    <input type="date" id="prDateFrom" />
+    <span style="font-size:11px;color:#9ca3af;">~</span>
+    <input type="date" id="prDateTo" />
+    <button class="btn btn-sm" id="prSearchBtn"><i class="ti ti-search"></i> 검색</button>
     <div class="spacer"></div>
-    <span id="prCountLabel" style="font-size:11px;color:#9ca3af;"></span>
     <button class="btn btn-sm btn-primary" id="addPrBtn"><i class="ti ti-plus"></i> 발주요청 작성</button>
   </div>
 
