@@ -12,6 +12,8 @@
     if (new URLSearchParams(location.search).get('shell') === '1')
       document.documentElement.classList.add('in-shell');
   </script>
+  <link rel="stylesheet" href="../../assets/libs/ag-grid/ag-grid.min.css" />
+  <link rel="stylesheet" href="../../assets/libs/ag-grid/ag-theme-alpine.min.css" />
 </head>
 <body class="qc-data-page">
 
@@ -148,6 +150,7 @@
   </div>
 </div>
 
+<script src="../../assets/libs/ag-grid/ag-grid-community.min.js"></script>
 <script src="../../assets/libs/supabase.js"></script>
 <script src="../../assets/js/core/config.js"></script>
 <script src="../../assets/js/core/utils.js"></script>
