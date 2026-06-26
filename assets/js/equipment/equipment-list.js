@@ -105,6 +105,13 @@ function initGrid(rows) {
       valueFormatter: p => fmtDate(p.value) },
   ];
 
+  // domLayout:'normal' 은 컨테이너에 명시적 px 높이 필요
+  const headerH  = document.querySelector('.eq-filter-bar')?.offsetHeight || 50;
+  const toolbarH = document.querySelector('.eq-toolbar')?.offsetHeight    || 0;
+  const paginH   = document.querySelector('.pagination-area')?.offsetHeight || 40;
+  const availH   = window.innerHeight - headerH - toolbarH - paginH - 30;
+  container.style.height = Math.max(availH, 300) + 'px';
+
   gridApi = agGrid.createGrid(container, {
     columnDefs,
     rowData: rows,
