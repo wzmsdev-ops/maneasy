@@ -8,28 +8,11 @@
   <link rel="stylesheet" href="assets/css/common.css" />
   <link rel="stylesheet" href="assets/css/shell.css" />
   <link rel="stylesheet" href="assets/font/tabler-icons/tabler-icons.min.css" />
-  <style>
-    .sb-sub-sub-item {
-      display: flex; align-items: center; gap: 7px;
-      padding: 5px 14px 5px 32px; font-size: 12px; font-weight: 500;
-      color: rgba(255,255,255,0.55); background: none; border: none;
-      cursor: pointer; text-align: left; transition: background 0.12s, color 0.12s;
-      border-radius: 5px; margin: 0 6px; width: calc(100% - 12px);
-    }
-    .sb-sub-sub-item:hover { background: rgba(255,255,255,0.07); color: #fff; }
-    .sb-sub-sub-item.active { background: rgba(255,255,255,0.12); color: #fff; font-weight: 600; }
-    .sb-sub-sub-item i { font-size: 12px; flex-shrink: 0; width: 14px; text-align: center; }
-    .sb-sub-submenu { display: none; flex-direction: column; }
-    .sb-sub-submenu.is-open { display: flex; }
-    .sb-submenu { display: none; flex-direction: column; }
-    .sb-submenu.is-open { display: flex; }
-  </style>
 </head>
 <body>
 
 <div class="app-shell">
 
-  <!-- 사이드바 -->
   <nav class="sidebar" id="sidebar" role="navigation" aria-label="메인 메뉴">
 
     <div class="sb-brand">
@@ -48,46 +31,41 @@
 
     <div class="sb-nav" id="sbNav">
 
-      <!-- 의료장비 관리 -->
       <div class="sb-section-label">의료장비 관리</div>
 
-      <button class="sb-item sb-item-parent" data-menu="equipment" onclick="toggleMenu('equipment')">
+      <button class="sb-item" data-page="equipment/dashboard" onclick="navigate('equipment/dashboard')">
         <div class="sb-item-inner">
-          <i class="ti ti-device-desktop-analytics" aria-hidden="true"></i>
-          <span>의료장비 관리</span>
+          <i class="ti ti-layout-dashboard" aria-hidden="true"></i>
+          <span>대시보드</span>
         </div>
-        <i class="ti ti-chevron-right sb-item-arrow" aria-hidden="true"></i>
       </button>
-      <div class="sb-submenu" id="menu-equipment">
-        <button class="sb-sub-item" data-page="equipment/dashboard" onclick="navigate('equipment/dashboard')">
-          <i class="ti ti-layout-dashboard" aria-hidden="true"></i><span>대시보드</span>
-        </button>
-        <button class="sb-sub-item" data-page="equipment/list" onclick="navigate('equipment/list')">
-          <i class="ti ti-list" aria-hidden="true"></i><span>장비 목록</span>
-        </button>
-        <button class="sb-sub-item" data-page="equipment/form" onclick="navigate('equipment/form')">
-          <i class="ti ti-plus" aria-hidden="true"></i><span>장비 등록</span>
-        </button>
-      </div>
+      <button class="sb-item" data-page="equipment/list" onclick="navigate('equipment/list')">
+        <div class="sb-item-inner">
+          <i class="ti ti-list" aria-hidden="true"></i>
+          <span>장비 목록</span>
+        </div>
+      </button>
+      <button class="sb-item" data-page="equipment/form" onclick="navigate('equipment/form')">
+        <div class="sb-item-inner">
+          <i class="ti ti-plus" aria-hidden="true"></i>
+          <span>장비 등록</span>
+        </div>
+      </button>
 
-      <!-- 정도관리 -->
       <div class="sb-section-label">정도관리</div>
 
-      <button class="sb-item sb-item-parent" data-menu="qc" onclick="toggleMenu('qc')">
+      <button class="sb-item" data-page="qc/items" onclick="navigate('qc/items')">
         <div class="sb-item-inner">
-          <i class="ti ti-chart-line" aria-hidden="true"></i>
-          <span>정도관리</span>
+          <i class="ti ti-clipboard-list" aria-hidden="true"></i>
+          <span>검사항목 관리</span>
         </div>
-        <i class="ti ti-chevron-right sb-item-arrow" aria-hidden="true"></i>
       </button>
-      <div class="sb-submenu" id="menu-qc">
-        <button class="sb-sub-item" data-page="qc/items" onclick="navigate('qc/items')">
-          <i class="ti ti-clipboard-list" aria-hidden="true"></i><span>검사항목 관리</span>
-        </button>
-        <button class="sb-sub-item" data-page="qc/data" onclick="navigate('qc/data')">
-          <i class="ti ti-edit" aria-hidden="true"></i><span>데이터 입력</span>
-        </button>
-      </div>
+      <button class="sb-item" data-page="qc/data" onclick="navigate('qc/data')">
+        <div class="sb-item-inner">
+          <i class="ti ti-edit" aria-hidden="true"></i>
+          <span>데이터 입력</span>
+        </div>
+      </button>
 
     </div>
 
@@ -102,7 +80,6 @@
 
   <div class="sb-overlay" id="sbOverlay" onclick="closeSidebar()"></div>
 
-  <!-- 메인 -->
   <div class="shell-main">
     <header class="shell-topbar">
       <button class="shell-topbar-hamburger" id="hamburgerBtn"
@@ -140,8 +117,6 @@ const MENU_META = {
   'qc/data':             { app: '정도관리', page: '데이터 입력' },
 };
 
-let currentPage = '';
-
 document.addEventListener('DOMContentLoaded', async () => {
   const session = await auth.requireAuth();
   if (!session) return;
@@ -159,7 +134,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 function navigate(page, skipHistory) {
   if (!page) return;
-  currentPage = page;
 
   const meta = MENU_META[page] || { app: page, page: '' };
   document.getElementById('breadcrumbApp').textContent = meta.app;
@@ -167,35 +141,17 @@ function navigate(page, skipHistory) {
   const sep = document.getElementById('breadcrumbSep');
   if (sep) sep.style.display = meta.page ? '' : 'none';
 
-  const frame = document.getElementById('shellFrame');
-  frame.src = `${CONFIG.SITE_BASE_URL}/pages/${page}.html`;
+  document.getElementById('shellFrame').src = `${CONFIG.SITE_BASE_URL}/pages/${page}.html`;
 
-  document.querySelectorAll('.sb-sub-item.active, .sb-item.active').forEach(el => {
-    el.classList.remove('active');
-  });
-  const active = document.querySelector(`.sb-sub-item[data-page="${page}"]`);
-  if (active) {
-    active.classList.add('active');
-    // 부모 메뉴 열기
-    const submenu = active.closest('.sb-submenu');
-    if (submenu) {
-      submenu.classList.add('is-open');
-      const parentBtn = submenu.previousElementSibling;
-      if (parentBtn) parentBtn.classList.add('active');
-    }
-  }
+  document.querySelectorAll('.sb-item.active').forEach(el => el.classList.remove('active'));
+  const active = document.querySelector(`.sb-item[data-page="${page}"]`);
+  if (active) active.classList.add('active');
 
   if (!skipHistory) {
     history.pushState({ page }, '', `?page=${page}`);
   }
 
   closeSidebar();
-}
-
-function toggleMenu(menuId) {
-  const submenu = document.getElementById(`menu-${menuId}`);
-  if (!submenu) return;
-  submenu.classList.toggle('is-open');
 }
 
 function openSidebar() {
