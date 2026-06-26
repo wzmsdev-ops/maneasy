@@ -127,18 +127,17 @@
 
     <!-- ═══ 입고 탭 (자재담당자가 발주 품목을 중앙창고로 입고) ═══ -->
     <div id="tab-receipt" class="tab-panel active">
+      <div class="m-filter-bar">
+        <input type="text" id="receiptKeyword" placeholder="자재명/발주번호 검색..." style="width:180px;" />
+        <span class="m-filter-label">기간</span>
+        <input type="date" id="receiptDateFrom" style="min-width:unset;width:130px;" />
+        <span style="font-size:11px;color:#9ca3af;">~</span>
+        <input type="date" id="receiptDateTo" style="min-width:unset;width:130px;" />
+        <button class="btn btn-sm" id="receiptSearchBtn"><i class="ti ti-search"></i> 검색</button>
+        <div style="flex:1;"></div>
+        <button class="btn btn-sm btn-primary" id="addReceiptBtn"><i class="ti ti-plus"></i> 입고 등록</button>
+      </div>
       <div class="m-card">
-        <div class="m-card-head">
-          <span class="m-card-title">입고 목록 <span style="color:#9ca3af;font-weight:400;">— 중앙창고 입고</span></span>
-          <button class="btn btn-sm btn-primary" id="addReceiptBtn"><i class="ti ti-plus"></i> 입고 등록</button>
-        </div>
-        <div class="m-filter-bar">
-          <span class="m-filter-label">기간</span>
-          <input type="date" id="receiptDateFrom" style="min-width:unset;width:130px;" />
-          <span style="font-size:11px;color:#9ca3af;">~</span>
-          <input type="date" id="receiptDateTo" style="min-width:unset;width:130px;" />
-          <button class="btn btn-sm" id="receiptSearchBtn">검색</button>
-        </div>
         <div class="m-card-body">
           <div id="receiptGrid" class="m-table-wrap"></div>
         </div>
@@ -148,20 +147,18 @@
 
     <!-- ═══ 불출 탭 (중앙창고 → 부서) ═══ -->
     <div id="tab-dispatch" class="tab-panel">
+      <div class="m-filter-bar">
+        <select id="dispatchDeptFilter"><option value="">전체 부서</option></select>
+        <input type="text" id="dispatchKeyword" placeholder="자재명 검색..." style="width:160px;" />
+        <span class="m-filter-label">기간</span>
+        <input type="date" id="dispatchDateFrom" style="min-width:unset;width:130px;" />
+        <span style="font-size:11px;color:#9ca3af;">~</span>
+        <input type="date" id="dispatchDateTo" style="min-width:unset;width:130px;" />
+        <button class="btn btn-sm" id="dispatchSearchBtn"><i class="ti ti-search"></i> 검색</button>
+        <div style="flex:1;"></div>
+        <button class="btn btn-sm btn-primary" id="addDispatchBtn"><i class="ti ti-plus"></i> 불출 등록</button>
+      </div>
       <div class="m-card">
-        <div class="m-card-head">
-          <span class="m-card-title">불출 목록 <span style="color:#9ca3af;font-weight:400;">— 부서로 자재 전달</span></span>
-          <button class="btn btn-sm btn-primary" id="addDispatchBtn"><i class="ti ti-plus"></i> 불출 등록</button>
-        </div>
-        <div class="m-filter-bar">
-          <span class="m-filter-label">부서</span>
-          <select id="dispatchDeptFilter"><option value="">전체</option></select>
-          <span class="m-filter-label">기간</span>
-          <input type="date" id="dispatchDateFrom" style="min-width:unset;width:130px;" />
-          <span style="font-size:11px;color:#9ca3af;">~</span>
-          <input type="date" id="dispatchDateTo" style="min-width:unset;width:130px;" />
-          <button class="btn btn-sm" id="dispatchSearchBtn">검색</button>
-        </div>
         <div class="m-card-body">
           <div id="dispatchGrid" class="m-table-wrap"></div>
         </div>
@@ -171,17 +168,12 @@
 
     <!-- ═══ 부서별재고 탭 ═══ -->
     <div id="tab-deptstock" class="tab-panel">
+      <div class="m-filter-bar">
+        <select id="deptStockDeptFilter"><option value="">전체 부서</option></select>
+        <input type="text" id="deptStockKeyword" placeholder="자재명 검색..." style="width:180px;" />
+        <button class="btn btn-sm" id="deptStockSearchBtn"><i class="ti ti-search"></i> 검색</button>
+      </div>
       <div class="m-card">
-        <div class="m-card-head">
-          <span class="m-card-title">부서별 재고 <span style="color:#9ca3af;font-weight:400;">— 의원 통합 아님, 부서 단위로 관리</span></span>
-        </div>
-        <div class="m-filter-bar">
-          <span class="m-filter-label">부서</span>
-          <select id="deptStockDeptFilter"><option value="">전체</option></select>
-          <span class="m-filter-label">자재</span>
-          <input type="text" id="deptStockKeyword" placeholder="자재명 검색..." />
-          <button class="btn btn-sm" id="deptStockSearchBtn">검색</button>
-        </div>
         <div class="m-card-body">
           <div id="deptStockGrid" class="m-table-wrap"></div>
         </div>
