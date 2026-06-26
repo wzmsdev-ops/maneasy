@@ -40,6 +40,8 @@ function closeModal(id) { document.getElementById(id)?.classList.remove('is-open
 window.closeModal = closeModal;
 
 /* ── 탭 ── */
+var _tabInited = {};  // 탭별 그리드 초기화 여부
+
 function initTabs() {
   document.querySelectorAll('.tab-btn').forEach(function(btn) {
     btn.addEventListener('click', function() {
@@ -48,10 +50,12 @@ function initTabs() {
       document.querySelectorAll('.tab-panel').forEach(function(p) { p.classList.remove('active'); });
       btn.classList.add('active');
       document.getElementById('tab-' + target)?.classList.add('active');
+
+      // 탭 전환 후 그리드 lazy 초기화 + sizeColumnsToFit
       requestAnimationFrame(function() {
-        var map = { current: _gridCurrent, receipt: _gridReceipt, txlog: _gridTx };
-        var g = map[target];
-        if (g) g.sizeColumnsToFit();
+        if (target === 'current')  { if (!_gridCurrent) initCurrentGrid(); if (_gridCurrent) _gridCurrent.sizeColumnsToFit(); }
+        if (target === 'receipt')  { if (!_gridReceipt) initReceiptGrid(); if (_gridReceipt) _gridReceipt.sizeColumnsToFit(); }
+        if (target === 'txlog')    { if (!_gridTx)      initTxGrid();      if (_gridTx)      _gridTx.sizeColumnsToFit(); }
       });
     });
   });
@@ -245,7 +249,8 @@ async function loadReceipts(page) {
 
     st.page       = page;
     st.totalPages = Math.max(1, Math.ceil((count || 0) / st.pageSize));
-    _gridReceipt?.setGridOption('rowData', data || []);
+    if (!_gridReceipt) initReceiptGrid();
+    if (_gridReceipt) _gridReceipt.setGridOption('rowData', data || []);
     renderPagination('receiptPagination', st, loadReceipts);
   } catch(e) {
     alert('입고 목록 로드 실패: ' + e.message);
@@ -473,7 +478,8 @@ async function loadTxLog(page) {
 
     st.page       = page;
     st.totalPages = Math.max(1, Math.ceil((count || 0) / st.pageSize));
-    _gridTx?.setGridOption('rowData', data || []);
+    if (!_gridTx) initTxGrid();
+    if (_gridTx) _gridTx.setGridOption('rowData', data || []);
     renderPagination('txPagination', st, loadTxLog);
   } catch(e) {
     alert('이력 로드 실패: ' + e.message);
@@ -557,9 +563,8 @@ async function init() {
   initTabs();
   initSearch();
 
-  initCurrentGrid();
-  initReceiptGrid();
-  initTxGrid();
+  initCurrentGrid();  // current 탭이 기본 활성 → 즉시 초기화
+  // receiptGrid, txGrid는 탭 전환 시 lazy 초기화 (display:none 상태에서 height=0 방지)
 
   document.getElementById('addReceiptBtn')?.addEventListener('click', openAddReceipt);
   document.getElementById('outBtn')?.addEventListener('click', openAddOut);
