@@ -50,13 +50,13 @@
 
     /* ── 상태 탭 필터 ── */
     .po-status-tabs { display:flex; gap:3px; flex-shrink:0; flex-wrap:wrap; }
-    .po-status-tab {
+    .po-status-tab, .rv-status-tab {
       height:28px; padding:0 12px; border:1px solid #e5e7eb;
       background:#fff; border-radius:6px; font-size:11px; font-weight:600;
       color:#6b7280; cursor:pointer; transition:all 0.15s; white-space:nowrap;
     }
-    .po-status-tab:hover { border-color:#93c5fd; color:#3b82f6; }
-    .po-status-tab.active { background:#3b82f6; border-color:#3b82f6; color:#fff; }
+    .po-status-tab:hover, .rv-status-tab:hover { border-color:#93c5fd; color:#3b82f6; }
+    .po-status-tab.active, .rv-status-tab.active { background:#3b82f6; border-color:#3b82f6; color:#fff; }
 
     /* ── 카드 ── */
     .m-card {
@@ -69,7 +69,7 @@
     }
     .m-card-title { font-size:12px; font-weight:700; color:#374151; }
     .m-card-body  { flex:1; min-height:0; display:flex; flex-direction:column; overflow:hidden; }
-    .m-table-wrap { flex:1; min-height:0; }
+    .m-table-wrap { flex:1; min-height:0; height:100%; }
     .pagination-area {
       padding:6px 14px; flex-shrink:0;
       display:flex; justify-content:center; border-top:1px solid #f3f4f6;
@@ -208,7 +208,7 @@
           <span class="m-card-title">발주요청 목록</span>
         </div>
         <div class="m-card-body">
-          <div id="rvGrid" class="m-table-wrap"></div>
+          <div id="rvGrid" class="m-table-wrap ag-theme-alpine"></div>
         </div>
         <div class="pagination-area" id="rvPagination"></div>
       </div>
@@ -237,7 +237,7 @@
           <span class="m-card-title">발주 목록</span>
         </div>
         <div class="m-card-body">
-          <div id="poGrid" class="m-table-wrap"></div>
+          <div id="poGrid" class="m-table-wrap ag-theme-alpine"></div>
         </div>
         <div class="pagination-area" id="poPagination"></div>
       </div>
