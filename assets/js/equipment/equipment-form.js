@@ -170,12 +170,15 @@ async function init() {
   if (editingId) {
     document.querySelector('h2, .page-title')?.textContent !== undefined &&
       (document.querySelector('h2, .page-title').textContent = '장비 수정');
+    showGlobalLoading('장비 정보를 불러오는 중...');
     try {
       const eq = await loadEquipment(editingId);
       fillForm(eq);
     } catch (e) {
       alert('장비 정보를 불러오지 못했습니다: ' + e.message);
       return;
+    } finally {
+      hideGlobalLoading();
     }
   }
 
