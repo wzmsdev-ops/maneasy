@@ -380,10 +380,18 @@ function renderUsers(rows, filterClinicCode, filterDeptCode) {
       { headerName: '전화',   field: 'phone',      flex: 1, minWidth: 110, valueFormatter: p => p.value || '-' },
       { headerName: '상태',   field: 'active',     flex: 0, width: 70,
         cellRenderer: p => { const s = document.createElement('span'); s.innerHTML = badgeActive(p.value); return s; } },
-      { headerName: '', flex: 0, width: 70, sortable: false,
+      { headerName: '', flex: 0, width: 140, sortable: false,
         cellRenderer: p => {
-          const btn = document.createElement('button'); btn.className = 'btn btn-sm'; btn.textContent = '수정';
-          btn.onclick = () => openEditUser(p.data.id); return btn;
+          const wrap = document.createElement('div'); wrap.style.cssText = 'display:flex;gap:4px;align-items:center;';
+          const btnEdit = document.createElement('button'); btnEdit.className = 'btn btn-sm'; btnEdit.textContent = '수정';
+          btnEdit.onclick = () => openEditUser(p.data.id);
+          wrap.append(btnEdit);
+          if (p.data.active !== 'Y') {
+            const btnApprove = document.createElement('button'); btnApprove.className = 'btn btn-sm btn-primary'; btnApprove.textContent = '승인';
+            btnApprove.onclick = () => approveUser(p.data.id);
+            wrap.append(btnApprove);
+          }
+          return wrap;
         }},
     ], filtered, { pageSize: 15, fit: true, noRowsText: '등록된 사용자가 없습니다.' });
   } else {
@@ -396,6 +404,17 @@ function onUserClinicSelectChange() {
   const clinicId = document.getElementById('u_clinic_select')?.value || '';
   fillDeptSelect('u_dept_select', '선택 안 함', clinicId || null, null);
 }
+
+async function approveUser(id) {
+  if (!confirm('이 사용자를 승인하시겠습니까?')) return;
+  const { error } = await supabaseClient
+    .from('user_profiles')
+    .update({ active: 'Y', role: 'user' })
+    .eq('id', id);
+  if (error) { alert('승인 실패: ' + error.message); return; }
+  await refreshUsers();
+}
+window.approveUser = approveUser;
 
 function openEditUser(id) {
   const row = userCache.find(r => r.id === id);
