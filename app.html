@@ -24,9 +24,12 @@
     <div class="sb-user">
       <div class="sb-user-info">
         <div class="sb-user-line" id="sbUserLine">로딩 중...</div>
+        <div class="sb-user-role" id="sbUserRole"></div>
       </div>
     </div>
     <div class="sb-nav">
+
+      <!-- 의료장비 관리 -->
       <div class="sb-section-label">의료장비 관리</div>
       <button class="sb-item" data-page="equipment/dashboard" onclick="navigate('equipment/dashboard')">
         <div class="sb-item-inner"><i class="ti ti-layout-dashboard"></i><span>대시보드</span></div>
@@ -34,9 +37,11 @@
       <button class="sb-item" data-page="equipment/list" onclick="navigate('equipment/list')">
         <div class="sb-item-inner"><i class="ti ti-list"></i><span>장비 목록</span></div>
       </button>
-      <button class="sb-item" data-page="equipment/form" onclick="navigate('equipment/form')">
+      <button class="sb-item" data-page="equipment/form" onclick="navigate('equipment/form')" id="sbItemEquipmentForm">
         <div class="sb-item-inner"><i class="ti ti-plus"></i><span>장비 등록</span></div>
       </button>
+
+      <!-- 정도관리 -->
       <div class="sb-section-label">정도관리</div>
       <button class="sb-item" data-page="qc/items" onclick="navigate('qc/items')">
         <div class="sb-item-inner"><i class="ti ti-clipboard-list"></i><span>검사항목 관리</span></div>
@@ -44,6 +49,18 @@
       <button class="sb-item" data-page="qc/data" onclick="navigate('qc/data')">
         <div class="sb-item-inner"><i class="ti ti-edit"></i><span>데이터 입력</span></div>
       </button>
+
+      <!-- 마스터 관리 — admin만 표시 -->
+      <div class="sb-section-label sb-admin-only" id="sbSectionMaster" style="display:none;">마스터 관리</div>
+      <button class="sb-item sb-admin-only" data-page="master/org" onclick="navigate('master/org')"
+              id="sbItemMasterOrg" style="display:none;">
+        <div class="sb-item-inner"><i class="ti ti-building-hospital"></i><span>의원·부서·사용자</span></div>
+      </button>
+      <button class="sb-item sb-admin-only" data-page="master/supply" onclick="navigate('master/supply')"
+              id="sbItemMasterSupply" style="display:none;">
+        <div class="sb-item-inner"><i class="ti ti-package"></i><span>자재·거래처</span></div>
+      </button>
+
     </div>
     <div class="sb-footer">
       <button class="sb-logout" onclick="doLogout()">
@@ -87,6 +104,8 @@ const MENU_META = {
   'equipment/detail':    { app: '의료장비 관리', page: '장비 상세' },
   'qc/items':            { app: '정도관리', page: '검사항목 관리' },
   'qc/data':             { app: '정도관리', page: '데이터 입력' },
+  'master/org':          { app: '마스터 관리', page: '의원·부서·사용자' },
+  'master/supply':       { app: '마스터 관리', page: '자재·거래처' },
 };
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -95,9 +114,28 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   const user = await auth.getSession();
   if (user) {
-    const name = user.user_name || user.email;
+    const name   = user.user_name || user.email;
     const clinic = user.clinic_name ? ` · ${user.clinic_name}` : '';
     document.getElementById('sbUserLine').textContent = name + clinic;
+
+    // 역할 표시
+    const roleEl = document.getElementById('sbUserRole');
+    if (roleEl) {
+      const roleLabel = { admin: '관리자', edit: '편집자', manager: '담당자', user: '일반' };
+      roleEl.textContent = roleLabel[user.role] || user.role || '';
+    }
+
+    // admin이면 마스터 관리 메뉴 노출
+    if (user.role === 'admin') {
+      document.getElementById('sbSectionMaster').style.display = '';
+      document.getElementById('sbItemMasterOrg').style.display = '';
+      document.getElementById('sbItemMasterSupply').style.display = '';
+    }
+
+    // edit 이하 역할이면 장비 등록 버튼 숨김
+    if (user.role === 'user') {
+      document.getElementById('sbItemEquipmentForm').style.display = 'none';
+    }
   }
 
   const params = new URLSearchParams(location.search);
@@ -109,18 +147,20 @@ function navigate(page, tab, skipHistory, extraQuery) {
 
   // extraQuery 객체가 있으면 쿼리스트링으로 변환해서 page에 합침
   if (extraQuery && typeof extraQuery === 'object') {
-    var qs = Object.entries(extraQuery).map(function([k,v]) {
+    var qs = Object.entries(extraQuery).map(function([k, v]) {
       return encodeURIComponent(k) + '=' + encodeURIComponent(v);
     }).join('&');
     if (qs) page = page + '?' + qs;
   }
 
-  const meta = MENU_META[page.split('?')[0]] || { app: page, page: '' };
-  document.getElementById('breadcrumbApp').textContent = meta.app;
+  const pagePath  = page.split('?')[0];
+  const pageQuery = page.split('?')[1] || '';
+
+  const meta = MENU_META[pagePath] || { app: pagePath, page: '' };
+  document.getElementById('breadcrumbApp').textContent  = meta.app;
   document.getElementById('breadcrumbPage').textContent = meta.page;
   document.getElementById('breadcrumbSep').style.display = meta.page ? '' : 'none';
 
-  const [pagePath, pageQuery] = page.split('?');
   document.getElementById('shellFrame').src =
     `${CONFIG.SITE_BASE_URL}/pages/${pagePath}.html${pageQuery ? '?' + pageQuery : ''}`;
 
@@ -146,5 +186,14 @@ window.addEventListener('popstate', e => {
   if (e.state?.page) navigate(e.state.page, true);
 });
 </script>
+
+<style>
+  /* 사용자 역할 표시 */
+  .sb-user-role {
+    font-size: 10px;
+    color: rgba(255,255,255,0.4);
+    margin-top: 2px;
+  }
+</style>
 </body>
 </html>
