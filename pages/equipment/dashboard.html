@@ -306,7 +306,7 @@
     <div class="db-card">
       <div class="db-card-head">
         <span class="db-card-title"><i class="ti ti-chart-bar"></i> 부서별 장비 현황</span>
-        <button class="db-card-link" onclick="shellNav('equipment/list')">목록 보기 →</button>
+        <button class="db-card-link" onclick="parent.shellNavigate?.('equipment/list')">목록 보기 →</button>
       </div>
       <div class="db-dept-body" id="deptBody">
         <div class="db-skeleton" style="width:100%"></div>
@@ -389,3 +389,16 @@
 <script src="../../assets/js/equipment/dashboard.js"></script>
 </body>
 </html>
+
+<script>
+window.addEventListener('error', function(e) {
+  document.body.insertAdjacentHTML('afterbegin',
+    '<div style="position:fixed;top:0;left:0;right:0;background:#fee2e2;color:#991b1b;padding:8px 12px;font-size:12px;z-index:99999;word-break:break-all;">'
+    + 'ERROR: ' + e.message + ' (' + (e.filename||'').split('/').pop() + ':' + e.lineno + ')</div>');
+});
+window.addEventListener('unhandledrejection', function(e) {
+  document.body.insertAdjacentHTML('afterbegin',
+    '<div style="position:fixed;top:40px;left:0;right:0;background:#fef3c7;color:#92400e;padding:8px 12px;font-size:12px;z-index:99999;word-break:break-all;">'
+    + 'PROMISE ERROR: ' + (e.reason && e.reason.message ? e.reason.message : String(e.reason)) + '</div>');
+});
+</script>
