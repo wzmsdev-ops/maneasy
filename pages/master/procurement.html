@@ -9,8 +9,6 @@
   <link rel="stylesheet" href="../../assets/libs/ag-grid/ag-theme-alpine.min.css" />
   <link rel="stylesheet" href="../../assets/css/ag-grid-custom.css" />
   <link rel="stylesheet" href="../../assets/font/tabler-icons/tabler-icons.min.css" />
-  
-  
   <script>
     if (new URLSearchParams(location.search).get('shell') === '1')
       document.documentElement.classList.add('in-shell');
@@ -127,3 +125,153 @@
     .badge-partial   { background:#fef3c7;color:#92400e;   padding:1px 8px;border-radius:999px;font-size:10px;font-weight:700; }
     .badge-completed { background:#d1fae5;color:#065f46;   padding:1px 8px;border-radius:999px;font-size:10px;font-weight:700; }
     .badge-cancelled { background:#fee2e2;color:#991b1b;   padding:1px 8px;border-radius:999px;font-size:10px;font-weight:700; }
+
+    /* 삭제 버튼 */
+    /* ── 상세 모달 메타 그리드 ── */
+    .po-detail-meta {
+      display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px;
+    }
+    .po-detail-meta-item { display:flex; flex-direction:column; gap:2px; }
+    .po-detail-meta-label { font-size:10px; font-weight:700; color:#9ca3af; }
+    .po-detail-meta-value { font-size:12px; font-weight:500; color:#111827; }
+    .po-detail-items-wrap { border:1px solid #e5e7eb; border-radius:6px; overflow:hidden; min-height:200px; }
+  </style>
+</head>
+<body>
+<div class="po-page">
+
+  <!-- 액션바 -->
+  <div class="po-actionbar">
+    <div class="po-status-tabs">
+      <button class="po-status-tab active" data-status="">전체</button>
+      <button class="po-status-tab" data-status="DRAFT">초안</button>
+      <button class="po-status-tab" data-status="ORDERED">발주완료</button>
+      <button class="po-status-tab" data-status="PARTIAL">부분입고</button>
+      <button class="po-status-tab" data-status="COMPLETED">완료</button>
+      <button class="po-status-tab" data-status="CANCELLED">취소</button>
+    </div>
+    <div class="spacer"></div>
+    <span id="poCountLabel" style="font-size:11px;color:#9ca3af;"></span>
+    <button class="btn btn-sm btn-primary" id="addPoBtn"><i class="ti ti-plus"></i> 발주 등록</button>
+  </div>
+
+  <!-- 발주 목록 그리드 -->
+  <div class="m-card">
+    <div class="m-card-head">
+      <span class="m-card-title">발주 목록</span>
+    </div>
+    <div class="m-card-body">
+      <div id="poGrid" class="m-table-wrap"></div>
+    </div>
+    <div class="pagination-area" id="poPagination"></div>
+  </div>
+
+</div><!-- /po-page -->
+
+<!-- ══════════════════════════════════════
+     발주 등록 / 수정 모달
+     품목 행 : AG Grid + cellEditor (inline)
+══════════════════════════════════════ -->
+<div id="poModal" class="m-modal">
+  <div class="m-modal-backdrop" onclick="closeModal('poModal')"></div>
+  <div class="m-modal-dialog m-modal-dialog--form">
+
+    <div class="m-modal-head">
+      <span class="m-modal-title" id="poModalTitle">발주 등록</span>
+      <button class="m-modal-close" onclick="closeModal('poModal')"><i class="ti ti-x"></i></button>
+    </div>
+
+    <div class="m-modal-body">
+      <!-- 기본 정보 -->
+      <div class="m-field-row3">
+        <div class="m-field">
+          <label>발주번호</label>
+          <input type="text" id="po_order_no" class="m-readonly" readonly placeholder="저장 시 자동 생성" />
+        </div>
+        <div class="m-field">
+          <label>발주일 <span class="m-req">*</span></label>
+          <input type="date" id="po_order_date" />
+        </div>
+        <div class="m-field">
+          <label>납품 예정일</label>
+          <input type="date" id="po_expected_date" />
+        </div>
+      </div>
+      <div class="m-field-row">
+        <div class="m-field">
+          <label>거래처 <span class="m-req">*</span></label>
+          <select id="po_vendor_id"><option value="">거래처 선택</option></select>
+        </div>
+        <div class="m-field">
+          <label>메모</label>
+          <input type="text" id="po_memo" placeholder="메모" />
+        </div>
+      </div>
+
+      <!-- 품목 AG Grid -->
+      <div class="po-items-section">
+        <div class="po-items-toolbar">
+          <span class="po-items-toolbar-label">발주 품목</span>
+          <button class="btn btn-sm" id="addItemRowBtn" type="button">
+            <i class="ti ti-plus"></i> 품목 추가
+          </button>
+        </div>
+        <div class="po-items-grid-wrap">
+          <div id="poItemGrid" class="po-items-grid ag-theme-alpine"></div>
+        </div>
+
+        <!-- 합계 -->
+        <div class="po-total-bar">
+          <span>공급가액 합계 <strong id="poTotalSupply">0원</strong></span>
+          <span>VAT (10%) <strong id="poTotalVat">0원</strong></span>
+          <span>합계 <strong id="poTotalAmount">0원</strong></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="m-modal-foot">
+      <button class="btn btn-sm" onclick="closeModal('poModal')">취소</button>
+      <button class="btn btn-sm btn-primary" id="poSaveBtn">저장 (초안)</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     발주 상세 모달 — 품목도 AG Grid
+══════════════════════════════════════ -->
+<div id="poDetailModal" class="m-modal">
+  <div class="m-modal-backdrop" onclick="closeModal('poDetailModal')"></div>
+  <div class="m-modal-dialog m-modal-dialog--detail">
+    <div class="m-modal-head">
+      <span class="m-modal-title" id="poDetailTitle">발주 상세</span>
+      <button class="m-modal-close" onclick="closeModal('poDetailModal')"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="m-modal-body">
+      <div class="po-detail-meta" id="poDetailMeta"></div>
+      <div class="po-detail-items-wrap">
+        <div id="poDetailGrid" style="width:100%;height:240px;" class="ag-theme-alpine"></div>
+      </div>
+      <div class="po-total-bar" id="poDetailTotal"></div>
+    </div>
+    <div class="m-modal-foot" id="poDetailFoot">
+      <button class="btn btn-sm" onclick="closeModal('poDetailModal')">닫기</button>
+    </div>
+  </div>
+</div>
+
+<div id="globalLoading" aria-hidden="true">
+  <div class="global-loading__dialog">
+    <div class="global-loading__spinner"></div>
+    <div class="global-loading__text" id="globalLoadingText">불러오는 중...</div>
+  </div>
+</div>
+
+<script src="../../assets/libs/ag-grid/ag-grid-community.min.js"></script>
+<script src="../../assets/libs/supabase.js"></script>
+<script src="../../assets/js/core/config.js"></script>
+<script src="../../assets/js/core/utils.js"></script>
+<script src="../../assets/js/core/supabase.js"></script>
+<script src="../../assets/js/core/auth.js"></script>
+<script src="../../assets/js/master/procurement.js"></script>
+</body>
+</html>
