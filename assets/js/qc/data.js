@@ -196,30 +196,30 @@ function renderChart(item, entries) {
 }
 
 /* ── 엔트리 테이블 ─────────────────────────── */
+let _entryGrid = null;
 function renderEntryTable(entries) {
-  const wrap  = document.getElementById('entryList');
   const empty = document.getElementById('entryEmpty');
-  if (!wrap) return;
+  const sorted = [...entries].reverse();
+  if (empty) empty.style.display = sorted.length ? 'none' : '';
 
-  if (!entries.length) {
-    if (empty) empty.style.display = '';
-    wrap.innerHTML = '';
-    return;
-  }
-  if (empty) empty.style.display = 'none';
+  const cols = [
+    { headerName: '날짜', field: 'date',  flex: 1, minWidth: 100 },
+    { headerName: '값',   field: 'value', flex: 1, minWidth: 80 },
+    { headerName: '메모', field: 'memo',  flex: 2, minWidth: 100, valueFormatter: p => p.value || '-' },
+    { headerName: '',     flex: 0, width: 70, sortable: false,
+      cellRenderer: p => {
+        const btn = document.createElement('button');
+        btn.className = 'btn btn-sm btn-danger';
+        btn.textContent = '삭제';
+        btn.onclick = () => deleteEntry(p.data.id);
+        return btn;
+      }},
+  ];
 
-  wrap.innerHTML = `
-    <table class="data-table">
-      <thead><tr><th>날짜</th><th>값</th><th>메모</th><th></th></tr></thead>
-      <tbody>${[...entries].reverse().map(e => `
-        <tr>
-          <td>${textSafe(e.date)}</td>
-          <td>${textSafe(e.value)}</td>
-          <td>${textSafe(e.memo || '-')}</td>
-          <td><button class="btn btn-sm btn-danger" onclick="deleteEntry('${e.id}')">삭제</button></td>
-        </tr>`).join('')}
-      </tbody>
-    </table>`;
+  if (_entryGrid) { updateMgGrid(_entryGrid, sorted); return; }
+  _entryGrid = createMgGrid('entryList', cols, sorted, {
+    pageSize: 10, fit: false, noRowsText: '입력된 데이터가 없습니다.',
+  });
 }
 
 /* ── 저장 ──────────────────────────────────── */
