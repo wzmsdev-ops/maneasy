@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>조직 관리</title>
+  <title>자재·거래처 관리</title>
   <link rel="stylesheet" href="../../assets/css/common.css" />
   <link rel="stylesheet" href="../../assets/font/tabler-icons/tabler-icons.min.css" />
   <script>
@@ -12,24 +12,43 @@
   </script>
   <style>
     html, body { height: 100%; margin: 0; background: #f0f2f5; }
+
     .master-page {
-      display: flex; flex-direction: column; height: 100vh;
-      padding: 10px 16px; gap: 8px; box-sizing: border-box; overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      padding: 10px 16px;
+      gap: 8px;
+      box-sizing: border-box;
+      overflow: hidden;
     }
     .master-tabs {
-      display: flex; gap: 2px; background: #e5e7eb;
-      border-radius: 8px; padding: 3px; flex-shrink: 0;
+      display: flex;
+      gap: 2px;
+      background: #e5e7eb;
+      border-radius: 8px;
+      padding: 3px;
+      flex-shrink: 0;
     }
     .tab-btn {
-      flex: 1; height: 32px; border: none; background: transparent;
-      border-radius: 6px; font-size: 12px; font-weight: 600; color: #6b7280; cursor: pointer;
+      flex: 1;
+      height: 32px;
+      border: none;
+      background: transparent;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #6b7280;
+      cursor: pointer;
       transition: background 0.15s, color 0.15s;
     }
     .tab-btn:hover { background: rgba(255,255,255,0.6); color: #374151; }
     .tab-btn.active { background: #fff; color: #111827; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+
     .master-content { flex: 1; min-height: 0; position: relative; }
     .tab-panel { display: none; position: absolute; inset: 0; flex-direction: column; gap: 8px; }
     .tab-panel.active { display: flex; }
+
     .m-card {
       background: #fff; border: 1px solid #e5e7eb; border-radius: 8px;
       display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden;
@@ -40,11 +59,15 @@
     }
     .m-card-title { font-size: 12px; font-weight: 700; color: #374151; }
     .m-card-body { flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; }
+    .m-card-body::-webkit-scrollbar { width: 3px; }
+    .m-card-body::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 999px; }
+
     .m-table-wrap { flex: 1; min-height: 0; width: 100%; }
     .m-table-wrap .data-table { width: 100%; }
     .m-table-wrap .data-table td,
     .m-table-wrap .data-table th { font-size: 12px; }
     .m-table-wrap .data-table .action-cell { white-space: nowrap; width: 1%; }
+
     .m-modal {
       display: none; position: fixed; inset: 0; z-index: 500;
       align-items: center; justify-content: center;
@@ -53,7 +76,7 @@
     .m-modal-backdrop { position: absolute; inset: 0; background: rgba(11,22,48,0.45); }
     .m-modal-dialog {
       position: relative; z-index: 1; background: #fff; border-radius: 8px;
-      width: 440px; max-width: calc(100vw - 32px); max-height: calc(100vh - 64px);
+      width: 480px; max-width: calc(100vw - 32px); max-height: calc(100vh - 64px);
       display: flex; flex-direction: column;
       box-shadow: 0 20px 60px rgba(0,0,0,0.16); border: 1px solid #e5e7eb; overflow: hidden;
     }
@@ -76,34 +99,49 @@
       display: flex; justify-content: flex-end; gap: 6px;
       padding: 8px 14px 10px; border-top: 1px solid #f3f4f6; background: #f8fafc; flex-shrink: 0;
     }
+
     .m-field { display: flex; flex-direction: column; gap: 4px; }
     .m-field label { font-size: 11px; font-weight: 600; color: #4b5563; }
-    .m-field input, .m-field select {
-      height: 32px; border: 1px solid #d1d5db; border-radius: 6px;
-      padding: 0 8px; font-size: 12px; outline: none; transition: border-color 0.15s;
-      background: #fff;
+    .m-field input, .m-field select, .m-field textarea {
+      border: 1px solid #d1d5db; border-radius: 6px; padding: 0 8px;
+      font-size: 12px; outline: none; transition: border-color 0.15s;
     }
-    .m-field input:focus, .m-field select:focus { border-color: #3b82f6; }
+    .m-field input, .m-field select { height: 32px; }
+    .m-field textarea { height: 60px; padding: 6px 8px; resize: vertical; }
+    .m-field input:focus, .m-field select:focus, .m-field textarea:focus { border-color: #3b82f6; }
     .m-field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
     .m-req { color: #ef4444; }
+
     .m-empty { padding: 32px; text-align: center; font-size: 12px; color: #9ca3af; }
-    /* 사용자 탭 필터 바 */
-    .m-filter-bar {
-      display: flex; align-items: center; gap: 8px;
-      padding: 8px 14px; background: #f8fafc; border-bottom: 1px solid #e5e7eb; flex-shrink: 0;
-    }
-    .m-filter-bar select {
-      height: 28px; border: 1px solid #d1d5db; border-radius: 6px;
-      padding: 0 8px; font-size: 12px; outline: none; background: #fff; min-width: 120px;
-    }
-    .m-filter-label { font-size: 11px; font-weight: 600; color: #6b7280; white-space: nowrap; }
-    /* 배지 */
+
     .badge-active   { background:#d1fae5;color:#065f46;padding:1px 7px;border-radius:999px;font-size:10px;font-weight:700; }
     .badge-inactive { background:#f3f4f6;color:#6b7280;padding:1px 7px;border-radius:999px;font-size:10px;font-weight:700; }
-    .badge-role-admin   { background:#dbeafe;color:#1d4ed8;padding:1px 7px;border-radius:999px;font-size:10px;font-weight:700; }
-    .badge-role-edit    { background:#ede9fe;color:#6d28d9;padding:1px 7px;border-radius:999px;font-size:10px;font-weight:700; }
-    .badge-role-manager { background:#fef3c7;color:#92400e;padding:1px 7px;border-radius:999px;font-size:10px;font-weight:700; }
-    .badge-role-user    { background:#f3f4f6;color:#6b7280;padding:1px 7px;border-radius:999px;font-size:10px;font-weight:700; }
+  
+    /* ── AG Grid 스타일 — list.html 동일 ── */
+    .ag-theme-alpine {
+      --ag-font-size: 11px !important;
+      --ag-font-family: "Pretendard", "Noto Sans KR", sans-serif !important;
+      --ag-header-background-color: #f8fafc;
+      --ag-header-foreground-color: #4b5563;
+      --ag-border-color: #e5e7eb;
+      --ag-row-border-color: #f0f0f0;
+      --ag-background-color: #fff;
+      --ag-odd-row-background-color: #fff;
+      --ag-row-hover-color: #f0f5ff;
+      --ag-cell-horizontal-padding: 8px;
+    }
+    .ag-theme-alpine .ag-root-wrapper { border-radius: 8px; overflow: hidden; }
+    .ag-theme-alpine .ag-body-viewport { overflow-x: hidden !important; overflow-y: auto !important; }
+    .ag-theme-alpine .ag-body-horizontal-scroll { display: none !important; }
+    .ag-theme-alpine .ag-header { font-size: 11px; }
+    .ag-theme-alpine .ag-cell { font-size: 11px !important; font-family: "Pretendard", "Noto Sans KR", sans-serif !important; }
+    .ag-theme-alpine .ag-cell * { font-size: 11px !important; }
+    .ag-theme-alpine .ag-header-cell-text { font-size: 11px !important; }
+    .ag-theme-alpine .ag-header-cell-label { justify-content: center; font-weight: 700; }
+    .ag-left-header .ag-header-cell-label { justify-content: flex-start !important; }
+    .ag-theme-alpine .ag-cell { border-right: 1px solid #e5e7eb !important; }
+    .ag-theme-alpine .ag-cell:last-child { border-right: none !important; }
+    .ag-center-header .ag-header-cell-label { justify-content: center; }
   </style>
   <link rel="stylesheet" href="../../assets/libs/ag-grid/ag-grid.min.css" />
   <link rel="stylesheet" href="../../assets/libs/ag-grid/ag-theme-alpine.min.css" />
@@ -112,68 +150,36 @@
 <div class="master-page">
 
   <div class="master-tabs">
-    <button class="tab-btn active" data-tab="clinics">의원</button>
-    <button class="tab-btn" data-tab="departments">부서</button>
-    <button class="tab-btn" data-tab="users">사용자</button>
+    <button class="tab-btn active" data-tab="vendors">거래처</button>
+    <button class="tab-btn" data-tab="items">자재</button>
   </div>
 
   <div class="master-content">
 
-    <!-- ═══ 의원 탭 ═══ -->
-    <div id="tab-clinics" class="tab-panel active">
+    <!-- ═══ 거래처 탭 ═══ -->
+    <div id="tab-vendors" class="tab-panel active">
       <div class="m-card">
         <div class="m-card-head">
-          <span class="m-card-title">의원 목록</span>
-          <button class="btn btn-sm btn-primary" id="addClinicBtn"><i class="ti ti-plus"></i> 추가</button>
+          <span class="m-card-title">거래처 목록</span>
+          <button class="btn btn-sm btn-primary" id="addVendorBtn"><i class="ti ti-plus"></i> 추가</button>
         </div>
         <div class="m-card-body">
-          <div id="clinicEmpty" class="m-empty">등록된 의원이 없습니다.</div>
-          <div id="clinicList" class="m-table-wrap"></div>
+          <div id="vendorEmpty" class="m-empty" style="display:none;">등록된 거래처가 없습니다.</div>
+          <div id="vendorList" class="m-table-wrap"></div>
         </div>
       </div>
     </div>
 
-    <!-- ═══ 부서 탭 ═══ -->
-    <div id="tab-departments" class="tab-panel">
+    <!-- ═══ 자재 탭 ═══ -->
+    <div id="tab-items" class="tab-panel">
       <div class="m-card">
         <div class="m-card-head">
-          <span class="m-card-title">부서 목록</span>
-          <button class="btn btn-sm btn-primary" id="addDeptBtn"><i class="ti ti-plus"></i> 추가</button>
-        </div>
-        <!-- 의원 필터 -->
-        <div class="m-filter-bar">
-          <span class="m-filter-label">의원</span>
-          <select id="deptClinicFilter">
-            <option value="">전체</option>
-          </select>
+          <span class="m-card-title">자재 목록</span>
+          <button class="btn btn-sm btn-primary" id="addItemBtn"><i class="ti ti-plus"></i> 추가</button>
         </div>
         <div class="m-card-body">
-          <div id="deptEmpty" class="m-empty">등록된 부서가 없습니다.</div>
-          <div id="deptList" class="m-table-wrap"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ═══ 사용자 탭 ═══ -->
-    <div id="tab-users" class="tab-panel">
-      <div class="m-card">
-        <div class="m-card-head">
-          <span class="m-card-title">사용자 목록</span>
-        </div>
-        <!-- 의원·부서 필터 -->
-        <div class="m-filter-bar">
-          <span class="m-filter-label">의원</span>
-          <select id="userClinicFilter">
-            <option value="">전체</option>
-          </select>
-          <span class="m-filter-label">부서</span>
-          <select id="userDeptFilter">
-            <option value="">전체</option>
-          </select>
-        </div>
-        <div class="m-card-body">
-          <div id="userEmpty" class="m-empty">등록된 사용자가 없습니다.</div>
-          <div id="userList" class="m-table-wrap"></div>
+          <div id="itemEmpty" class="m-empty" style="display:none;">등록된 자재가 없습니다.</div>
+          <div id="itemList" class="m-table-wrap"></div>
         </div>
       </div>
     </div>
@@ -181,159 +187,136 @@
   </div>
 </div>
 
-<!-- ── 의원 모달 ── -->
-<div id="clinicModal" class="m-modal">
-  <div class="m-modal-backdrop" onclick="closeModal('clinicModal')"></div>
+<!-- ── 거래처 모달 ── -->
+<div id="vendorModal" class="m-modal">
+  <div class="m-modal-backdrop" onclick="closeModal('vendorModal')"></div>
   <div class="m-modal-dialog">
     <div class="m-modal-head">
-      <span class="m-modal-title" id="clinicModalTitle">의원 추가</span>
-      <button class="m-modal-close" onclick="closeModal('clinicModal')"><i class="ti ti-x"></i></button>
+      <span class="m-modal-title" id="vendorModalTitle">거래처 추가</span>
+      <button class="m-modal-close" onclick="closeModal('vendorModal')"><i class="ti ti-x"></i></button>
     </div>
     <div class="m-modal-body">
       <div class="m-field-row">
         <div class="m-field">
-          <label>의원 코드 <span class="m-req">*</span></label>
-          <input type="text" id="c_clinic_code" placeholder="예: SS" />
+          <label>거래처 코드 <span class="m-req">*</span></label>
+          <input type="text" id="v_vendor_code" placeholder="예: VD001" />
         </div>
         <div class="m-field">
-          <label>의원명 <span class="m-req">*</span></label>
-          <input type="text" id="c_clinic_name" placeholder="의원 이름" />
+          <label>거래처명 <span class="m-req">*</span></label>
+          <input type="text" id="v_vendor_name" placeholder="거래처 이름" />
+        </div>
+      </div>
+      <div class="m-field-row">
+        <div class="m-field">
+          <label>사업자번호</label>
+          <input type="text" id="v_biz_no" placeholder="000-00-00000" />
+        </div>
+        <div class="m-field">
+          <label>대표자명</label>
+          <input type="text" id="v_ceo_name" placeholder="홍길동" />
+        </div>
+      </div>
+      <div class="m-field-row">
+        <div class="m-field">
+          <label>전화번호</label>
+          <input type="text" id="v_phone" placeholder="02-0000-0000" />
+        </div>
+        <div class="m-field">
+          <label>이메일</label>
+          <input type="email" id="v_email" placeholder="example@co.kr" />
         </div>
       </div>
       <div class="m-field">
         <label>주소</label>
-        <input type="text" id="c_address" placeholder="주소" />
+        <input type="text" id="v_address" placeholder="주소" />
       </div>
       <div class="m-field-row">
         <div class="m-field">
-          <label>전화번호</label>
-          <input type="text" id="c_phone" placeholder="02-0000-0000" />
-        </div>
-        <div class="m-field">
-          <label>정렬순서</label>
-          <input type="number" id="c_sort_order" value="0" />
-        </div>
-      </div>
-      <div class="m-field">
-        <label>상태</label>
-        <select id="c_active">
-          <option value="Y">활성</option>
-          <option value="N">비활성</option>
-        </select>
-      </div>
-    </div>
-    <div class="m-modal-foot">
-      <button class="btn btn-sm" onclick="closeModal('clinicModal')">취소</button>
-      <button class="btn btn-sm btn-primary" id="clinicSaveBtn">저장</button>
-    </div>
-  </div>
-</div>
-
-<!-- ── 부서 모달 ── -->
-<div id="deptModal" class="m-modal">
-  <div class="m-modal-backdrop" onclick="closeModal('deptModal')"></div>
-  <div class="m-modal-dialog">
-    <div class="m-modal-head">
-      <span class="m-modal-title" id="deptModalTitle">부서 추가</span>
-      <button class="m-modal-close" onclick="closeModal('deptModal')"><i class="ti ti-x"></i></button>
-    </div>
-    <div class="m-modal-body">
-      <!-- 의원 선택 (상위) -->
-      <div class="m-field">
-        <label>소속 의원 <span class="m-req">*</span></label>
-        <select id="d_clinic_id">
-          <option value="">의원을 선택하세요</option>
-        </select>
-      </div>
-      <div class="m-field-row">
-        <div class="m-field">
-          <label>부서 코드 <span class="m-req">*</span></label>
-          <input type="text" id="d_dept_code" placeholder="예: SS_LAB" />
-        </div>
-        <div class="m-field">
-          <label>부서명 <span class="m-req">*</span></label>
-          <input type="text" id="d_dept_name" placeholder="부서 이름" />
-        </div>
-      </div>
-      <div class="m-field-row">
-        <div class="m-field">
-          <label>정렬순서</label>
-          <input type="number" id="d_sort_order" value="0" />
+          <label>카테고리</label>
+          <input type="text" id="v_category" placeholder="의료기기, 소모품 등" />
         </div>
         <div class="m-field">
           <label>상태</label>
-          <select id="d_active">
+          <select id="v_active">
             <option value="Y">활성</option>
             <option value="N">비활성</option>
           </select>
         </div>
       </div>
+      <div class="m-field">
+        <label>메모</label>
+        <textarea id="v_memo" placeholder="메모"></textarea>
+      </div>
     </div>
     <div class="m-modal-foot">
-      <button class="btn btn-sm" onclick="closeModal('deptModal')">취소</button>
-      <button class="btn btn-sm btn-primary" id="deptSaveBtn">저장</button>
+      <button class="btn btn-sm" onclick="closeModal('vendorModal')">취소</button>
+      <button class="btn btn-sm btn-primary" id="vendorSaveBtn">저장</button>
     </div>
   </div>
 </div>
 
-<!-- ── 사용자 모달 ── -->
-<div id="userModal" class="m-modal">
-  <div class="m-modal-backdrop" onclick="closeModal('userModal')"></div>
+<!-- ── 자재 모달 ── -->
+<div id="itemModal" class="m-modal">
+  <div class="m-modal-backdrop" onclick="closeModal('itemModal')"></div>
   <div class="m-modal-dialog">
     <div class="m-modal-head">
-      <span class="m-modal-title" id="userModalTitle">사용자 수정</span>
-      <button class="m-modal-close" onclick="closeModal('userModal')"><i class="ti ti-x"></i></button>
+      <span class="m-modal-title" id="itemModalTitle">자재 추가</span>
+      <button class="m-modal-close" onclick="closeModal('itemModal')"><i class="ti ti-x"></i></button>
     </div>
     <div class="m-modal-body">
       <div class="m-field-row">
         <div class="m-field">
-          <label>이름</label>
-          <input type="text" id="u_user_name" placeholder="이름" />
+          <label>자재 코드 <span class="m-req">*</span></label>
+          <input type="text" id="i_item_code" placeholder="예: IT001" />
         </div>
         <div class="m-field">
-          <label>전화번호</label>
-          <input type="text" id="u_phone" placeholder="010-0000-0000" />
+          <label>자재명 <span class="m-req">*</span></label>
+          <input type="text" id="i_item_name" placeholder="자재 이름" />
         </div>
-      </div>
-      <div class="m-field">
-        <label>역할</label>
-        <select id="u_role">
-          <option value="admin">admin (전체 관리자)</option>
-          <option value="edit">edit (편집)</option>
-          <option value="manager">manager (담당자)</option>
-          <option value="user">user (일반)</option>
-        </select>
-      </div>
-      <!-- 의원 선택 → 부서 자동 연동 -->
-      <div class="m-field">
-        <label>소속 의원</label>
-        <select id="u_clinic_select">
-          <option value="">선택 안 함</option>
-        </select>
-      </div>
-      <div class="m-field">
-        <label>소속 부서</label>
-        <select id="u_dept_select">
-          <option value="">선택 안 함</option>
-        </select>
       </div>
       <div class="m-field-row">
         <div class="m-field">
-          <label>부서 (직접입력)</label>
-          <input type="text" id="u_department" placeholder="세부 부서명 (선택)" />
+          <label>카테고리</label>
+          <input type="text" id="i_category" placeholder="소모품, 부품 등" />
+        </div>
+        <div class="m-field">
+          <label>단위</label>
+          <input type="text" id="i_unit" placeholder="EA, BOX, L 등" />
+        </div>
+      </div>
+      <div class="m-field-row">
+        <div class="m-field">
+          <label>규격/사양</label>
+          <input type="text" id="i_spec" placeholder="규격 또는 사양" />
+        </div>
+        <div class="m-field">
+          <label>기준단가 (원)</label>
+          <input type="number" id="i_standard_price" placeholder="0" />
+        </div>
+      </div>
+      <div class="m-field-row">
+        <div class="m-field">
+          <label>거래처</label>
+          <select id="i_vendor_id">
+            <option value="">선택 안 함</option>
+          </select>
         </div>
         <div class="m-field">
           <label>상태</label>
-          <select id="u_active">
+          <select id="i_active">
             <option value="Y">활성</option>
             <option value="N">비활성</option>
           </select>
         </div>
       </div>
+      <div class="m-field">
+        <label>메모</label>
+        <textarea id="i_memo" placeholder="메모"></textarea>
+      </div>
     </div>
     <div class="m-modal-foot">
-      <button class="btn btn-sm" onclick="closeModal('userModal')">취소</button>
-      <button class="btn btn-sm btn-primary" id="userSaveBtn">저장</button>
+      <button class="btn btn-sm" onclick="closeModal('itemModal')">취소</button>
+      <button class="btn btn-sm btn-primary" id="itemSaveBtn">저장</button>
     </div>
   </div>
 </div>
@@ -351,6 +334,6 @@
 <script src="../../assets/js/core/utils.js"></script>
 <script src="../../assets/js/core/supabase.js"></script>
 <script src="../../assets/js/core/auth.js"></script>
-<script src="../../assets/js/master/org.js"></script>
+<script src="../../assets/js/master/supply.js"></script>
 </body>
 </html>
