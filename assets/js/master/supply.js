@@ -260,7 +260,10 @@ window.openEditItem = openEditItem;
 async function saveItem() {
   const priceStr = val('i_standard_price');
   const payload = {
-    item_code:      editingItemId ? val('i_item_code') : await genDocNo('ITEM'),
+    item_code:      editingItemId ? val('i_item_code') : await (async () => {
+      var { data } = await supabaseClient.rpc('generate_item_code');
+      return data || 'ITEM-' + Date.now().toString().slice(-6);
+    })(),
     item_name:      val('i_item_name'),
     category:       val('i_category'),
     purchase_unit:     val('i_purchase_unit'),
@@ -356,5 +359,5 @@ async function genDocNo(prefix) {
   var year = new Date().getFullYear();
   var { data, error } = await supabaseClient.rpc('next_doc_seq', { p_prefix: prefix, p_year: year });
   if (error || data == null) return prefix + '-' + year + '-' + Date.now().toString().slice(-6);
-  return prefix + '-' + year + '-' + String(data).padStart(4, '0');
+  return prefix + '-' + year + '-' + String(data).padStart(6, '0');
 }
