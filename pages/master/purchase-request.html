@@ -208,6 +208,41 @@
     .ss-input:focus { border-color:#2563eb; }
     .ss-stock-low { color:#dc2626; font-weight:700; }
     .ss-stock-ok  { color:#059669; }
+
+    /* ── 안전재고 설정 모달 (common.css modal 스타일 기반) ── */
+    #ssModal.modal-backdrop { display:none; }
+    #ssModal.modal-backdrop.is-open { display:flex; }
+    #ssModal .modal-container {
+      max-width: 1100px;
+      width: calc(100vw - 48px);
+      max-height: calc(100vh - 48px);
+    }
+    .ss-toolbar {
+      display:flex; align-items:center; gap:8px;
+      padding:10px 16px; border-bottom:1px solid var(--border);
+      background:var(--surface-soft); flex-shrink:0;
+    }
+    .ss-toolbar select, .ss-toolbar input[type=text] {
+      height:32px; padding:0 10px; border:1px solid var(--border);
+      border-radius:var(--radius-md); font-size:12px; outline:none; background:#fff;
+    }
+    .ss-toolbar select { min-width:130px; }
+    .ss-toolbar input[type=text] { flex:1; min-width:0; }
+    .ss-toolbar select:focus, .ss-toolbar input:focus { border-color:var(--blue); }
+    .ss-grid-wrap {
+      flex:1; min-height:0; padding:0;
+      height:calc(100vh - 220px);
+    }
+    /* ag-grid 인라인 편집 강조 */
+    .ag-theme-alpine .ag-cell-inline-editing {
+      height:100% !important;
+      background:#fff !important;
+      border:2px solid var(--blue) !important;
+      border-radius:4px;
+    }
+    .ag-theme-alpine .ag-cell.ag-cell-focus:not(.ag-cell-inline-editing) {
+      border:1px solid var(--blue) !important;
+    }
   </style>
 </head>
 <body>
@@ -231,9 +266,6 @@
     <input type="date" id="prDateTo" />
     <div class="pr-divider"></div>
     <input type="text" id="prKeyword" placeholder="자재명 검색..." />
-    <div class="pr-divider"></div>
-    <button class="btn btn-sm" id="ssSettingBtn" onclick="openSsSetting()"><i class="ti ti-settings"></i> 안전재고 설정</button>
-    <button class="btn btn-sm btn-warning" id="autoFillBtn" onclick="autoFillByStock()"><i class="ti ti-refresh"></i> 안전재고 기준 자동요청</button>
     <button class="btn btn-sm btn-primary" id="prSearchBtn"><i class="ti ti-search"></i> 조회</button>
   </div>
 
@@ -241,6 +273,9 @@
   <div class="m-card">
     <div class="m-card-head">
       <span class="m-card-title">내 발주요청 목록</span>
+      <button class="btn btn-sm" id="ssSettingBtn" onclick="openSsSetting()"><i class="ti ti-settings"></i> 안전재고 설정</button>
+      <button class="btn btn-sm btn-warning" id="autoFillBtn" onclick="autoFillByStock()"><i class="ti ti-refresh"></i> 안전재고 기준 자동요청</button>
+      <span style="width:1px;height:20px;background:#e5e7eb;display:inline-block;margin:0 4px;"></span>
       <button class="btn btn-sm btn-primary" id="addPrBtn"><i class="ti ti-plus"></i> 발주요청 작성</button>
     </div>
     <div class="m-card-body">
@@ -252,45 +287,40 @@
 </div><!-- /pr-page -->
 
 <!-- 안전재고 설정 모달 -->
-<div class="ss-modal-overlay" id="ssModal">
-  <div class="ss-modal">
-    <div class="ss-modal-head">
-      <span class="ss-modal-title"><i class="ti ti-settings"></i> 부서별 안전재고 설정</span>
-      <button class="ss-modal-close" onclick="closeSsSetting()"><i class="ti ti-x"></i></button>
+<div id="ssModal" class="modal-backdrop">
+  <div class="modal-container">
+    <div class="modal-header">
+      <span class="modal-title"><i class="ti ti-shield-check"></i> 부서별 안전재고 설정 <span id="ssDeptLabel" style="font-size:12px;font-weight:400;color:var(--text-muted);margin-left:8px;"></span></span>
+      <button class="modal-close" onclick="closeSsSetting()"><i class="ti ti-x"></i></button>
     </div>
-    <div class="ss-modal-toolbar">
-      <input type="text" id="ssKeyword" placeholder="자재명 검색..." oninput="filterSsTable(this.value)" />
-      <select id="ssCategoryFilter" onchange="filterSsTable(document.getElementById('ssKeyword').value)">
+    <div class="ss-toolbar">
+      <select id="ssCategoryFilter" onchange="filterSsGrid()">
         <option value="">전체 카테고리</option>
       </select>
+      <input type="text" id="ssKeyword" placeholder="자재명 검색..."
+        oninput="filterSsGrid()" />
+      <button class="btn btn-sm btn-primary" onclick="filterSsGrid()">
+        <i class="ti ti-search"></i> 조회
+      </button>
       <div style="flex:1;"></div>
-      <button class="btn btn-sm btn-primary" onclick="saveSsAll()"><i class="ti ti-device-floppy"></i> 전체 저장</button>
+      <button class="btn btn-sm btn-primary" onclick="saveSsAll()">
+        <i class="ti ti-device-floppy"></i> 전체 저장
+      </button>
     </div>
-    <div class="ss-modal-body">
-      <table class="ss-table">
-        <thead>
-          <tr>
-            <th style="width:40px;"><input type="checkbox" id="ssCheckAll" onchange="toggleSsAll(this.checked)" /></th>
-            <th>자재코드</th>
-            <th>자재명</th>
-            <th>카테고리</th>
-            <th>단위</th>
-            <th style="text-align:right;">현재고</th>
-            <th style="text-align:center;">안전재고</th>
-            <th style="text-align:center;">발주기본수량</th>
-          </tr>
-        </thead>
-        <tbody id="ssTableBody"></tbody>
-      </table>
+    <div class="ss-grid-wrap">
+      <div id="ssGrid" class="ag-theme-alpine" style="width:100%;height:100%;"></div>
     </div>
-    <div class="ss-modal-foot">
-      <span id="ssFootInfo" style="font-size:11px;color:#9ca3af;"></span>
-      <div style="display:flex;gap:8px;">
-        <button class="btn btn-sm" onclick="closeSsSetting()">닫기</button>
-      </div>
+    <div class="modal-footer">
+      <span id="ssFootInfo" style="font-size:11px;color:var(--text-muted);margin-right:auto;"></span>
+      <button class="btn" onclick="closeSsSetting()">닫기</button>
+      <button class="btn btn-primary" onclick="saveSsAll()">
+        <i class="ti ti-device-floppy"></i> 저장
+      </button>
     </div>
   </div>
 </div>
+
+
 
 
 
