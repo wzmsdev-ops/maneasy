@@ -83,10 +83,7 @@ function renderItems(rows) {
   ];
 
   if (_itemGrid) { updateMgGrid(_itemGrid, rows); return; }
-  _itemGrid = (function(){
-    var _el = document.getElementById('itemList');
-    if (_el) { _el.classList.add('ag-theme-alpine'); if (!_el.style.height) _el.style.height = '400px'; }
-  })();
+  _itemGrid =
   createMgGrid('itemList', cols, rows, {
     pageSize: 15, fit: true, noRowsText: '등록된 검사항목이 없습니다.',
   });
