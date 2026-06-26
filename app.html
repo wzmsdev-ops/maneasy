@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>의료장비 관리 시스템</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="assets/css/common.css" />
+  <link rel="stylesheet" href="assets/css/shell.css" />
+  <link rel="stylesheet" href="assets/font/tabler-icons/tabler-icons.min.css" />
+  <style>
+    .sb-sub-sub-item {
+      display: flex; align-items: center; gap: 7px;
+      padding: 5px 14px 5px 32px; font-size: 12px; font-weight: 500;
+      color: rgba(255,255,255,0.55); background: none; border: none;
+      cursor: pointer; text-align: left; transition: background 0.12s, color 0.12s;
+      border-radius: 5px; margin: 0 6px; width: calc(100% - 12px);
+    }
+    .sb-sub-sub-item:hover { background: rgba(255,255,255,0.07); color: #fff; }
+    .sb-sub-sub-item.active { background: rgba(255,255,255,0.12); color: #fff; font-weight: 600; }
+    .sb-sub-sub-item i { font-size: 12px; flex-shrink: 0; width: 14px; text-align: center; }
+    .sb-sub-submenu { display: none; flex-direction: column; }
+    .sb-sub-submenu.is-open { display: flex; }
+  </style>
+</head>
+<body>
+
+<div class="app-shell">
+
+  <!-- 사이드바 -->
+  <nav class="sidebar" id="sidebar" role="navigation" aria-label="메인 메뉴">
+
+    <div class="sb-brand">
+      <div class="sb-brand-logo">+</div>
+      <div class="sb-brand-text">
+        <div class="sb-brand-title">의료장비 관리 시스템</div>
+        <div class="sb-brand-sub" id="sbVersion">데모</div>
+      </div>
+    </div>
+
+    <div class="sb-user">
+      <div class="sb-user-info">
+        <div class="sb-user-line" id="sbUserLine">로딩 중...</div>
+      </div>
+    </div>
+
+    <div class="sb-nav" id="sbNav">
+
+      <!-- 의료장비 관리 -->
+      <div class="sb-section-label">의료장비 관리</div>
+
+      <button class="sb-item sb-item-parent" data-menu="equipment" onclick="toggleMenu('equipment')">
+        <div class="sb-item-inner">
+          <i class="ti ti-device-desktop-analytics" aria-hidden="true"></i>
+          <span>의료장비 관리</span>
+        </div>
+        <i class="ti ti-chevron-right sb-item-arrow" aria-hidden="true"></i>
+      </button>
+      <div class="sb-submenu" id="menu-equipment">
+        <button class="sb-sub-item" data-page="equipment/dashboard" onclick="navigate('equipment/dashboard')">
+          <i class="ti ti-layout-dashboard" aria-hidden="true"></i><span>대시보드</span>
+        </button>
+        <button class="sb-sub-item" data-page="equipment/list" onclick="navigate('equipment/list')">
+          <i class="ti ti-list" aria-hidden="true"></i><span>장비 목록</span>
+        </button>
+        <button class="sb-sub-item" data-page="equipment/form" onclick="navigate('equipment/form')">
+          <i class="ti ti-plus" aria-hidden="true"></i><span>장비 등록</span>
+        </button>
+      </div>
+
+      <!-- 정도관리 -->
+      <div class="sb-section-label">정도관리</div>
+
+      <button class="sb-item sb-item-parent" data-menu="qc" onclick="toggleMenu('qc')">
+        <div class="sb-item-inner">
+          <i class="ti ti-chart-line" aria-hidden="true"></i>
+          <span>정도관리</span>
+        </div>
+        <i class="ti ti-chevron-right sb-item-arrow" aria-hidden="true"></i>
+      </button>
+      <div class="sb-submenu" id="menu-qc">
+        <button class="sb-sub-item" data-page="qc/items" onclick="navigate('qc/items')">
+          <i class="ti ti-clipboard-list" aria-hidden="true"></i><span>검사항목 관리</span>
+        </button>
+        <button class="sb-sub-item" data-page="qc/data" onclick="navigate('qc/data')">
+          <i class="ti ti-edit" aria-hidden="true"></i><span>데이터 입력</span>
+        </button>
+      </div>
+
+    </div>
+
+    <div class="sb-footer">
+      <button class="sb-logout" onclick="doLogout()">
+        <i class="ti ti-logout" aria-hidden="true"></i>
+        <span>로그아웃</span>
+      </button>
+    </div>
+
+  </nav>
+
+  <div class="sb-overlay" id="sbOverlay" onclick="closeSidebar()"></div>
+
+  <!-- 메인 -->
+  <div class="shell-main">
+    <header class="shell-topbar">
+      <button class="shell-topbar-hamburger" id="hamburgerBtn"
+              onclick="openSidebar()" aria-label="메뉴 열기">
+        <i class="ti ti-menu-2" aria-hidden="true"></i>
+      </button>
+      <div class="shell-breadcrumb">
+        <span class="shell-breadcrumb-app" id="breadcrumbApp">—</span>
+        <span class="shell-breadcrumb-sep" id="breadcrumbSep" style="display:none">›</span>
+        <span class="shell-breadcrumb-page" id="breadcrumbPage"></span>
+      </div>
+    </header>
+
+    <div class="shell-content">
+      <iframe class="shell-iframe" id="shellFrame" src="" title="콘텐츠 영역"></iframe>
+    </div>
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="assets/js/core/config.js"></script>
+<script src="assets/js/core/utils.js"></script>
+<script src="assets/js/core/supabase.js"></script>
+<script src="assets/js/core/auth.js"></script>
+<script>
+'use strict';
+
+const MENU_META = {
+  'equipment/dashboard': { app: '의료장비 관리', page: '대시보드' },
+  'equipment/list':      { app: '의료장비 관리', page: '장비 목록' },
+  'equipment/form':      { app: '의료장비 관리', page: '장비 등록·수정' },
+  'equipment/detail':    { app: '의료장비 관리', page: '장비 상세' },
+  'qc/items':            { app: '정도관리', page: '검사항목 관리' },
+  'qc/data':             { app: '정도관리', page: '데이터 입력' },
+};
+
+let currentPage = '';
+
+document.addEventListener('DOMContentLoaded', async () => {
+  const session = await auth.requireAuth();
+  if (!session) return;
+
+  const user = await auth.getSession();
+  if (user) {
+    const name = user.user_name || user.email;
+    const clinic = user.clinic_name ? ` · ${user.clinic_name}` : '';
+    document.getElementById('sbUserLine').textContent = name + clinic;
+  }
+
+  const params = new URLSearchParams(location.search);
+  navigate(params.get('page') || 'equipment/dashboard', true);
+});
+
+function navigate(page, skipHistory) {
+  if (!page) return;
+  currentPage = page;
+
+  const meta = MENU_META[page] || { app: page, page: '' };
+  document.getElementById('breadcrumbApp').textContent = meta.app;
+  document.getElementById('breadcrumbPage').textContent = meta.page;
+  const sep = document.getElementById('breadcrumbSep');
+  if (sep) sep.style.display = meta.page ? '' : 'none';
+
+  const frame = document.getElementById('shellFrame');
+  frame.src = `${CONFIG.SITE_BASE_URL}/pages/${page}.html`;
+
+  document.querySelectorAll('.sb-sub-item.active, .sb-item.active').forEach(el => {
+    el.classList.remove('active');
+  });
+  const active = document.querySelector(`.sb-sub-item[data-page="${page}"]`);
+  if (active) {
+    active.classList.add('active');
+    // 부모 메뉴 열기
+    const submenu = active.closest('.sb-submenu');
+    if (submenu) {
+      submenu.classList.add('is-open');
+      const parentBtn = submenu.previousElementSibling;
+      if (parentBtn) parentBtn.classList.add('active');
+    }
+  }
+
+  if (!skipHistory) {
+    history.pushState({ page }, '', `?page=${page}`);
+  }
+
+  closeSidebar();
+}
+
+function toggleMenu(menuId) {
+  const submenu = document.getElementById(`menu-${menuId}`);
+  if (!submenu) return;
+  submenu.classList.toggle('is-open');
+}
+
+function openSidebar() {
+  document.getElementById('sidebar').classList.add('is-open');
+  document.getElementById('sbOverlay').classList.add('is-visible');
+}
+
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('is-open');
+  document.getElementById('sbOverlay').classList.remove('is-visible');
+}
+
+async function doLogout() {
+  await auth.logout();
+}
+
+window.shellNavigate = navigate;
+
+window.addEventListener('popstate', e => {
+  if (e.state?.page) navigate(e.state.page, true);
+});
+</script>
+</body>
+</html>

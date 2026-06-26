@@ -1,0 +1,205 @@
+/**
+ * equipment/equipment-form.js
+ * Supabase SDK 직접 호출 버전 — 등록/수정/사진 업로드
+ */
+
+'use strict';
+
+let currentUser = null;
+let editingId   = null;
+let selectedPhotoFile = null;
+let removePhotoRequested = false;
+
+/* ── 유틸 ─────────────────────────────────── */
+function qs(sel) { return document.querySelector(sel); }
+function val(id) { return (document.getElementById(id)?.value || '').trim(); }
+function setVal(id, v) { const el = document.getElementById(id); if (el) el.value = v ?? ''; }
+
+/* ── 사진 UI ───────────────────────────────── */
+function initPhotoUi() {
+  const input     = qs('#photoInput');
+  const removeBtn = qs('#removePhotoBtn');
+
+  input?.addEventListener('change', e => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    selectedPhotoFile = file;
+    removePhotoRequested = false;
+    const reader = new FileReader();
+    reader.onload = ev => renderPhotoPreview(ev.target.result);
+    reader.readAsDataURL(file);
+  });
+
+  removeBtn?.addEventListener('click', () => {
+    selectedPhotoFile = null;
+    removePhotoRequested = true;
+    renderPhotoPreview('');
+  });
+}
+
+function renderPhotoPreview(src) {
+  const preview  = qs('#photoPreviewImage');
+  const empty    = qs('#photoPreviewEmpty');
+  const removeBtn = qs('#removePhotoBtn');
+  if (preview) { preview.src = src || ''; preview.style.display = src ? '' : 'none'; }
+  if (empty)    empty.style.display    = src ? 'none' : '';
+  if (removeBtn) removeBtn.style.display = src ? '' : 'none';
+}
+
+/* ── 폼 로드 (수정 모드) ───────────────────── */
+async function loadEquipment(id) {
+  const { data, error } = await supabaseClient
+    .from('equipments')
+    .select('*')
+    .eq('id', id)
+    .single();
+
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+function fillForm(eq) {
+  setVal('equipmentName',       eq.equipment_name);
+  setVal('modelName',           eq.model_name);
+  setVal('manufacturer',        eq.manufacturer);
+  setVal('manufactureDate',     eq.manufacture_date);
+  setVal('purchaseDate',        eq.purchase_date);
+  setVal('serialNo',            eq.serial_no);
+  setVal('vendor',              eq.vendor);
+  setVal('acquisitionCost',     eq.acquisition_cost ?? '');
+  setVal('maintenanceEndDate',  eq.maintenance_end_date);
+  setVal('clinicName',          eq.clinic_name);
+  setVal('teamName',            eq.team_name);
+  setVal('department',          eq.department);
+  setVal('location',            eq.location);
+  setVal('currentUserName',     eq.current_user_name);
+  setVal('status',              eq.status);
+  setVal('memo',                eq.memo);
+  setVal('managerName',         eq.manager_name);
+  setVal('managerPhone',        eq.manager_phone);
+
+  if (eq.photo_url) renderPhotoPreview(eq.photo_url);
+}
+
+/* ── 저장 ──────────────────────────────────── */
+async function saveEquipment() {
+  const { data: { session } } = await supabaseClient.auth.getSession();
+
+  const payload = {
+    equipment_name:       val('equipmentName'),
+    model_name:           val('modelName'),
+    manufacturer:         val('manufacturer'),
+    manufacture_date:     val('manufactureDate') || null,
+    purchase_date:        val('purchaseDate') || null,
+    serial_no:            val('serialNo'),
+    vendor:               val('vendor'),
+    acquisition_cost:     val('acquisitionCost') ? Number(val('acquisitionCost')) : null,
+    maintenance_end_date: val('maintenanceEndDate') || null,
+    clinic_name:          val('clinicName'),
+    team_name:            val('teamName'),
+    department:           val('department'),
+    location:             val('location'),
+    current_user_name:    val('currentUserName'),
+    status:               val('status') || CONFIG.EQUIPMENT_STATUS.IN_USE,
+    memo:                 val('memo'),
+    manager_name:         val('managerName'),
+    manager_phone:        val('managerPhone'),
+  };
+
+  if (!payload.equipment_name) throw new Error('장비명은 필수입니다.');
+
+  let equipmentId = editingId;
+
+  if (editingId) {
+    // 수정
+    const { error } = await supabaseClient
+      .from('equipments')
+      .update({ ...payload, updated_at: new Date().toISOString() })
+      .eq('id', editingId);
+    if (error) throw new Error(error.message);
+  } else {
+    // 등록
+    payload.created_by = session?.user?.id || null;
+    payload.deleted_yn = 'N';
+    const { data, error } = await supabaseClient
+      .from('equipments')
+      .insert(payload)
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    equipmentId = data.id;
+  }
+
+  // 사진 처리
+  if (removePhotoRequested && editingId) {
+    const { data: eq } = await supabaseClient
+      .from('equipments').select('photo_path').eq('id', editingId).single();
+    if (eq?.photo_path) await db.deletePhoto(eq.photo_path);
+    await supabaseClient.from('equipments')
+      .update({ photo_url: '', photo_path: '' }).eq('id', editingId);
+  }
+
+  if (selectedPhotoFile && equipmentId) {
+    const { path, url } = await db.uploadPhoto(selectedPhotoFile, equipmentId);
+    await supabaseClient.from('equipments')
+      .update({ photo_url: url, photo_path: path }).eq('id', equipmentId);
+  }
+
+  return equipmentId;
+}
+
+/* ── 초기화 ────────────────────────────────── */
+async function init() {
+  currentUser = await auth.requireAuth();
+  if (!currentUser) return;
+
+  initPhotoUi();
+
+  // 상태 옵션
+  const statusSel = document.getElementById('status');
+  if (statusSel) {
+    const STATUS_LABEL = CONFIG.EQUIPMENT_STATUS_LABEL || {};
+    statusSel.innerHTML = Object.entries(STATUS_LABEL)
+      .map(([k, v]) => `<option value="${k}">${v}</option>`).join('');
+  }
+
+  // 수정 모드 확인
+  const params = new URLSearchParams(location.search);
+  editingId = params.get('id') || null;
+
+  if (editingId) {
+    document.querySelector('h2, .page-title')?.textContent !== undefined &&
+      (document.querySelector('h2, .page-title').textContent = '장비 수정');
+    try {
+      const eq = await loadEquipment(editingId);
+      fillForm(eq);
+    } catch (e) {
+      alert('장비 정보를 불러오지 못했습니다: ' + e.message);
+      return;
+    }
+  }
+
+  // 저장 버튼
+  qs('#saveBtn')?.addEventListener('click', async () => {
+    const btn = qs('#saveBtn');
+    btn.disabled = true;
+    btn.textContent = '저장 중...';
+    try {
+      const id = await saveEquipment();
+      alert(editingId ? '장비 정보가 수정됐습니다.' : '장비가 등록됐습니다.');
+      parent.shellNavigate?.(`equipment/detail?id=${id}`);
+    } catch (e) {
+      alert('저장 실패: ' + e.message);
+      btn.disabled = false;
+      btn.textContent = '저장';
+    }
+  });
+
+  // 취소 버튼
+  qs('#cancelBtn')?.addEventListener('click', () => {
+    if (editingId) parent.shellNavigate?.(`equipment/detail?id=${editingId}`);
+    else parent.shellNavigate?.('equipment/list');
+  });
+}
+
+document.addEventListener('DOMContentLoaded', init);

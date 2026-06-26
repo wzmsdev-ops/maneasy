@@ -1,0 +1,287 @@
+html, body { height: 100%; margin: 0; }
+
+/* ============================================================
+ * equipment-dashboard.css — 의료장비 대시보드
+ * Shell SPA 기준 재작성
+ * ============================================================ */
+
+.dashboard-page { background: #f0f2f5; }
+
+.db-page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  padding: 10px 16px 0;
+  gap: 8px;
+  box-sizing: border-box;
+}
+
+/* ── KPI 행 ── */
+.db-kpi-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.db-kpi-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border-left: 4px solid transparent;
+  transition: box-shadow 0.15s;
+}
+
+.db-kpi-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+.db-kpi-card--blue   { border-left-color: #3b82f6; }
+.db-kpi-card--green  { border-left-color: #22c55e; }
+.db-kpi-card--orange { border-left-color: #f59e0b; }
+.db-kpi-card--purple { border-left-color: #a78bfa; }
+
+.db-kpi-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #6b7280;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+
+.db-kpi-label i { font-size: 14px; }
+
+.db-kpi-value {
+  font-size: 24px;
+  font-weight: 800;
+  color: #111827;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+/* ── 메인 패널 ── */
+.db-panels {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+/* ── 카드 ── */
+.db-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.db-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid #f3f4f6;
+  background: #f8fafc;
+  flex-shrink: 0;
+}
+
+.db-card-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #374151;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.db-card-sub {
+  font-size: 10px;
+  font-weight: 500;
+  color: #9ca3af;
+}
+
+.db-card-link {
+  font-size: 11px;
+  color: #2563eb;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.db-card-link:hover { text-decoration: underline; }
+
+/* ── 부서별 현황 ── */
+.db-dept-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.db-dept-list::-webkit-scrollbar { width: 3px; }
+.db-dept-list::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 999px; }
+
+.db-dept-row {
+  display: grid;
+  grid-template-columns: 80px 1fr 36px;
+  align-items: center;
+  gap: 8px;
+}
+
+.db-dept-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: #374151;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.db-dept-bar-wrap {
+  height: 20px;
+  background: #f3f4f6;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.db-dept-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #2563eb, #60a5fa);
+  border-radius: 4px;
+  transition: width 0.5s ease;
+  min-width: 4px;
+}
+
+.db-dept-count {
+  font-size: 12px;
+  font-weight: 700;
+  color: #111827;
+  text-align: right;
+}
+
+/* ── 유지보수 만료 ── */
+.db-maint-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 4px 0;
+}
+
+.db-maint-list::-webkit-scrollbar { width: 3px; }
+.db-maint-list::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 999px; }
+
+.db-maint-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 14px;
+  border-bottom: 1px solid #f3f4f6;
+  transition: background 0.1s;
+}
+
+.db-maint-row:last-child { border-bottom: none; }
+.db-maint-row:hover { background: #f8faff; }
+
+.db-maint-info { min-width: 0; flex: 1; }
+
+.db-maint-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: #111827;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.db-maint-meta {
+  font-size: 10px;
+  color: #9ca3af;
+  margin-top: 2px;
+}
+
+/* D-DAY 뱃지 */
+.db-dday {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 48px;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.db-dday--warn {
+  background: #fff7ed;
+  color: #c2410c;
+  border-color: #fed7aa;
+}
+
+.db-dday--urgent {
+  background: #fef2f2;
+  color: #b91c1c;
+  border-color: #fecaca;
+}
+
+/* ── 빠른 작업 ── */
+.db-quick-row {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.db-quick-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 16px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  color: #374151;
+  transition: background 0.12s;
+}
+
+.db-quick-btn:hover { background: #f3f4f6; }
+.db-quick-btn--primary { background: #111827; border-color: #111827; color: #fff; }
+.db-quick-btn--primary:hover { background: #1f2937; }
+
+/* 빈 상태 */
+.empty-box {
+  padding: 20px;
+  text-align: center;
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+/* ── 반응형 ── */
+@media (max-width: 900px) {
+  .db-kpi-row { grid-template-columns: repeat(2, 1fr); }
+  .db-panels  { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 600px) {
+  .db-page { padding: 8px 10px; height: auto; overflow: auto; }
+  .db-kpi-row { grid-template-columns: repeat(2, 1fr); gap: 6px; }
+  .db-kpi-value { font-size: 20px; }
+}

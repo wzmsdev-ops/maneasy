@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>데이터 입력 · 정도관리</title>
+  <link rel="stylesheet" href="../../assets/css/common.css" />
+  <link rel="stylesheet" href="../../assets/css/pages/qc-common.css" />
+  <link rel="stylesheet" href="../../assets/css/pages/qc-data.css" />
+  <link rel="stylesheet" href="../../assets/font/tabler-icons/tabler-icons.min.css" />
+        <script>
+    if (new URLSearchParams(location.search).get('shell') === '1')
+      document.documentElement.classList.add('in-shell');
+  </script>
+</head>
+<body class="qc-data-page">
+
+<div class="lj-page">
+
+  <!-- 액션바: 항목 선택 필터 -->
+  <div class="lj-actionbar">
+    <div class="lj-actionbar-left">
+
+      <select id="groupFilterSelect" class="input lj-filter-select" onchange="onGroupFilterChange(this.value)">
+        <option value="">전체 그룹</option>
+      </select>
+      <select id="itemSelect" class="input lj-filter-select lj-item-select"></select>
+    </div>
+    <div class="lj-actionbar-right">
+      <!-- 날짜 프리셋 -->
+      <button type="button" class="btn btn-sm lj-date-preset-btn" data-days="7">7일</button>
+      <button type="button" class="btn btn-sm lj-date-preset-btn" data-days="30">30일</button>
+      <button type="button" class="btn btn-sm lj-date-preset-btn" data-days="90">3개월</button>
+      <button type="button" class="btn btn-sm lj-date-preset-btn" data-days="0">전체</button>
+      <input type="date" id="chartDateFrom" class="input lj-date-input" />
+      <span style="color:#9ca3af;font-size:12px;">~</span>
+      <input type="date" id="chartDateTo" class="input lj-date-input" />
+      <button type="button" id="chartDateApplyBtn" class="btn btn-sm btn-primary">조회</button>
+    </div>
+  </div>
+
+  <div id="messageBox" class="message-box" style="display:none;"></div>
+
+  <!-- 권한 없음 -->
+  <div id="permissionDenied" class="lj-card" style="display:none;">
+    <div class="lj-empty">
+      <i class="ti ti-lock" style="font-size:40px;color:#d1d5db;"></i>
+      <p class="lj-empty-title">접근 권한이 없습니다</p>
+    </div>
+  </div>
+
+  <!-- 항목 미선택 상태 -->
+  <div id="itemEmptyState" class="lj-card lj-empty-card">
+    <div class="lj-empty">
+      <i class="ti ti-flask-off" style="font-size:40px;color:#d1d5db;"></i>
+      <p class="lj-empty-title" id="itemEmptyTitle">검사 항목을 선택하세요</p>
+      <p class="lj-empty-desc" id="itemEmptyDesc">상단에서 검사 항목을 선택하면 데이터를 입력할 수 있습니다.</p>
+    </div>
+  </div>
+
+  <!-- 본문: 항목 선택 시 표시 -->
+  <div id="dataBody" style="display:none;" class="qc-data-body">
+
+    <!-- 설정 표시 (KPI) -->
+    <div class="lj-card" id="settingsSection">
+      <div class="lj-card-head">
+        <span class="lj-card-title"><i class="ti ti-settings"></i> <span id="settingsSectionTitle">설정</span></span>
+      </div>
+      <div class="kpi-grid" id="settingsDisplay"></div>
+    </div>
+
+    <!-- 데이터 입력 + 테이블 -->
+    <div class="lj-card qc-data-entry-card" id="dataEntrySection">
+      <div class="lj-card-head">
+        <span class="lj-card-title"><i class="ti ti-pencil-plus"></i> QC 데이터 입력</span>
+        <button type="button" id="sampleDataBtn" class="btn btn-sm" style="display:none;">
+          <i class="ti ti-database-import"></i> 샘플 데이터
+        </button>
+      </div>
+      <div class="lj-entry-row">
+        <div class="form-field">
+          <label class="form-label">측정일</label>
+          <input type="date" id="entryDate" class="input" />
+        </div>
+        <div class="form-field" id="entryValueField">
+          <label class="form-label">측정값</label>
+          <input type="number" id="entryValue" class="input" step="any" placeholder="0.00" />
+        </div>
+        <div class="form-field" id="entryResultField" style="display:none;">
+          <label class="form-label">결과값</label>
+          <select id="entryResult" class="input"></select>
+        </div>
+        <div class="form-field">
+          <label class="form-label">메모 (선택)</label>
+          <input type="text" id="entryMemo" class="input" placeholder="LOT번호 등" />
+        </div>
+        <div class="lj-entry-action">
+          <button type="button" id="addEntryBtn" class="btn btn-primary">
+            <i class="ti ti-plus"></i> 추가
+          </button>
+        </div>
+      </div>
+      <!-- 데이터 테이블 -->
+      <div class="qc-data-table-wrap" id="dataTableWrap">
+        <div class="lj-empty" id="dataEmptyState">
+          <i class="ti ti-clipboard" style="font-size:32px;color:#d1d5db;"></i>
+          <p class="lj-empty-desc">입력된 데이터가 없습니다</p>
+        </div>
+        <table class="qc-data-table" id="dataTable" style="display:none;">
+          <thead id="dataTableHead">
+            <tr>
+              <th style="width:110px;">측정일</th>
+              <th style="width:90px;">측정값</th>
+              <th style="width:72px;">SDI</th>
+              <th style="width:180px;">Westgard 판정</th>
+              <th>메모</th>
+              <th style="width:48px;"></th>
+            </tr>
+          </thead>
+          <tbody id="dataTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 통계 요약 -->
+    <div class="lj-card" id="statsSection">
+      <div class="lj-card-head">
+        <span class="lj-card-title"><i class="ti ti-chart-bar"></i> 통계 요약</span>
+        <div style="display:flex;gap:6px;">
+          <button type="button" id="exportCsvBtn"   class="btn btn-sm" style="display:none;"><i class="ti ti-file-type-csv"></i> CSV</button>
+          <button type="button" id="exportExcelBtn" class="btn btn-sm" style="display:none;"><i class="ti ti-file-spreadsheet"></i> 엑셀</button>
+          <button type="button" id="exportPdfBtn"   class="btn btn-sm btn-primary"><i class="ti ti-file-type-pdf"></i> PDF</button>
+        </div>
+      </div>
+      <div class="kpi-grid" id="statGrid"></div>
+    </div>
+
+    <!-- L-J 차트 -->
+    <div class="lj-card" id="chartSection">
+      <div class="lj-card-head">
+        <span class="lj-card-title">
+          <i class="ti ti-chart-line"></i>
+          <span id="chartSectionTitle">L-J 차트</span>
+        </span>
+        <span style="font-size:11px;color:#9ca3af;">노란색: 경고 / 빨간색: 거부</span>
+      </div>
+      <div class="qc-chart-wrap">
+        <canvas id="ljChartCanvas"></canvas>
+      </div>
+    </div>
+
+  </div><!-- /dataBody -->
+
+</div><!-- /lj-page -->
+
+<div id="globalLoading" aria-hidden="true">
+  <div class="global-loading__dialog">
+    <div class="global-loading__spinner"></div>
+    <div id="globalLoadingText" class="global-loading__text">불러오는 중...</div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="../../assets/js/core/config.js"></script>
+<script src="../../assets/js/core/utils.js"></script>
+<script src="../../assets/js/core/supabase.js"></script>
+<script src="../../assets/js/core/auth.js"></script>
+<script src="../../assets/js/core/db.js"></script>
+
+
+
+<script src="../../assets/libs/chart.umd.js"></script>
+<script src="../../assets/js/qc/data.js"></script>
+</body>
+</html>

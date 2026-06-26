@@ -1,0 +1,116 @@
+/* ============================================================
+ * qc-data.css — 데이터 입력 + 차트 페이지
+ * ============================================================ */
+@import url("qc-common.css");
+
+/* ── 날짜 입력 ── */
+.lj-date-input { height: 32px; font-size: 12px; width: 130px; }
+.lj-date-preset-btn { height: 32px; font-size: 11px; }
+
+/* ── 빈 상태 카드 ── */
+.lj-empty-card {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── 데이터 본문 (세로 스크롤) ── */
+.qc-data-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.qc-data-body::-webkit-scrollbar { width: 4px; }
+.qc-data-body::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 999px; }
+
+/* ── 데이터 입력 카드 ── */
+.qc-data-entry-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.lj-entry-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  padding: 10px 14px;
+  border-bottom: 1px solid #f3f4f6;
+  flex-wrap: wrap;
+}
+
+.lj-entry-row .form-field { gap: 3px; flex: 1; min-width: 100px; }
+.lj-entry-row .form-label { font-size: 11px; font-weight: 600; color: #4b5563; }
+.lj-entry-row .input { height: 32px; font-size: 12px; }
+
+.lj-entry-action {
+  flex-shrink: 0;
+}
+
+.lj-entry-action .btn {
+  height: 32px;
+  padding: 0 16px;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* ── 데이터 테이블 ── */
+.qc-data-table-wrap {
+  overflow-x: auto;
+  overflow-y: auto;
+  max-height: 280px;
+}
+.qc-data-table-wrap::-webkit-scrollbar { width: 3px; height: 3px; }
+.qc-data-table-wrap::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 999px; }
+
+.qc-data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.qc-data-table th {
+  position: sticky;
+  top: 0;
+  background: #f8fafc;
+  padding: 6px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #4b5563;
+  border-bottom: 1px solid #e5e7eb;
+  text-align: left;
+  white-space: nowrap;
+  z-index: 1;
+}
+
+.qc-data-table td {
+  padding: 6px 10px;
+  border-bottom: 1px solid #f3f4f6;
+  color: #374151;
+  font-size: 12px;
+}
+
+.qc-data-table tr:last-child td { border-bottom: none; }
+.qc-data-table tr:hover td { background: #f8faff; }
+
+/* Westgard 배지 */
+.lj-badge-ok      { color: #16a34a; font-weight: 600; }
+.lj-badge-warn    { color: #d97706; font-weight: 700; background: #fffbeb; padding: 1px 5px; border-radius: 4px; }
+.lj-badge-reject  { color: #dc2626; font-weight: 700; background: #fef2f2; padding: 1px 5px; border-radius: 4px; }
+
+/* ── 차트 ── */
+.qc-chart-wrap {
+  padding: 12px 14px;
+  position: relative;
+  height: 280px;
+}
+
+.qc-chart-wrap canvas {
+  width: 100% !important;
+  height: 100% !important;
+}

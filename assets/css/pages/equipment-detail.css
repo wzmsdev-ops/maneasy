@@ -1,0 +1,871 @@
+/* ============================================================
+ * equipment-detail.css — 장비 상세 (2열 compact)
+ * ============================================================ */
+
+.equipment-detail-page { background: #f0f2f5; }
+
+/* ── 페이지 구조 ── */
+.det-page {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  padding: 10px 16px;
+  gap: 8px;
+  box-sizing: border-box;
+}
+
+/* ── 액션 바 ── */
+.det-actionbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 8px 14px;
+  flex-shrink: 0;
+}
+
+.det-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+
+.det-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: #111827;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.det-id {
+  font-size: 11px;
+  color: #9ca3af;
+  font-family: 'Consolas', monospace;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.det-btns {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+/* ── 메인 3열 레이아웃 ── */
+.det-body {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  overflow: hidden;
+}
+
+/* ── 1열: 기본정보 (1단) ── */
+.det-col-info {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.det-card--info {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.det-card--info::-webkit-scrollbar { width: 3px; }
+.det-card--info::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 999px; }
+
+/* 기본정보 그리드: 1단 구성 */
+.det-card--info .info-tile-grid {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 일반 행 수축 방지 — single/기본 모두 */
+.det-card--info .info-row,
+.det-card--info .info-row--single {
+  flex-shrink: 0;
+  min-height: 0;
+}
+
+/* 비고 행이 남은 공간 전부 차지 */
+.det-card--info .info-row--wide {
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 비고 셀: 라벨 위, 값 아래 전체 */
+.det-card--info .info-row--wide .info-cell {
+  display: flex !important;
+  flex-direction: column !important;
+  grid-template-columns: unset !important;
+  align-items: stretch !important;
+  flex: 1;
+  min-height: 0;
+  gap: 4px;
+  padding: 8px 12px;
+  box-sizing: border-box;
+}
+
+.det-card--info .info-row--wide .info-cell-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: #9ca3af;
+  flex-shrink: 0;
+  line-height: 1.4;
+}
+
+.det-card--info .info-row--wide .info-cell-value {
+  flex: 1 !important;
+  min-height: 60px;
+  font-size: 12px;
+  font-weight: 400;
+  color: #374151;
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.6;
+  overflow-y: auto;
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 8px 10px;
+}
+
+.det-card--info .info-row--wide .info-cell-value::-webkit-scrollbar { width: 3px; }
+.det-card--info .info-row--wide .info-cell-value::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 999px; }
+
+/* ── 2열: 수리이력 + 재고이력 세로 배치 ── */
+.det-col-history {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.det-col-history .det-card {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.det-col-history .det-card > div:last-child {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.det-col-history .det-card > div:last-child::-webkit-scrollbar { width: 3px; }
+.det-col-history .det-card > div:last-child::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 999px; }
+
+/* ── 3열: 사진 + QR 세로 배치 ── */
+.det-col-media {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.det-col-media .det-card {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* det-card--photo: det-col-media .det-card에서 flex:1 이미 적용 */
+
+/* ── 카드 공통 ── */
+.det-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+
+
+/* 카드 헤더 */
+.det-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-bottom: 1px solid #f3f4f6;
+  background: #f8fafc;
+  flex-shrink: 0;
+  gap: 8px;
+}
+
+.det-card-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #374151;
+}
+
+.det-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.det-card-count {
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+/* ── 기본 정보 그리드 ── */
+.info-tile-grid {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+}
+
+.info-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+/* 1단 구성 행 */
+.info-row--single {
+  grid-template-columns: 1fr;
+  flex-shrink: 0;
+}
+
+.info-row:last-child { border-bottom: none; }
+.info-row--wide { grid-template-columns: 1fr; }
+
+.info-cell {
+  display: grid;
+  grid-template-columns: 80px 1fr;
+  gap: 0 8px;
+  align-items: baseline;
+  padding: 5px 12px;
+  min-width: 0;
+}
+
+.info-row:not(.info-row--wide):not(.info-row--single) .info-cell:first-child {
+  border-right: 1px solid #f3f4f6;
+}
+
+.info-cell-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: #9ca3af;
+  white-space: nowrap;
+  line-height: 1.8;
+}
+
+.info-cell-value {
+  font-size: 12px;
+  font-weight: 500;
+  color: #111827;
+  line-height: 1.8;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* info-row--wide 기본 스타일은 det-card--info 전용 스타일로 대체 */
+
+/* ── 사진 ── */
+.det-card--photo { min-height: 140px; }
+
+.det-photo-wrap {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f9fafb;
+  overflow: hidden;
+  border-radius: 0 0 8px 8px;
+}
+
+.det-photo-img {
+  display: block;
+  max-width: 100%;
+  max-height: 160px;
+  object-fit: contain;
+}
+
+.det-photo-img.is-hidden { display: none; }
+
+.det-photo-empty {
+  font-size: 11px;
+  color: #9ca3af;
+  padding: 16px;
+  text-align: center;
+}
+
+/* ── QR ── */
+.det-card--qr { min-height: 140px; }
+
+.det-qr-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+  gap: 6px;
+}
+
+.det-qr-box {
+  width: 140px;
+  height: 140px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed #d1d5db;
+  border-radius: 6px;
+  background: #f9fafb;
+  overflow: hidden;
+}
+
+.det-qr-text {
+  font-size: 10px;
+  color: #9ca3af;
+  text-align: center;
+  word-break: break-all;
+  width: 100%;
+  max-width: none;
+  padding: 0 8px;
+  line-height: 1.4;
+}
+
+/* 이력 테이블 — JS가 생성하는 .det-tbl-scroll 포함 */
+/* ── 이력/재고 섹션 테이블 (sec-tbl) ── */
+.sec-tbl {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  table-layout: auto;
+}
+
+.sec-tbl-head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--surface-soft, #f8fafc);
+}
+
+.sec-tbl-th {
+  padding: 6px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-secondary, #4b5563);
+  border-bottom: 1px solid var(--border, #e5e7eb);
+  white-space: nowrap;
+  text-align: left;
+}
+
+.sec-tbl-th--center { text-align: center; }
+
+.sec-tbl-row {
+  border-bottom: 1px solid var(--border-soft, #f3f4f6);
+  transition: background 0.1s;
+}
+.sec-tbl-row:last-child { border-bottom: none; }
+.sec-tbl-row:hover { background: var(--surface-hover, #f4f7fb); }
+
+.sec-tbl-cell {
+  padding: 6px 10px;
+  color: var(--text-primary, #111827);
+  vertical-align: middle;
+}
+
+.sec-tbl-cell--left  { white-space: nowrap; }
+.sec-tbl-cell--center { text-align: center; white-space: nowrap; }
+.sec-tbl-cell--grow  {
+  word-break: break-word;
+  white-space: normal;
+  color: var(--text-secondary, #4b5563);
+  font-size: 11px;
+}
+.sec-tbl-cell--action { text-align: center; white-space: nowrap; }
+
+.sec-tbl-main {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary, #111827);
+  line-height: 1.3;
+}
+
+.sec-tbl-sub {
+  display: block;
+  font-size: 10px;
+  color: var(--text-muted, #9ca3af);
+  margin-top: 1px;
+}
+
+.det-tbl-scroll {
+  overflow-x: auto;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.det-tbl {
+  width: 100%;
+  min-width: 280px;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+
+.det-tbl-th {
+  position: sticky;
+  top: 0;
+  padding: 6px 8px;
+  background: #f8fafc;
+  border-bottom: 1px solid #e5e7eb;
+  font-size: 10px;
+  font-weight: 700;
+  color: #6b7280;
+  text-align: left;
+  white-space: nowrap;
+  z-index: 1;
+}
+
+.det-tbl-th--type    { width: 90px; }
+.det-tbl-th--desc    { min-width: 80px; }
+.det-tbl-th--actions { width: 80px; }
+
+.det-tbl-row { border-bottom: 1px solid #f3f4f6; transition: background 0.1s; }
+.det-tbl-row:last-child { border-bottom: none; }
+.det-tbl-row:hover { background: #f8faff; }
+
+.det-tbl-cell {
+  padding: 5px 8px;
+  font-size: 11px;
+  color: #374151;
+  vertical-align: top;
+}
+
+.det-tbl-cell--desc { white-space: normal; line-height: 1.4; }
+.det-tbl-cell--actions { white-space: nowrap; vertical-align: middle; }
+
+.det-tbl-main { font-size: 11px; font-weight: 600; color: #111827; line-height: 1.3; }
+.det-tbl-sub  { margin-top: 1px; font-size: 10px; color: #9ca3af; }
+
+/* 이력 버튼 */
+.timeline-actions { display: inline-flex; gap: 4px; flex-wrap: nowrap; }
+.timeline-actions .btn { height: 22px !important; min-height: 22px !important; padding: 0 7px !important; border-radius: 4px !important; font-size: 10px !important; }
+
+/* 뱃지 */
+.timeline-badge {
+  display: inline-flex;
+  align-items: center;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 3px;
+  background: #f1f5f9;
+  border: 1px solid #e5e7eb;
+  color: #374151;
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* 상태 뱃지 */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 700;
+  border: 1px solid transparent;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.is-in-use     { background: #f0fdf4; color: #166534; border-color: #bbf7d0; }
+.is-repairing  { background: #fff7ed; color: #9a3412; border-color: #fed7aa; }
+.is-inspecting { background: #eff6ff; color: #1e40af; border-color: #bfdbfe; }
+.is-stored     { background: #f9fafb; color: #374151; border-color: #e5e7eb; }
+.is-disposed   { background: #fef2f2; color: #991b1b; border-color: #fecaca; }
+
+/* 빈 상태 */
+.empty-box {
+  padding: 16px;
+  text-align: center;
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+/* 버튼 크기 */
+.btn-card-action {
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  color: #374151;
+  cursor: pointer;
+}
+
+.btn-card-action:hover { background: #f3f4f6; }
+
+/* ── 반응형 ── */
+@media (max-width: 1200px) {
+  .det-body { grid-template-columns: 1fr 1fr; }
+  .det-col-media { grid-column: 1 / -1; flex-direction: row; max-height: 200px; }
+}
+
+@media (max-width: 768px) {
+  .det-page { height: auto; overflow: auto; padding: 8px 10px; }
+  .det-body { grid-template-columns: 1fr; overflow: visible; }
+  .det-col-info, .det-col-history, .det-col-media { overflow: visible; min-height: auto; }
+  .det-card--info { overflow: visible; }
+  .det-col-history .det-card > div:last-child { overflow: visible; }
+  .det-col-media { flex-direction: row; }
+}
+
+/* ================================================================
+ * 이력/재고조사 모달 — 시스템 디자인 토큰 기반
+ * ================================================================ */
+
+.det-modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  align-items: center;
+  justify-content: center;
+}
+.det-modal.is-open { display: flex; }
+
+.det-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(11, 22, 48, 0.5);
+}
+
+.det-modal-dialog {
+  position: relative;
+  z-index: 1;
+  background: var(--surface, #fff);
+  border-radius: var(--radius-md, 8px);
+  width: 440px;
+  max-width: calc(100vw - 32px);
+  max-height: calc(100vh - 64px);
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--shadow-modal, 0 20px 60px rgba(0,0,0,0.16));
+  border: 1px solid var(--border, #e5e7eb);
+  overflow: hidden;
+}
+
+/* 헤더 */
+.det-modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  background: var(--navy, #0b1630);
+  flex-shrink: 0;
+}
+
+.det-modal-head-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.det-modal-icon {
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius-xs, 4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.det-modal-icon--history   { background: rgba(47,109,246,0.20); color: #60a5fa; }
+.det-modal-icon--inventory { background: rgba(34,197,94,0.20);  color: #4ade80; }
+
+.det-modal-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1.3;
+}
+
+.det-modal-subtitle {
+  font-size: 10px;
+  color: rgba(255,255,255,0.45);
+  margin-top: 1px;
+}
+
+.det-modal-close {
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: rgba(255,255,255,0.07);
+  border-radius: var(--radius-xs, 4px);
+  cursor: pointer;
+  color: rgba(255,255,255,0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: background var(--transition, 0.15s), color var(--transition, 0.15s);
+  flex-shrink: 0;
+}
+.det-modal-close i { font-size: 12px; }
+.det-modal-close:hover { background: rgba(255,255,255,0.14); color: #fff; }
+
+/* 바디 */
+.det-modal-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.det-modal-body::-webkit-scrollbar { width: 3px; }
+.det-modal-body::-webkit-scrollbar-thumb { background: var(--border-input, #d1d5db); border-radius: 999px; }
+
+/* 메시지 */
+.det-modal-msg {
+  padding: 7px 10px;
+  border-radius: var(--radius-xs, 4px);
+  font-size: 11px;
+  font-weight: 500;
+}
+.det-modal-msg--error   { background: var(--danger-bg, #fef2f2); color: var(--danger-text, #991b1b); border: 1px solid var(--danger-border, #fecaca); }
+.det-modal-msg--success { background: var(--success-bg, #f0fdf4); color: var(--success-text, #166534); border: 1px solid var(--success-border, #bbf7d0); }
+
+/* form-row/form-field — common.css 활용, 간격만 좁힘 */
+.det-modal-body .form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.det-modal-body .form-field { gap: 3px; }
+
+.det-modal-body .form-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary, #4b5563);
+}
+
+/* input 높이 소형화 */
+.det-modal-body .input,
+.det-modal-body .form-select {
+  height: 30px;
+  font-size: 12px;
+  padding: 0 8px;
+}
+
+.det-modal-body textarea.input {
+  height: auto;
+  min-height: 64px;
+  font-size: 12px;
+  padding: 6px 8px;
+}
+
+/* 푸터 */
+.det-modal-foot {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  padding: 8px 14px 10px;
+  border-top: 1px solid var(--border-soft, #f3f4f6);
+  background: var(--surface-soft, #f8fafc);
+  flex-shrink: 0;
+}
+
+/* ================================================================
+ * 라벨 출력 모달
+ * ================================================================ */
+
+/* detail 페이지용 */
+.det-modal-dialog--label { width: 520px; }
+
+.det-modal-body--label {
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.det-modal-icon--label { background: rgba(245,158,11,0.18); color: #fbbf24; }
+
+/* list 페이지용 오버레이 모달 */
+.list-label-modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  align-items: center;
+  justify-content: center;
+}
+.list-label-modal-overlay.is-open { display: flex; }
+
+.list-label-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(11,22,48,0.5);
+}
+
+.list-label-modal-dialog {
+  position: relative;
+  z-index: 1;
+  background: #fff;
+  border-radius: 8px;
+  width: 520px;
+  max-width: calc(100vw - 32px);
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.16);
+  border: 1px solid #e5e7eb;
+  overflow: hidden;
+}
+
+.list-label-modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: #0b1630;
+  flex-shrink: 0;
+}
+
+.list-label-modal-head-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.list-label-modal-icon {
+  width: 26px;
+  height: 26px;
+  border-radius: 4px;
+  background: rgba(245,158,11,0.2);
+  color: #fbbf24;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+}
+
+.list-label-modal-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.list-label-modal-subtitle {
+  font-size: 10px;
+  color: rgba(255,255,255,0.45);
+  margin-top: 1px;
+}
+
+.list-label-modal-close {
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: rgba(255,255,255,0.07);
+  border-radius: 4px;
+  cursor: pointer;
+  color: rgba(255,255,255,0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+.list-label-modal-close i { font-size: 12px; }
+.list-label-modal-close:hover { background: rgba(255,255,255,0.14); color: #fff; }
+
+.list-label-modal-body {
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* 공통 라벨 모달 내부 */
+.label-modal-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.label-modal-preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f0f2f5;
+  border-radius: 6px;
+  padding: 20px;
+  min-height: 180px;
+}
+
+.label-sheet-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 인쇄 시 라벨 모달만 출력 */
+@media print {
+  body > *:not(#listLabelModalOverlay):not(#labelModal) { display: none !important; }
+  #listLabelModalOverlay .list-label-modal-head,
+  #listLabelModalOverlay .list-label-modal-body > .label-modal-toolbar,
+  #listLabelModalOverlay .list-label-modal-backdrop,
+  #labelModal .det-modal-head,
+  #labelModal .label-modal-toolbar,
+  #labelModal .det-modal-backdrop { display: none !important; }
+  #listLabelModalOverlay,
+  #labelModal {
+    display: flex !important;
+    position: static !important;
+    background: none !important;
+  }
+  .list-label-modal-dialog,
+  .det-modal-dialog--label {
+    box-shadow: none !important;
+    border: none !important;
+    width: auto !important;
+  }
+  .label-modal-preview {
+    background: none !important;
+    padding: 0 !important;
+  }
+}

@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>의료장비 관리 · 대시보드</title>
+  <link rel="stylesheet" href="../../assets/css/common.css" />
+  <link rel="stylesheet" href="../../assets/font/tabler-icons/tabler-icons.min.css" />
+  <script>
+    if (new URLSearchParams(location.search).get('shell') === '1')
+      document.documentElement.classList.add('in-shell');
+  </script>
+  <style>
+    html, body { height: 100%; margin: 0; }
+    body { background: #f0f2f5; }
+
+    .db-page {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+      padding: 10px 14px;
+      gap: 8px;
+      box-sizing: border-box;
+    }
+
+    /* ── KPI ── */
+    .db-kpi-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      flex-shrink: 0;
+    }
+    .db-kpi-card {
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-left: 4px solid transparent;
+      box-sizing: border-box;
+    }
+    .db-kpi-card--blue   { border-left-color: #3b82f6; }
+    .db-kpi-card--green  { border-left-color: #22c55e; }
+    .db-kpi-card--orange { border-left-color: #f59e0b; }
+    .db-kpi-card--red    { border-left-color: #ef4444; }
+    .db-kpi-left { display: flex; flex-direction: column; gap: 3px; }
+    .db-kpi-label {
+      font-size: 11px; font-weight: 600; color: #6b7280;
+      display: flex; align-items: center; gap: 4px; white-space: nowrap;
+    }
+    .db-kpi-label i { font-size: 13px; }
+    .db-kpi-value {
+      font-size: 26px; font-weight: 800; color: #111827;
+      letter-spacing: -0.03em; line-height: 1;
+    }
+    .db-kpi-icon { font-size: 28px; opacity: 0.12; }
+
+    /* ── 차트 행 ── */
+    .db-charts {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      flex-shrink: 0;
+      height: 260px;
+    }
+
+    /* ── 하단 2패널 ── */
+    .db-bottom {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      flex: 1;
+      min-height: 0;
+    }
+
+    /* ── 카드 공통 ── */
+    .db-card {
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .db-card-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 14px;
+      border-bottom: 1px solid #f3f4f6;
+      background: #f8fafc;
+      flex-shrink: 0;
+    }
+    .db-card-title {
+      font-size: 12px; font-weight: 700; color: #374151;
+      display: flex; align-items: center; gap: 5px;
+    }
+    .db-card-sub { font-size: 10px; font-weight: 500; color: #9ca3af; margin-left: 4px; }
+    .db-card-badge {
+      font-size: 11px; color: #6b7280; font-weight: 600;
+    }
+    .db-card-link {
+      font-size: 11px; color: #2563eb; text-decoration: none; font-weight: 600;
+      cursor: pointer; background: none; border: none; padding: 0;
+    }
+    .db-card-link:hover { text-decoration: underline; }
+
+    /* ── 부서별 바 차트 ── */
+    .db-dept-body {
+      flex: 1; min-height: 0; overflow: hidden;
+      padding: 10px 14px;
+      display: flex; flex-direction: column; gap: 7px;
+    }
+    .db-dept-row {
+      display: grid;
+      grid-template-columns: 68px 1fr 32px;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+      cursor: pointer;
+      border-radius: 4px;
+      padding: 2px 4px;
+      transition: background 0.1s;
+    }
+    .db-dept-row:hover { background: #f0f7ff; }
+    .db-dept-row.is-active { background: #eff6ff; }
+    .db-dept-label {
+      font-size: 11px; font-weight: 500; color: #374151;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .db-dept-bar-wrap {
+      height: 18px; background: #f3f4f6; border-radius: 4px; overflow: hidden;
+    }
+    .db-dept-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #2563eb, #60a5fa);
+      border-radius: 4px; min-width: 4px;
+      transition: opacity 0.15s;
+    }
+    .db-dept-row.is-active .db-dept-bar { background: linear-gradient(90deg, #1d4ed8, #3b82f6); }
+    .db-dept-count { font-size: 12px; font-weight: 700; color: #111827; text-align: right; }
+
+    /* ── 도넛 ── */
+    .db-status-body {
+      flex: 1; min-height: 0; padding: 10px 14px;
+      display: flex; align-items: center; gap: 16px; overflow: hidden;
+    }
+    .db-donut-wrap {
+      flex-shrink: 0; position: relative; width: 110px; height: 110px;
+    }
+    .db-donut-svg { width: 110px; height: 110px; }
+    .db-donut-center {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      pointer-events: none;
+    }
+    .db-donut-total { font-size: 22px; font-weight: 800; color: #111827; line-height: 1; }
+    .db-donut-label { font-size: 10px; color: #9ca3af; margin-top: 2px; }
+    .db-status-legend { flex: 1; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+    .db-legend-row { display: flex; align-items: center; gap: 7px; }
+    .db-legend-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+    .db-legend-name { font-size: 11px; color: #6b7280; flex: 1; }
+    .db-legend-val { font-size: 12px; font-weight: 700; color: #111827; }
+    .db-legend-pct { font-size: 10px; color: #9ca3af; width: 32px; text-align: right; }
+
+    /* ── 하단 그리드 공통 ── */
+    .db-grid-wrap {
+      flex: 1; min-height: 0;
+      overflow-y: auto; overflow-x: hidden;
+    }
+    .db-grid-wrap::-webkit-scrollbar { width: 4px; }
+    .db-grid-wrap::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 999px; }
+
+    .db-grid-table {
+      width: 100%; border-collapse: collapse;
+      font-size: 12px; table-layout: fixed;
+    }
+    .db-grid-thead { position: sticky; top: 0; z-index: 2; background: #f8fafc; }
+    .db-grid-th {
+      padding: 7px 10px; font-size: 11px; font-weight: 700; color: #4b5563;
+      text-align: center; border-bottom: 1px solid #e5e7eb;
+      border-right: 1px solid #e5e7eb; white-space: nowrap;
+    }
+    .db-grid-th:first-child { text-align: left; }
+    .db-grid-th:last-child  { border-right: none; }
+    .db-grid-tr { border-bottom: 1px solid #f0f0f0; transition: background 0.1s; }
+    .db-grid-tr:last-child { border-bottom: none; }
+    .db-grid-tr:hover { background: #f8faff; }
+    .db-grid-td {
+      padding: 7px 10px; color: #374151;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      text-align: center; border-right: 1px solid #f0f0f0;
+      box-sizing: border-box; vertical-align: middle;
+    }
+    .db-grid-td:first-child { text-align: left; }
+    .db-grid-td:last-child  { border-right: none; }
+    .db-grid-td--name { font-weight: 600; color: #111827; }
+    .db-grid-td--id   { font-size: 11px; color: #6b7280; font-family: Consolas, monospace; }
+
+    /* D-DAY 뱃지 */
+    .db-dday {
+      display: inline-flex; align-items: center; justify-content: center;
+      min-width: 44px; height: 20px; padding: 0 6px; border-radius: 4px;
+      font-size: 11px; font-weight: 700; white-space: nowrap;
+      background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe;
+    }
+    .db-dday--warn   { background: #fff7ed; color: #c2410c; border-color: #fed7aa; }
+    .db-dday--urgent { background: #fef2f2; color: #b91c1c; border-color: #fecaca; }
+    .db-dday--today  { background: #fef2f2; color: #b91c1c; border-color: #fecaca; font-size: 10px; }
+
+    /* 상태 뱃지 */
+    .status-badge {
+      display: inline-flex; align-items: center; justify-content: center;
+      height: 16px; padding: 0 5px; border-radius: 3px;
+      font-size: 10px; font-weight: 700; border: 1px solid transparent; white-space: nowrap;
+    }
+    .is-in-use     { background: #f0fdf4; color: #166534; border-color: #bbf7d0; }
+    .is-repairing  { background: #fff7ed; color: #9a3412; border-color: #fed7aa; }
+    .is-inspecting { background: #eff6ff; color: #1e40af; border-color: #bfdbfe; }
+    .is-stored     { background: #f9fafb; color: #374151; border-color: #e5e7eb; }
+    .is-disposed   { background: #fef2f2; color: #991b1b; border-color: #fecaca; }
+
+    /* 빈 상태 */
+    .db-empty {
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      height: 100%; gap: 8px; color: #9ca3af; font-size: 12px;
+    }
+    .db-empty i { font-size: 28px; opacity: 0.4; }
+
+    /* 부서 상세 패널 로딩 */
+    .db-dept-detail-loading {
+      display: flex; align-items: center; justify-content: center;
+      height: 100%; gap: 8px; color: #9ca3af; font-size: 12px;
+    }
+
+    /* skeleton */
+    .db-skeleton {
+      background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%);
+      background-size: 200% 100%;
+      animation: skeleton-shimmer 1.2s infinite;
+      border-radius: 4px; height: 14px;
+    }
+    @keyframes skeleton-shimmer {
+      0%   { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    /* 링크 버튼 */
+    .db-link-btn {
+      font-size: 11px; color: #2563eb; text-decoration: none;
+      font-weight: 600; cursor: pointer; background: none; border: none; padding: 0;
+    }
+    .db-link-btn:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+
+<div id="globalLoading" aria-hidden="true">
+    <div class="global-loading__dialog">
+      <div class="global-loading__spinner" aria-hidden="true"></div>
+      <div class="global-loading__text" id="globalLoadingText">불러오는 중...</div>
+    </div>
+  </div>
+
+<div class="db-page">
+
+  <!-- KPI -->
+  <div class="db-kpi-row">
+    <div class="db-kpi-card db-kpi-card--blue">
+      <div class="db-kpi-left">
+        <div class="db-kpi-label"><i class="ti ti-stethoscope"></i> 전체 장비</div>
+        <div class="db-kpi-value" id="kpiTotal">—</div>
+      </div>
+      <i class="ti ti-stethoscope db-kpi-icon"></i>
+    </div>
+    <div class="db-kpi-card db-kpi-card--green">
+      <div class="db-kpi-left">
+        <div class="db-kpi-label"><i class="ti ti-activity"></i> 사용중</div>
+        <div class="db-kpi-value" id="kpiInUse">—</div>
+      </div>
+      <i class="ti ti-activity db-kpi-icon"></i>
+    </div>
+    <div class="db-kpi-card db-kpi-card--orange">
+      <div class="db-kpi-left">
+        <div class="db-kpi-label"><i class="ti ti-tool"></i> 수리 / 점검</div>
+        <div class="db-kpi-value" id="kpiRepair">—</div>
+      </div>
+      <i class="ti ti-tool db-kpi-icon"></i>
+    </div>
+    <div class="db-kpi-card db-kpi-card--red">
+      <div class="db-kpi-left">
+        <div class="db-kpi-label"><i class="ti ti-calendar-exclamation"></i> 만료 임박</div>
+        <div class="db-kpi-value" id="kpiExpiring">—</div>
+      </div>
+      <i class="ti ti-calendar-exclamation db-kpi-icon"></i>
+    </div>
+  </div>
+
+  <!-- 차트 2개 -->
+  <div class="db-charts">
+    <!-- 좌: 부서별 바 차트 -->
+    <div class="db-card">
+      <div class="db-card-head">
+        <span class="db-card-title"><i class="ti ti-chart-bar"></i> 부서별 장비 현황</span>
+        <button class="db-card-link" onclick="shellNav('equipment/list')">목록 보기 →</button>
+      </div>
+      <div class="db-dept-body" id="deptBody">
+        <div class="db-skeleton" style="width:100%"></div>
+        <div class="db-skeleton" style="width:85%"></div>
+        <div class="db-skeleton" style="width:65%"></div>
+      </div>
+    </div>
+    <!-- 우: 상태 도넛 -->
+    <div class="db-card">
+      <div class="db-card-head">
+        <span class="db-card-title"><i class="ti ti-chart-donut"></i> 상태별 현황</span>
+      </div>
+      <div class="db-status-body" id="statusBody">
+        <div class="db-skeleton" style="width:110px;height:110px;border-radius:50%;flex-shrink:0;"></div>
+        <div style="flex:1;display:flex;flex-direction:column;gap:8px;">
+          <div class="db-skeleton" style="width:90%"></div>
+          <div class="db-skeleton" style="width:75%"></div>
+          <div class="db-skeleton" style="width:60%"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 하단 2패널 -->
+  <div class="db-bottom">
+
+    <!-- 좌: 유지보수 만료 임박 -->
+    <div class="db-card">
+      <div class="db-card-head">
+        <span class="db-card-title">
+          <i class="ti ti-calendar-event"></i> 유지보수 만료 임박
+          <span class="db-card-sub">60일 이내</span>
+        </span>
+        <span class="db-card-badge" id="maintCount"></span>
+      </div>
+      <div class="db-grid-wrap" id="maintGrid">
+        <div style="padding:16px;">
+          <div class="db-skeleton" style="width:100%;margin-bottom:8px;"></div>
+          <div class="db-skeleton" style="width:100%;margin-bottom:8px;"></div>
+          <div class="db-skeleton" style="width:80%;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 우: 부서별 장비 상세 -->
+    <div class="db-card">
+      <div class="db-card-head">
+        <span class="db-card-title" id="deptDetailTitle">
+          <i class="ti ti-list-details"></i> 부서별 장비 상세
+        </span>
+        <span class="db-card-badge" id="deptDetailCount"></span>
+      </div>
+      <div class="db-grid-wrap" id="deptDetailGrid">
+        <div class="db-empty" id="deptDetailEmpty">
+          <i class="ti ti-hand-click"></i>
+          부서를 선택하면 장비 목록이 표시됩니다
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="../../assets/js/core/config.js"></script>
+<script src="../../assets/js/core/utils.js"></script>
+<script src="../../assets/js/core/supabase.js"></script>
+<script src="../../assets/js/core/auth.js"></script>
+<script src="../../assets/js/core/db.js"></script>
+
+
+
+
+<style>
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+
+
+<script src="../../assets/js/equipment/dashboard.js"></script>
+</body>
+</html>

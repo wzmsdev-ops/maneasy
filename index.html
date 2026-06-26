@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>로그인 · 의료장비 관리 시스템</title>
+  <link rel="stylesheet" href="assets/css/common.css">
+  <link rel="stylesheet" href="assets/css/pages/auth.css">
+  <link rel="stylesheet" href="assets/font/tabler-icons/tabler-icons.min.css">
+</head>
+<body class="auth-page">
+
+  <div class="auth-layout">
+    <div class="auth-panel">
+      <div class="auth-panel-inner">
+        <div class="auth-panel-logo"><span>+</span></div>
+        <h1 class="auth-panel-title">의료장비<br>관리 시스템</h1>
+      </div>
+    </div>
+
+    <div class="auth-form-panel">
+      <div class="auth-form-wrap">
+        <div class="auth-form-header">
+          <h2 class="auth-form-title">로그인</h2>
+          <p class="auth-form-sub">계정 정보를 입력하세요</p>
+        </div>
+
+        <div class="auth-form">
+          <div class="auth-field">
+            <label for="userEmail">이메일</label>
+            <div class="auth-input-wrap">
+              <i class="ti ti-mail"></i>
+              <input type="email" id="userEmail" placeholder="이메일 주소" autocomplete="username">
+            </div>
+          </div>
+
+          <div class="auth-field">
+            <label for="userPassword">비밀번호</label>
+            <div class="auth-input-wrap">
+              <i class="ti ti-lock"></i>
+              <input type="password" id="userPassword" placeholder="비밀번호" autocomplete="current-password">
+            </div>
+          </div>
+
+          <div id="authMessage" class="auth-message"></div>
+
+          <button type="button" class="auth-btn" id="loginBtn">로그인</button>
+
+          <div class="auth-cache-reset">
+            <button type="button" id="clearCacheBtn">
+              <i class="ti ti-refresh"></i> 접속 문제 · 캐시 초기화
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="globalLoading" aria-hidden="true">
+    <div class="global-loading__dialog">
+      <div class="global-loading__spinner" aria-hidden="true"></div>
+      <div class="global-loading__text" id="globalLoadingText">로딩 중...</div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="assets/js/core/config.js"></script>
+  <script src="assets/js/core/utils.js"></script>
+  <script src="assets/js/core/supabase.js"></script>
+  <script src="assets/js/core/auth.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => auth.initLoginPage());
+  </script>
+</body>
+</html>

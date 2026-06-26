@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>검사항목 관리 · 정도관리</title>
+  <link rel="stylesheet" href="../../assets/css/common.css" />
+  <link rel="stylesheet" href="../../assets/css/pages/qc-items.css" />
+  <link rel="stylesheet" href="../../assets/font/tabler-icons/tabler-icons.min.css" />
+  <script>
+    if (new URLSearchParams(location.search).get('shell') === '1')
+      document.documentElement.classList.add('in-shell');
+  </script>
+</head>
+<body>
+
+<div class="qc-page">
+
+  <div id="messageBox" class="message-box" style="display:none;"></div>
+
+  <div id="permissionDenied" class="qc-card" style="display:none;">
+    <div class="qc-empty">
+      <i class="ti ti-lock"></i>
+      <strong>접근 권한이 없습니다</strong>
+      <span>관리자에게 권한을 요청하세요.</span>
+    </div>
+  </div>
+
+  <div class="qc-body">
+
+    <!-- 좌: 그룹 관리 -->
+    <div class="qc-card">
+      <div class="qc-card-head">
+        <span class="qc-card-title"><i class="ti ti-folder"></i> 그룹</span>
+        <span class="qc-card-count" id="groupCountText"></span>
+      </div>
+      <div class="qc-group-form">
+        <div class="qc-form-label" id="groupFormTitle">새 그룹</div>
+        <input type="hidden" id="groupModalGroupId" />
+        <input type="text" id="groupModalGroupName" class="input" placeholder="그룹명"
+          onkeydown="if(event.key==='Enter')saveGroup()" />
+        <input type="text" id="groupModalMemo" class="input" placeholder="메모 (선택)"
+          onkeydown="if(event.key==='Enter')saveGroup()" />
+        <div class="qc-form-btns">
+          <button class="btn btn-sm btn-primary" id="groupSaveBtn" onclick="saveGroup()">
+            <i class="ti ti-plus"></i> <span id="groupSaveBtnText">추가</span>
+          </button>
+          <button class="btn btn-sm" id="groupCancelEditBtn" onclick="resetGroupForm()" style="display:none;">취소</button>
+        </div>
+      </div>
+      <div class="qc-group-list" id="groupManageList">
+        <div class="qc-empty"><i class="ti ti-folder-off"></i><span>그룹이 없습니다</span></div>
+      </div>
+    </div>
+
+    <!-- 우: 검사항목 목록 -->
+    <div class="qc-card">
+      <div class="qc-card-head">
+        <span class="qc-card-title"><i class="ti ti-flask"></i> 검사항목</span>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span class="qc-card-count" id="itemCountText"></span>
+          <button class="btn btn-sm btn-primary" id="addItemTabBtn" style="display:none;"
+            onclick="openItemModal(null)">
+            <i class="ti ti-plus"></i> 항목 추가
+          </button>
+        </div>
+      </div>
+      <div class="qc-item-table-wrap">
+        <div class="qc-empty" id="itemEmptyState">
+          <i class="ti ti-flask-off"></i>
+          <strong id="itemEmptyTitle">등록된 검사항목이 없습니다</strong>
+          <span id="itemEmptyDesc">+ 항목 추가 버튼으로 첫 번째 항목을 등록하세요.</span>
+        </div>
+        <table class="qc-item-table" id="itemTable" style="display:none;">
+          <thead>
+            <tr>
+              <th>항목명</th>
+              <th>그룹</th>
+              <th>유형</th>
+              <th>단위 / 프리셋</th>
+              <th>Mean / SD</th>
+              <th style="width:80px;"></th>
+            </tr>
+          </thead>
+          <tbody id="itemTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- 숨김 호환 요소 (기존 JS 호환) -->
+<div style="display:none;">
+  <div id="skeletonBody"></div><div id="appBody"></div>
+  <div id="deptFilterRow"></div>
+  <select id="clinicFilterSelect"></select><select id="teamFilterSelect"></select>
+  <select id="groupFilterSelect"></select><select id="itemSelect"></select>
+  <div id="settingsSection"></div><div id="settingsDisplay"></div>
+  <div id="groupItemListWrap"></div><div id="groupItemCount"></div>
+  <div id="assignPanelEmpty"></div><div id="assignPanel"></div>
+  <div id="assignPanelTitle"></div><div id="assignedCount"></div>
+  <div id="unassignedCount"></div><div id="assignedItems"></div><div id="unassignedItems"></div>
+  <div id="groupModalSpinner"></div><span id="groupModalSpinnerText"></span>
+</div>
+
+<!-- 검사 항목 모달 -->
+<div class="qc-modal-overlay" id="itemModal" style="display:none;">
+  <div class="qc-modal">
+    <div class="qc-modal-head">
+      <span class="qc-modal-title" id="itemModalTitle">
+        <i class="ti ti-flask"></i> 검사 항목 추가
+      </span>
+      <button class="qc-modal-close" id="itemModalClose"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="qc-modal-body">
+      <input type="hidden" id="modalItemId" />
+      <div class="qc-modal-grid">
+        <div class="form-field qc-full">
+          <label class="form-label required">검사 항목명</label>
+          <input type="text" id="modalItemName" class="input" placeholder="예: GLU, HbA1c, RPR" />
+        </div>
+        <div class="form-field qc-full">
+          <label class="form-label">그룹</label>
+          <select id="modalItemGroup" class="input"><option value="">미분류 (그룹 없음)</option></select>
+        </div>
+        <div id="modalOrgFields" style="display:none;"></div>
+        <div class="form-field qc-full">
+          <label class="form-label required">관리 유형</label>
+          <select id="modalItemType" class="input">
+            <option value="quantitative">정량적 (Quantitative)</option>
+            <option value="qualitative">정성적 (Qualitative)</option>
+          </select>
+        </div>
+        <div id="quantitativeFields" style="display:contents;">
+          <div class="form-field">
+            <label class="form-label required">단위</label>
+            <input type="text" id="modalItemUnit" class="input" placeholder="mg/dL, %" />
+          </div>
+          <div class="form-field">
+            <label class="form-label">소수점 자리수</label>
+            <select id="modalItemDecimal" class="input">
+              <option value="0">0자리</option><option value="1">1자리</option>
+              <option value="2">2자리</option><option value="3" selected>3자리</option><option value="4">4자리</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <label class="form-label required">목표 평균 (Mean)</label>
+            <input type="number" id="modalItemMean" class="input" step="any" placeholder="0.00" />
+          </div>
+          <div class="form-field">
+            <label class="form-label required">표준편차 (SD)</label>
+            <input type="number" id="modalItemSd" class="input" step="any" placeholder="0.00" min="0.0001" />
+          </div>
+        </div>
+        <div id="qualitativeFields" class="qc-full" style="display:none;">
+          <div style="display:grid;grid-template-columns:1fr;gap:10px;">
+            <div class="form-field">
+              <label class="form-label required">결과값 프리셋</label>
+              <select id="modalItemPreset" class="input">
+                <option value="pos_neg">Positive / Negative</option>
+                <option value="reactive">Reactive / Non-Reactive</option>
+                <option value="detected">Detected / Not Detected</option>
+                <option value="neg_plus">Negative / Trace / 1+ / 2+ / 3+ / 4+</option>
+                <option value="weak_reactive">Non-Reactive / Weakly Reactive / Reactive</option>
+                <option value="weak_pos">Negative / Weak Positive / Positive / Strong Positive</option>
+              </select>
+            </div>
+            <div class="form-field">
+              <label class="form-label required">기대 결과값 (정상)</label>
+              <select id="modalItemExpected" class="input"></select>
+            </div>
+          </div>
+        </div>
+        <div class="form-field qc-full">
+          <label class="form-label">메모</label>
+          <input type="text" id="modalItemMemo" class="input" placeholder="장비명, 시약 lot 등" />
+        </div>
+      </div>
+    </div>
+    <div class="qc-modal-foot">
+      <button type="button" class="btn btn-sm" id="itemModalCancel">취소</button>
+      <button type="button" class="btn btn-sm btn-primary" id="itemModalSave">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- 전역 로딩 스피너 -->
+<div id="globalLoading" aria-hidden="true">
+  <div class="global-loading__dialog">
+    <div class="global-loading__spinner" aria-hidden="true"></div>
+    <div class="global-loading__text" id="globalLoadingText">불러오는 중...</div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="../../assets/js/core/config.js"></script>
+<script src="../../assets/js/core/utils.js"></script>
+<script src="../../assets/js/core/supabase.js"></script>
+<script src="../../assets/js/core/auth.js"></script>
+<script src="../../assets/js/core/db.js"></script>
+
+
+<script>
+const _$ = id => document.getElementById(id);
+
+// ── items.js 훅 ──────────────────────────────────────────────
+const _origRIS = window.renderItemSelect;
+window.renderItemSelect = function() {
+  if (_origRIS) _origRIS();
+  _renderItemTable();
+  _renderGroupTable();
+  if (state.canEdit) { const b = _$('addItemTabBtn'); if (b) b.style.display = ''; }
+};
+
+window.renderGroupManageList = function() { _renderGroupTable(); };
+
+// ── 그룹 테이블 ──────────────────────────────────────────────
+function _renderGroupTable() {
+  const wrap = _$('groupManageList');
+  const list = state.groups || [];
+  const ct = _$('groupCountText');
+  if (ct) ct.textContent = list.length + '개';
+
+  if (!list.length) {
+    wrap.innerHTML = '<div class="qc-empty"><i class="ti ti-folder-off"></i><span>그룹이 없습니다</span></div>';
+    return;
+  }
+
+  wrap.innerHTML = list.map(g => `
+    <div class="qc-group-row">
+      <div class="qc-group-row-info">
+        <span class="qc-group-row-name">${escHtml(g.group_name)}</span>
+        ${g.memo ? `<span class="qc-group-row-memo">${escHtml(g.memo)}</span>` : ''}
+      </div>
+      ${state.canEdit ? `<div class="qc-group-row-actions">
+        <button class="btn btn-sm" onclick="_qcEditGroup('${escHtml(g.group_id)}','${escHtml(g.group_name)}','${escHtml(g.memo||'')}')">
+          <i class="ti ti-pencil"></i>
+        </button>
+        <button class="btn btn-sm btn-danger" onclick="deleteGroup('${escHtml(g.group_id)}','${escHtml(g.group_name)}')">
+          <i class="ti ti-trash"></i>
+        </button>
+      </div>` : ''}
+    </div>`).join('');
+
+  // 모달 그룹 select 갱신
+  const sel = _$('modalItemGroup');
+  if (sel) {
+    const cur = sel.value;
+    sel.innerHTML = '<option value="">미분류 (그룹 없음)</option>' +
+      list.map(g => `<option value="${escHtml(g.group_id)}">${escHtml(g.group_name)}</option>`).join('');
+    if (cur) sel.value = cur;
+  }
+}
+
+// ── 항목 테이블 ──────────────────────────────────────────────
+function _renderItemTable() {
+  const tbody = _$('itemTableBody');
+  const table = _$('itemTable');
+  const empty = _$('itemEmptyState');
+  const list  = state.items || [];
+  const ct    = _$('itemCountText');
+  if (ct) ct.textContent = list.length + '건';
+
+  if (!list.length) {
+    if (table) table.style.display = 'none';
+    if (empty) empty.style.display = '';
+    return;
+  }
+  if (table) table.style.display = '';
+  if (empty) empty.style.display = 'none';
+
+  const gm = {};
+  (state.groups || []).forEach(g => { gm[g.group_id] = g.group_name; });
+
+  tbody.innerHTML = list.map(item => {
+    const gn   = item.group_id ? (gm[item.group_id] || '미분류') : '미분류';
+    const isQl = item.item_type === 'qualitative';
+    const unit = isQl ? (QUALITATIVE_PRESETS[item.preset]?.label?.split('/')[0]?.trim() || '-') : (item.unit || '-');
+    const ms   = !isQl && item.mean != null ? `${item.mean} / ${item.sd}` : '-';
+    return `<tr class="qc-item-row">
+      <td class="qc-item-td qc-item-name">${escHtml(item.item_name)}</td>
+      <td class="qc-item-td"><span class="qc-group-badge">${escHtml(gn)}</span></td>
+      <td class="qc-item-td"><span class="${isQl ? 'qc-type-qualitative' : 'qc-type-quantitative'}">${isQl ? '정성' : '정량'}</span></td>
+      <td class="qc-item-td qc-item-sub">${escHtml(unit)}</td>
+      <td class="qc-item-td qc-item-sub">${escHtml(ms)}</td>
+      <td class="qc-item-td">${state.canEdit ? `<div class="qc-item-actions">
+        <button class="btn btn-sm" onclick="openItemModal(state.items.find(i=>i.item_id==='${escHtml(item.item_id)}'))">
+          <i class="ti ti-pencil"></i>
+        </button>
+        <button class="btn btn-sm btn-danger" onclick="_qcDeleteItem('${escHtml(item.item_id)}')">
+          <i class="ti ti-trash"></i>
+        </button>
+      </div>` : ''}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ── 그룹 수정 ────────────────────────────────────────────────
+function _qcEditGroup(id, name, memo) {
+  _$('groupModalGroupId').value = id;
+  _$('groupModalGroupName').value = name;
+  _$('groupModalMemo').value = memo || '';
+  _$('groupFormTitle').textContent = '그룹 수정';
+  _$('groupSaveBtnText').textContent = '수정 저장';
+  _$('groupCancelEditBtn').style.display = '';
+  _$('groupModalGroupName').focus();
+}
+window.editGroup = _qcEditGroup;
+
+window.resetGroupForm = function() {
+  _$('groupModalGroupId').value = '';
+  _$('groupModalGroupName').value = '';
+  _$('groupModalMemo').value = '';
+  _$('groupFormTitle').textContent = '새 그룹';
+  _$('groupSaveBtnText').textContent = '추가';
+  _$('groupCancelEditBtn').style.display = 'none';
+};
+
+async function _qcDeleteItem(itemId) {
+  state.activeItemId = itemId;
+  await deleteActiveItem();
+  _renderItemTable();
+}
+</script>
+
+<script src="../../assets/js/qc/items.js"></script>
+</body>
+</html>

@@ -1,0 +1,590 @@
+/* ============================================================
+ * equipment-list.css — 장비 목록 (데이터 테이블)
+ * 스크롤 없이 20행이 화면에 딱 맞게
+ * ============================================================ */
+
+.equipment-list-page { background: #f0f2f5; }
+
+/* ── 전체 페이지 컨테이너 ── */
+.eq-page {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  padding: 4px 12px 14px;
+  gap: 4px;
+  box-sizing: border-box;
+}
+
+/* 빈 요소는 gap 안 먹게 */
+.eq-page > :empty { display: none; }
+
+/* ── 필터 바 ── */
+.eq-filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 7px 12px;
+  flex-shrink: 0;
+  height: 40px;
+  box-sizing: border-box;
+}
+
+.eq-filter-form {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+
+.eq-filter-keyword {
+  position: relative;
+  flex: 2;
+  min-width: 0;
+}
+
+.eq-filter-icon {
+  position: absolute;
+  left: 9px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 13px;
+  color: #9ca3af;
+  pointer-events: none;
+  z-index: 1;
+  line-height: 1;
+  width: 13px;
+  text-align: center;
+}
+
+.eq-filter-input {
+  width: 100% !important;
+  height: 30px !important;
+  padding: 0 10px 0 30px !important; /* 아이콘 영역 확보 — !important로 common.css 덮어쓰기 */
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  background: #f9fafb;
+  font-size: 12px !important;
+  color: #111827;
+  outline: none;
+  box-sizing: border-box !important;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.eq-filter-input:focus {
+  border-color: #2563eb;
+  background: #fff;
+  box-shadow: 0 0 0 2px rgba(37,99,246,0.08);
+}
+
+.eq-filter-input::placeholder { color: #9ca3af; }
+
+.eq-filter-select {
+  height: 30px;
+  padding: 0 22px 0 8px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  background: #f9fafb;
+  font-size: 12px;
+  color: #374151;
+  outline: none;
+  cursor: pointer;
+  flex: 1;
+  min-width: 72px;
+  max-width: 120px;
+  transition: border-color 0.15s;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23adb5bd' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 7px center;
+}
+
+.eq-filter-select:focus { border-color: #2563eb; background-color: #fff; }
+
+.eq-filter-btn {
+  height: 30px;
+  padding: 0 12px;
+  font-size: 12px;
+  border-radius: 6px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.eq-filter-btn i { font-size: 12px; }
+
+.eq-excel-btn {
+  height: 30px;
+  padding: 0 10px;
+  font-size: 12px;
+  border-radius: 6px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  display: none; /* JS가 show/hide */
+  align-items: center;
+  gap: 4px;
+}
+
+.eq-excel-btn.visible { display: inline-flex; }
+
+.eq-register-btn {
+  height: 30px;
+  padding: 0 12px;
+  font-size: 12px;
+  border-radius: 6px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  text-decoration: none;
+}
+
+/* ── 툴바 ── */
+.eq-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  min-height: 0;
+  /* 숨겨진 버튼들(라벨출력/검수확인서)이 표시될 때만 공간 확보 */
+}
+
+/* 툴바가 비어있으면 gap을 먹지 않도록 */
+.eq-toolbar:empty,
+.eq-toolbar .eq-toolbar-left:empty { display: none; }
+
+.eq-toolbar-left, .eq-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.eq-summary {
+  font-size: 11px;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.eq-select-sm {
+  height: 24px;
+  padding: 0 18px 0 6px;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  font-size: 11px;
+  color: #374151;
+  background: #fff;
+  outline: none;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+/* ── 콘텐츠 영역 ── */
+/* 정확한 높이:
+   100vh - 48(shell topbar) - 10(pt) - 10(pb) - 8(gap1) - 46(filterbar) - 8(gap2) - 22(toolbar) - 8(gap3) - 30(pagination) = 100vh - 190px
+*/
+.eq-content {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.equipment-list-grid {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden; /* Tabulator height:100%가 pagination 영역 침범 방지 */
+}
+
+/* 카드 뷰 숨김 */
+.equipment-cards-wrap { display: none !important; }
+
+/* ── 테이블 ── */
+.equipment-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  table-layout: fixed;
+  flex: 1;
+}
+
+/* 컬럼 너비 */
+.equipment-tbl-th--name   { width: 14%; }
+.equipment-tbl-th--id     { width: 10%; }
+.equipment-tbl-th--model  { width: 9%; }
+.equipment-tbl-th--dept   { width: 14%; }
+.equipment-tbl-th--mfr    { width: 9%; }
+.equipment-tbl-th--serial { width: 10%; }
+.equipment-tbl-th--loc    { width: 7%; }
+.equipment-tbl-th--status { width: 6%; }
+.equipment-tbl-th--actions{ width: 10%; }
+
+/* ── 헤더 ── */
+.equipment-tbl-th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  height: 32px;
+  padding: 0 10px;
+  background: #f8fafc;
+  border-bottom: 1px solid #e5e7eb;
+  border-right: 1px solid #e5e7eb;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: #4b5563;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: middle;
+  box-sizing: border-box;
+}
+
+.equipment-tbl-th:last-child { border-right: none; }
+.equipment-tbl-th--name { text-align: left; } /* 장비명만 좌측 */
+
+/* thead는 고정 */
+.equipment-table thead { display: table-header-group; }
+
+/* tbody는 나머지 공간을 채움 */
+.equipment-table tbody { display: table-row-group; }
+
+/* ── 행 — JS가 높이를 동적 계산해서 주입 ── */
+.equipment-tbl-row {
+  height: 30px;
+  border-bottom: 1px solid #f0f0f0;
+  transition: background 0.1s;
+}
+
+.equipment-tbl-row:last-child { border-bottom: none; }
+.equipment-tbl-row:hover { background: #f0f5ff; }
+
+/* ── 셀 ── */
+.equipment-tbl-cell {
+  height: 30px;
+  padding: 0 10px;
+  vertical-align: middle;
+  color: #374151;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 12px;
+  border-right: 1px solid #f0f0f0;
+  box-sizing: border-box;
+  text-align: center; /* 기본 가운데 */
+}
+
+.equipment-tbl-cell:last-child { border-right: none; }
+.equipment-tbl-cell--name   { font-weight: 600; color: #111827; text-align: left; } /* 장비명만 좌측 */
+.equipment-tbl-cell--id     { font-size: 11px; color: #6b7280; font-family: 'Consolas', monospace; }
+.equipment-tbl-cell--serial { font-size: 11px; font-family: 'Consolas', monospace; }
+.equipment-tbl-cell--status { text-align: center; }
+.equipment-tbl-cell--actions { text-align: center; padding: 0 6px; }
+
+.equipment-tbl-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+/* ── 테이블 버튼 ── */
+.tbl-btn {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 7px;
+  border: 1px solid #e5e7eb;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #374151;
+  background: #fff;
+  cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background 0.1s, border-color 0.1s;
+}
+
+.tbl-btn:hover { background: #f3f4f6; border-color: #d1d5db; }
+.tbl-btn--primary { background: #111827; border-color: #111827; color: #fff; }
+.tbl-btn--primary:hover { background: #1f2937; }
+
+/* ── 상태 뱃지 ── */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 16px;
+  padding: 0 5px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 700;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.is-in-use     { background: #f0fdf4; color: #166534; border-color: #bbf7d0; }
+.is-repairing  { background: #fff7ed; color: #9a3412; border-color: #fed7aa; }
+.is-inspecting { background: #eff6ff; color: #1e40af; border-color: #bfdbfe; }
+.is-stored     { background: #f9fafb; color: #374151; border-color: #e5e7eb; }
+.is-disposed   { background: #fef2f2; color: #991b1b; border-color: #fecaca; }
+
+/* ── 빈 상태 ── */
+.equipment-list-grid .empty-box {
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  min-height: 120px;
+}
+
+/* ── 페이지네이션 ── */
+.pagination-area {
+  flex-shrink: 0;
+  height: 28px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 3px;
+  box-sizing: border-box;
+  padding: 2px 0 2px;
+}
+
+.pagination-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 26px;
+  padding: 0 8px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #6b7280;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  letter-spacing: 0;
+}
+
+.pagination-btn:hover { background: #f3f4f6; color: #111827; }
+.pagination-btn.is-active {
+  background: #2563eb;
+  color: #fff;
+  font-weight: 700;
+  box-shadow: 0 1px 3px rgba(37,99,235,0.3);
+}
+.pagination-btn:disabled { opacity: 0.3; cursor: default; }
+.pagination-area { gap: 2px; }
+
+.pagination-ellipsis {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 26px;
+  height: 26px;
+  font-size: 12px;
+  color: #9ca3af;
+  user-select: none;
+}
+
+/* ── 모바일 ── */
+@media (max-width: 768px) {
+  .eq-page { padding: 8px 10px; height: auto; overflow: auto; }
+  .eq-filter-bar { height: auto; flex-wrap: wrap; }
+  .eq-filter-form { flex-wrap: wrap; }
+  .eq-filter-keyword { flex: 1 1 100%; }
+  .eq-filter-select { flex: 1 1 calc(50% - 3px); max-width: none; }
+  .eq-filter-btn { flex: 1; justify-content: center; }
+  .eq-register-btn { width: 100%; justify-content: center; }
+  .eq-toolbar { height: auto; }
+  .eq-content { overflow: auto; }
+  .equipment-table-wrap { overflow-x: auto; overflow-y: auto; }
+
+  .equipment-cards-wrap { display: grid !important; grid-template-columns: 1fr; gap: 8px; }
+  .equipment-table-wrap { display: none !important; }
+
+  .equipment-card { border: 1px solid #e5e7eb; border-radius: 8px; background: #fff; overflow: hidden; }
+  .equipment-card-head { display: flex; align-items: flex-start; justify-content: space-between; padding: 10px 12px 8px; border-bottom: 1px solid #f3f4f6; gap: 8px; }
+  .equipment-card-title-wrap { min-width: 0; }
+  .equipment-card-title { font-size: 13px; font-weight: 700; color: #111827; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .equipment-card-sub { font-size: 10px; color: #9ca3af; margin-top: 2px; }
+  .equipment-card-grid { display: flex; flex-direction: column; padding: 8px 12px; }
+  .equipment-card-row { display: grid; grid-template-columns: 52px 1fr; gap: 6px; padding: 3px 0; border-bottom: 1px solid #f9fafb; }
+  .equipment-card-row:last-child { border-bottom: none; }
+  .equipment-card-label { font-size: 10px; color: #9ca3af; font-weight: 600; }
+  .equipment-card-value { font-size: 11px; color: #374151; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .equipment-card-actions { display: flex; gap: 6px; padding: 8px 12px; border-top: 1px solid #f3f4f6; background: #f9fafb; }
+  .equipment-card-actions .tbl-btn { height: 28px; font-size: 12px; }
+}
+
+/* ================================================================
+ * 라벨 출력 모달
+ * ================================================================ */
+
+/* detail 페이지용 */
+.det-modal-dialog--label { width: 520px; }
+
+.det-modal-body--label {
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.det-modal-icon--label { background: rgba(245,158,11,0.18); color: #fbbf24; }
+
+/* list 페이지용 오버레이 모달 */
+.list-label-modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  align-items: center;
+  justify-content: center;
+}
+.list-label-modal-overlay.is-open { display: flex; }
+
+.list-label-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(11,22,48,0.5);
+}
+
+.list-label-modal-dialog {
+  position: relative;
+  z-index: 1;
+  background: #fff;
+  border-radius: 8px;
+  width: 520px;
+  max-width: calc(100vw - 32px);
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.16);
+  border: 1px solid #e5e7eb;
+  overflow: hidden;
+}
+
+.list-label-modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: #0b1630;
+  flex-shrink: 0;
+}
+
+.list-label-modal-head-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.list-label-modal-icon {
+  width: 26px;
+  height: 26px;
+  border-radius: 4px;
+  background: rgba(245,158,11,0.2);
+  color: #fbbf24;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+}
+
+.list-label-modal-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.list-label-modal-subtitle {
+  font-size: 10px;
+  color: rgba(255,255,255,0.45);
+  margin-top: 1px;
+}
+
+.list-label-modal-close {
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: rgba(255,255,255,0.07);
+  border-radius: 4px;
+  cursor: pointer;
+  color: rgba(255,255,255,0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+.list-label-modal-close i { font-size: 12px; }
+.list-label-modal-close:hover { background: rgba(255,255,255,0.14); color: #fff; }
+
+.list-label-modal-body {
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* 공통 라벨 모달 내부 */
+.label-modal-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.label-modal-preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f0f2f5;
+  border-radius: 6px;
+  padding: 20px;
+  min-height: 180px;
+}
+
+.label-sheet-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 인쇄 시 라벨 모달만 출력 */
+@media print {
+  body > *:not(#listLabelModalOverlay):not(#labelModal) { display: none !important; }
+  #listLabelModalOverlay .list-label-modal-head,
+  #listLabelModalOverlay .list-label-modal-body > .label-modal-toolbar,
+  #listLabelModalOverlay .list-label-modal-backdrop,
+  #labelModal .det-modal-head,
+  #labelModal .label-modal-toolbar,
+  #labelModal .det-modal-backdrop { display: none !important; }
+  #listLabelModalOverlay,
+  #labelModal {
+    display: flex !important;
+    position: static !important;
+    background: none !important;
+  }
+  .list-label-modal-dialog,
+  .det-modal-dialog--label {
+    box-shadow: none !important;
+    border: none !important;
+    width: auto !important;
+  }
+  .label-modal-preview {
+    background: none !important;
+    padding: 0 !important;
+  }
+}

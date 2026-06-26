@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>장비 상세</title>
+  <link rel="stylesheet" href="../../assets/css/common.css" />
+  <link rel="stylesheet" href="../../assets/css/pages/equipment-detail.css" />
+  <link rel="stylesheet" href="../../assets/font/tabler-icons/tabler-icons.min.css" />
+  <script>
+    if (new URLSearchParams(location.search).get('shell') === '1')
+      document.documentElement.classList.add('in-shell');
+  </script>
+</head>
+<body class="equipment-detail-page">
+<div class="det-page">
+
+  <!-- ── 액션 바 (장비명 + 버튼) ── -->
+  <div class="det-actionbar">
+    <div class="det-title-wrap">
+      <span class="det-name" id="heroEquipmentName">—</span>
+      <span class="det-id"   id="heroEquipmentId">—</span>
+      <span class="status-badge" id="heroStatusBadge">—</span>
+    </div>
+    <div class="det-btns">
+      <button type="button" id="printLabelBtn"      class="btn btn-sm"         style="display:none;">라벨 출력</button>
+      <button type="button" id="inspectionCertBtn"  class="btn btn-sm"         style="display:none;">검수확인서</button>
+      <button type="button" id="editEquipmentBtn"   class="btn btn-sm btn-primary" style="display:none;">장비 수정</button>
+      <button type="button" id="deleteBtn"          class="btn btn-sm btn-danger"  style="display:none;">장비 삭제</button>
+    </div>
+  </div>
+
+  <div id="messageBox" class="message-box"></div>
+
+  <!-- ── 메인 레이아웃 (3열) ── -->
+  <div class="det-body">
+
+    <!-- 1열: 기본정보 (1단) -->
+    <div class="det-col-info">
+      <div class="det-card det-card--info">
+        <div class="det-card-head">
+          <span class="det-card-title">기본 정보</span>
+        </div>
+        <div id="detailInfoGrid" class="info-tile-grid">
+          <div class="empty-box">불러오는 중...</div>
+        </div>
+      </div>
+    </div><!-- /det-col-info -->
+
+    <!-- 2열: 수리/점검 이력 + 재고조사 이력 -->
+    <div class="det-col-history">
+      <div class="det-card">
+        <div class="det-card-head">
+          <span class="det-card-title">수리 / 점검 이력</span>
+          <div class="det-card-actions">
+            <span class="det-card-count" id="historyCountText"></span>
+            <button type="button" id="addHistoryBtn" class="btn btn-sm" style="display:none;">+ 등록</button>
+          </div>
+        </div>
+        <div id="historyArea">
+          <div class="empty-box">불러오는 중...</div>
+        </div>
+      </div>
+      <div class="det-card">
+        <div class="det-card-head">
+          <span class="det-card-title">재고조사 이력</span>
+          <div class="det-card-actions">
+            <span class="det-card-count" id="inventoryCountText"></span>
+            <button type="button" id="addInventoryBtn" class="btn btn-sm" style="display:none;">+ 등록</button>
+          </div>
+        </div>
+        <div id="inventoryArea">
+          <div class="empty-box">불러오는 중...</div>
+        </div>
+      </div>
+    </div><!-- /det-col-history -->
+
+    <!-- 3열: 장비사진 + QR코드 -->
+    <div class="det-col-media">
+      <div class="det-card det-card--photo">
+        <div class="det-card-head">
+          <span class="det-card-title">장비 사진</span>
+          <div class="det-card-actions">
+            <button type="button" id="photoOpenBtn"   class="btn btn-sm" style="display:none;">새 창</button>
+            <button type="button" id="photoDeleteBtn" class="btn btn-sm btn-danger" style="display:none;">삭제</button>
+          </div>
+        </div>
+        <div id="detailPhotoWrap" class="det-photo-wrap">
+          <img id="detailPhotoImage" class="det-photo-img is-hidden" alt="장비 사진" />
+          <div id="detailPhotoEmpty" class="det-photo-empty">등록된 사진이 없습니다.</div>
+        </div>
+      </div>
+
+      <div class="det-card det-card--qr">
+        <div class="det-card-head">
+          <span class="det-card-title">QR 코드</span>
+        </div>
+        <div class="det-qr-panel">
+          <div id="qrBox" class="det-qr-box">
+            <div class="empty-box">불러오는 중...</div>
+          </div>
+          <div id="qrText" class="det-qr-text">—</div>
+        </div>
+      </div>
+    </div><!-- /det-col-media -->
+
+  </div><!-- /det-body -->
+
+</div><!-- /det-page -->
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="../../assets/js/core/config.js"></script>
+<script src="../../assets/js/core/utils.js"></script>
+<script src="../../assets/js/core/supabase.js"></script>
+<script src="../../assets/js/core/auth.js"></script>
+<script src="../../assets/js/core/db.js"></script>
+    
+  
+    
+
+<!-- ── 수리/점검 이력 모달 ── -->
+<div id="historyModal" class="det-modal" aria-hidden="true">
+  <div class="det-modal-backdrop"></div>
+  <div class="det-modal-dialog">
+    <div class="det-modal-head">
+      <div class="det-modal-head-left">
+        <div class="det-modal-icon det-modal-icon--history">
+          <i class="ti ti-tool"></i>
+        </div>
+        <div>
+          <div class="det-modal-title" id="historyModalTitle">수리 / 점검 이력 등록</div>
+          <div class="det-modal-subtitle">이력 정보를 입력하고 저장하세요</div>
+        </div>
+      </div>
+      <button type="button" class="det-modal-close" id="historyModalClose" aria-label="닫기">
+        <i class="ti ti-x"></i>
+      </button>
+    </div>
+    <div class="det-modal-body">
+      <div id="historyModalMsg" class="det-modal-msg" style="display:none;"></div>
+      <div class="form-row">
+        <div class="form-field">
+          <label class="form-label">이력 유형 <span class="required">*</span></label>
+          <select id="m_history_type" class="input form-select">
+            <option value="">선택하세요</option>
+            <option value="REPAIR">수리</option>
+            <option value="INSPECTION">점검</option>
+            <option value="MAINTENANCE">유지보수</option>
+            <option value="OTHER">기타</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label class="form-label">처리일자 <span class="required">*</span></label>
+          <input type="date" id="m_work_date" class="input" />
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-field">
+          <label class="form-label">요청자</label>
+          <input type="text" id="m_requester" class="input" placeholder="요청자를 입력하세요" />
+        </div>
+        <div class="form-field">
+          <label class="form-label">업체명</label>
+          <input type="text" id="m_vendor_name" class="input" placeholder="업체명을 입력하세요" />
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-field">
+          <label class="form-label">비용</label>
+          <input type="text" inputmode="numeric" id="m_amount" class="input" placeholder="숫자만 입력" />
+        </div>
+        <div class="form-field">
+          <label class="form-label">처리 결과 상태</label>
+          <select id="m_result_status" class="input form-select">
+            <option value="">선택하세요</option>
+            <option value="COMPLETED">완료</option>
+            <option value="IN_PROGRESS">진행중</option>
+            <option value="PENDING">대기</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-field">
+        <label class="form-label">장비 상태 반영</label>
+        <select id="m_update_equipment_status" class="input form-select">
+          <option value="">반영 안 함</option>
+          <option value="IN_USE">사용중</option>
+          <option value="REPAIRING">수리중</option>
+          <option value="INSPECTING">점검중</option>
+          <option value="STORED">보관</option>
+          <option value="DISPOSED">폐기</option>
+        </select>
+      </div>
+      <div class="form-field">
+        <label class="form-label">처리내용 <span class="required">*</span></label>
+        <textarea id="m_description" class="input textarea" rows="4" placeholder="수리 또는 점검 내용을 입력하세요"></textarea>
+      </div>
+    </div>
+    <div class="det-modal-foot">
+      <button type="button" class="btn btn-sm" id="historyModalCancel">취소</button>
+      <button type="button" class="btn btn-sm btn-primary" id="historyModalSubmit">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── 재고조사 이력 모달 ── -->
+<div id="inventoryModal" class="det-modal" aria-hidden="true">
+  <div class="det-modal-backdrop"></div>
+  <div class="det-modal-dialog">
+    <div class="det-modal-head">
+      <div class="det-modal-head-left">
+        <div class="det-modal-icon det-modal-icon--inventory">
+          <i class="ti ti-clipboard-check"></i>
+        </div>
+        <div>
+          <div class="det-modal-title">재고조사 등록</div>
+          <div class="det-modal-subtitle">현재 장비 상태를 확인하고 기록하세요</div>
+        </div>
+      </div>
+      <button type="button" class="det-modal-close" id="inventoryModalClose" aria-label="닫기">
+        <i class="ti ti-x"></i>
+      </button>
+    </div>
+    <div class="det-modal-body">
+      <div id="inventoryModalMsg" class="det-modal-msg" style="display:none;"></div>
+      <div class="form-row">
+        <div class="form-field">
+          <label class="form-label">점검일시</label>
+          <input type="text" id="m_checked_at" class="input" readonly />
+        </div>
+        <div class="form-field">
+          <label class="form-label">점검자 <span class="required">*</span></label>
+          <input type="text" id="m_checked_by" class="input" placeholder="점검자 이름을 입력하세요" />
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-field">
+          <label class="form-label">상태 <span class="required">*</span></label>
+          <select id="m_condition_status" class="input form-select">
+            <option value="">선택하세요</option>
+            <option value="NORMAL">정상</option>
+            <option value="ABNORMAL">이상</option>
+            <option value="NEEDS_CHECK">확인필요</option>
+            <option value="MISSING">미확인</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label class="form-label">QR 스캔 여부</label>
+          <select id="m_qr_scan_yn" class="input form-select">
+            <option value="Y">예</option>
+            <option value="N">아니오</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-field">
+        <label class="form-label">메모</label>
+        <textarea id="m_memo" class="input textarea" rows="4" placeholder="재고조사 관련 메모를 입력하세요"></textarea>
+      </div>
+    </div>
+    <div class="det-modal-foot">
+      <button type="button" class="btn btn-sm" id="inventoryModalCancel">취소</button>
+      <button type="button" class="btn btn-sm btn-primary" id="inventoryModalSubmit">저장</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ── 라벨 출력 모달 ── -->
+<div id="labelModal" class="det-modal" aria-hidden="true">
+  <div class="det-modal-backdrop"></div>
+  <div class="det-modal-dialog det-modal-dialog--label">
+    <div class="det-modal-head">
+      <div class="det-modal-head-left">
+        <div class="det-modal-icon det-modal-icon--label">
+          <i class="ti ti-tag"></i>
+        </div>
+        <div>
+          <div class="det-modal-title">라벨 출력</div>
+          <div class="det-modal-subtitle">QR 포함 장비 식별 라벨을 인쇄합니다</div>
+        </div>
+      </div>
+      <button type="button" class="det-modal-close" id="labelModalClose">
+        <i class="ti ti-x"></i>
+      </button>
+    </div>
+    <div class="det-modal-body det-modal-body--label">
+      <div class="label-modal-toolbar">
+        <label class="form-label" style="margin:0;white-space:nowrap;">라벨 크기</label>
+        <select id="labelModalSizeSelect" class="input" style="width:140px;height:30px;font-size:12px;">
+          <option value="size-90x48" selected>90 × 48 mm</option>
+          <option value="size-70x40">70 × 40 mm</option>
+          <option value="size-50x30">50 × 30 mm</option>
+        </select>
+        <button type="button" class="btn btn-sm btn-primary" id="labelModalPrintBtn">
+          <i class="ti ti-printer"></i> 인쇄
+        </button>
+      </div>
+      <div class="label-modal-preview">
+        <div class="label-sheet-wrap">
+          <div class="device-label size-90x48" id="labelModalDevice">
+            <div class="device-label-main">
+              <div class="label-hospital">녹십자아이메드 의료장비 관리시스템</div>
+              <div class="label-title" id="lm_equipment_name">-</div>
+              <div class="label-info-block">
+                <div class="label-row label-row-emphasis">
+                  <div class="label-key">관리번호</div>
+                  <div class="label-value label-value-id" id="lm_equipment_id">-</div>
+                </div>
+                <div class="label-row" id="lm_row_model">
+                  <div class="label-key">모델명</div>
+                  <div class="label-value" id="lm_model_name">-</div>
+                </div>
+                <div class="label-row" id="lm_row_dept">
+                  <div class="label-key">사용부서</div>
+                  <div class="label-value" id="lm_department">-</div>
+                </div>
+                <div class="label-row" id="lm_row_loc">
+                  <div class="label-key">위치</div>
+                  <div class="label-value" id="lm_location">-</div>
+                </div>
+              </div>
+            </div>
+            <div class="qr-panel">
+              <div id="lm_qr" class="label-qr-box"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+  <div id="globalLoading" aria-hidden="true">
+    <div class="global-loading__dialog">
+      <div class="global-loading__spinner" aria-hidden="true"></div>
+      <div class="global-loading__text" id="globalLoadingText">불러오는 중...</div>
+    </div>
+  </div>
+
+<script src="../../assets/libs/qrcode.min.js"></script>
+<script src="../../assets/js/equipment/equipment-detail.js"></script>
+</body>
+</html>

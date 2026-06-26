@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>장비 목록 · 의료장비 관리</title>
+  <link rel="stylesheet" href="../../assets/css/common.css" />
+  <link rel="stylesheet" href="../../assets/css/pages/equipment-list.css" />
+  <link rel="stylesheet" href="../../assets/font/tabler-icons/tabler-icons.min.css" />
+  <link rel="stylesheet" href="../../assets/libs/ag-grid/ag-grid.min.css" />
+  <link rel="stylesheet" href="../../assets/libs/ag-grid/ag-theme-alpine.min.css" />
+  <script>
+    if (new URLSearchParams(location.search).get('shell') === '1')
+      document.documentElement.classList.add('in-shell');
+    window.addEventListener('error', function(e) {
+      var d = document.createElement('div');
+      d.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#fee2e2;color:#991b1b;padding:8px 12px;font-size:12px;z-index:99999;';
+      d.textContent = 'ERROR: ' + e.message + ' (' + e.filename.split('/').pop() + ':' + e.lineno + ')';
+      document.body.appendChild(d);
+    });
+    window.addEventListener('unhandledrejection', function(e) {
+      var d = document.createElement('div');
+      d.style.cssText = 'position:fixed;top:40px;left:0;right:0;background:#fef3c7;color:#92400e;padding:8px 12px;font-size:12px;z-index:99999;';
+      d.textContent = 'PROMISE ERROR: ' + (e.reason && e.reason.message ? e.reason.message : String(e.reason));
+      document.body.appendChild(d);
+    });
+  </script>
+  <style>
+    /* 로딩 중 흰 화면 방지 — shell-content 배경과 동일 */
+    html, body { height: 100%; margin: 0; }
+    body { background: #f0f2f5; }
+    /* 로딩 중 숨김 — JS 실행 전 콘텐츠 숨김 */
+    .eq-filter-bar, .eq-toolbar, .eq-content, .pagination-area { visibility: hidden; }
+    body.page-ready .eq-filter-bar,
+    body.page-ready .eq-toolbar,
+    body.page-ready .eq-content,
+    body.page-ready .pagination-area { visibility: visible; }
+    /* AG Grid 커스텀 */
+    #equipmentGrid { flex: 1; min-height: 0; height: 100%; }
+    .ag-theme-alpine {
+      --ag-font-size: 11px !important;
+      --ag-font-family: "Pretendard", "Noto Sans KR", sans-serif !important;
+
+      --ag-header-background-color: #f8fafc;
+      --ag-header-foreground-color: #4b5563;
+      --ag-border-color: #e5e7eb;
+      --ag-row-border-color: #f0f0f0;
+      --ag-background-color: #fff;
+      --ag-odd-row-background-color: #fff;
+      --ag-row-hover-color: #f0f5ff;
+      --ag-cell-horizontal-padding: 8px;
+    }
+    .ag-theme-alpine .ag-root-wrapper { border-radius: 8px; overflow: hidden; }
+    .ag-theme-alpine .ag-body-viewport { overflow-x: hidden !important; overflow-y: auto !important; }
+    .ag-theme-alpine .ag-body-horizontal-scroll { display: none !important; }
+    .ag-theme-alpine .ag-header { font-size: 11px; }
+    .ag-theme-alpine .ag-cell { font-size: 11px !important; font-family: "Pretendard", "Noto Sans KR", sans-serif !important; }
+    .ag-theme-alpine .ag-cell * { font-size: 11px !important; }
+
+    .ag-theme-alpine .ag-header-cell-text { font-size: 11px !important; }
+    .ag-theme-alpine .ag-header-cell-label { justify-content: center; font-weight: 700; }
+    .ag-left-header .ag-header-cell-label { justify-content: flex-start !important; }
+    /* 데이터 행 세로줄 */
+    .ag-theme-alpine .ag-cell { border-right: 1px solid #e5e7eb !important; }
+    .ag-theme-alpine .ag-cell:last-child { border-right: none !important; }
+    .ag-center-header .ag-header-cell-label { justify-content: center; }
+
+    .tab-name { font-weight: 600; color: #111827; }
+    .tab-id   { font-size: 11px; color: #6b7280; font-family: Consolas, monospace; }
+    .tab-mfr  { color: #2563eb; font-size: 11px; }
+  </style>
+
+  <style>
+    @media print {
+      @page { size: A4 portrait; margin: 0; }
+      body > *:not(#printLabelOverlay) { display: none !important; }
+      #printLabelOverlay { display: block !important; margin: 0; padding: 0; }
+      .plabel-page { page-break-after: always; break-after: page; }
+      .plabel-page:last-child { page-break-after: avoid; break-after: avoid; }
+      .plabel-page--grid   { display: grid !important; width: 210mm; box-sizing: border-box; }
+      .plabel-page--single { display: flex !important; justify-content: center; align-items: flex-start; padding: 10mm 0; }
+      .plabel-empty { visibility: hidden; }
+      .prlabel { display: grid; box-sizing: border-box; border: 1px solid #111827; background: white; overflow: hidden; page-break-inside: avoid; break-inside: avoid; }
+      .prlabel-body { display: flex; flex-direction: column; justify-content: center; overflow: hidden; }
+      .prlabel-rows { display: flex; flex-direction: column; }
+      .prlabel-row  { display: grid; align-items: center; }
+      .prlabel-hospital { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+      .prlabel-title    { font-weight: 800; color: #1e293b; line-height: 1.1; }
+      .prlabel-key      { color: #64748b; white-space: nowrap; }
+      .prlabel-val      { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-weight: 500; }
+      .prlabel-id       { overflow: hidden; white-space: nowrap; color: #1e40af; font-weight: 700; }
+      .prlabel-qr       { display: flex; align-items: center; justify-content: center; align-self: center; }
+      .prlabel-qr img   { display: block; width: 100%; height: 100%; }
+      .prlabel--90x48{width:90mm;min-height:48mm;padding:4mm;border-radius:4mm;gap:3.5mm;grid-template-columns:1fr 26mm;align-items:center}
+      .prlabel--90x48 .prlabel-hospital{font-size:7.5pt;margin-bottom:1.5mm}.prlabel--90x48 .prlabel-title{font-size:15pt;margin:0 0 2mm}.prlabel--90x48 .prlabel-rows{gap:1.4mm}.prlabel--90x48 .prlabel-row{grid-template-columns:13mm 1fr;gap:1.4mm 2mm}.prlabel--90x48 .prlabel-key{font-size:7.5pt}.prlabel--90x48 .prlabel-val{font-size:8pt}.prlabel--90x48 .prlabel-id{font-size:11pt}.prlabel--90x48 .prlabel-qr{width:24mm;height:24mm;padding:1.2mm;border-radius:3mm}
+      .prlabel--70x40{width:70mm;min-height:40mm;padding:2.8mm;border-radius:3mm;gap:2.5mm;grid-template-columns:1fr 19mm;align-items:center}
+      .prlabel--70x40 .prlabel-hospital{font-size:6pt;margin-bottom:1.2mm}.prlabel--70x40 .prlabel-title{font-size:11pt;margin:0 0 1.5mm}.prlabel--70x40 .prlabel-rows{gap:1mm}.prlabel--70x40 .prlabel-row{grid-template-columns:11mm 1fr;gap:1mm 1.4mm}.prlabel--70x40 .prlabel-key{font-size:6pt}.prlabel--70x40 .prlabel-val{font-size:6.5pt}.prlabel--70x40 .prlabel-id{font-size:8pt;letter-spacing:-0.02em;line-height:1.05}.prlabel--70x40 .prlabel-qr{width:17mm;height:17mm;padding:1mm;border-radius:2mm}
+      .prlabel--50x30{width:50mm;min-height:30mm;padding:2.2mm;border-radius:2.6mm;gap:2mm;grid-template-columns:1fr 15mm;align-items:center}
+      .prlabel--50x30 .prlabel-hospital{font-size:5.8pt;margin-bottom:1mm}.prlabel--50x30 .prlabel-title{font-size:9.5pt;margin:0 0 1.2mm}.prlabel--50x30 .prlabel-rows{gap:1mm}.prlabel--50x30 .prlabel-row{grid-template-columns:10mm 1fr;gap:1mm 1.2mm}.prlabel--50x30 .prlabel-key{font-size:5.4pt}.prlabel--50x30 .prlabel-val{font-size:5.8pt}.prlabel--50x30 .prlabel-id{font-size:6.8pt;white-space:nowrap;letter-spacing:-0.03em}.prlabel--50x30 .prlabel-qr{width:13mm;height:13mm;padding:0.8mm;border-radius:2mm}
+    }
+  </style>
+</head>
+<body class="equipment-list-page">
+
+  <div class="eq-page">
+
+    <!-- 필터 바 -->
+    <div class="eq-filter-bar">
+      <form id="searchForm" class="eq-filter-form">
+        <div class="eq-filter-keyword">
+          <i class="ti ti-search eq-filter-icon" aria-hidden="true"></i>
+          <input type="text" id="keyword" class="eq-filter-input"
+            placeholder="장비명, 모델명, 시리얼, 부서, 제조사..."
+            autocomplete="off" />
+        </div>
+        <select id="clinic_code" class="eq-filter-select"></select>
+        <select id="team_suffix" class="eq-filter-select"></select>
+        <input type="hidden" id="team_code" value="" />
+        <select id="status"      class="eq-filter-select"></select>
+        <input type="hidden" id="manufacturer" value="" />
+        <input type="hidden" id="page_size" value="20" />
+        <button type="submit" class="btn btn-primary eq-filter-btn">
+          <i class="ti ti-search" aria-hidden="true"></i> 조회
+        </button>
+        <button type="button" class="btn eq-filter-btn" id="resetFilterBtn">초기화</button>
+        <button type="button" class="btn btn-sm eq-filter-btn" id="exportExcelBtn" style="display:none;">
+          <i class="ti ti-download" aria-hidden="true"></i> 엑셀
+        </button>
+      </form>
+      <a class="btn btn-primary eq-register-btn" id="createEquipmentBtn" href="form.html">
+        <i class="ti ti-plus" aria-hidden="true"></i> 장비 등록
+      </a>
+    </div>
+
+    <div id="messageBox" class="message-box"></div>
+
+    <!-- 툴바 — 검색결과 텍스트 제거, 라벨/검수 버튼만 유지 -->
+    <div class="eq-toolbar" id="eqToolbar" style="display:none;">
+      <div class="eq-toolbar-left">
+        <button type="button" class="btn btn-sm" id="bulkLabelBtn" style="display:none;">
+          <i class="ti ti-tag" aria-hidden="true"></i> 라벨 출력 (<span id="bulkLabelCount">0</span>)
+        </button>
+        <select id="bulkLabelSizeSelect" class="eq-select-sm" style="display:none;">
+          <option value="size-90x48">90×48mm</option>
+          <option value="size-70x40">70×40mm</option>
+        </select>
+        <select id="bulkLayoutSelect" class="eq-select-sm" style="display:none;">
+          <option value="2x5">2×5 (10칸)</option>
+        </select>
+        <button type="button" class="btn btn-sm btn-success" id="bulkInspectionCertBtn" style="display:none;">
+          <i class="ti ti-file-check" aria-hidden="true"></i> 검수확인서 (<span id="bulkInspectionCertCount">0</span>)
+        </button>
+      </div>
+    </div>
+    <!-- listSummary — JS 호환용, 숨김 -->
+    <span id="listSummary" style="display:none;"></span>
+
+    <!-- 장비 목록 -->
+    <div class="eq-content">
+      <div id="equipmentGrid" class="ag-theme-alpine" style="width:100%;height:100%;"></div>
+    </div>
+    <div id="paginationArea" class="pagination-area"></div>
+
+  </div>
+
+  <div id="printLabelOverlay" style="display:none;"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="../../assets/js/core/config.js"></script>
+<script src="../../assets/js/core/utils.js"></script>
+<script src="../../assets/js/core/supabase.js"></script>
+<script src="../../assets/js/core/auth.js"></script>
+<script src="../../assets/js/core/db.js"></script>
+    
+  
+  
+  <div id="globalLoading" aria-hidden="true">
+    <div class="global-loading__dialog">
+      <div class="global-loading__spinner" aria-hidden="true"></div>
+      <div class="global-loading__text" id="globalLoadingText">불러오는 중...</div>
+    </div>
+  </div>
+
+<script src="../../assets/libs/ag-grid/ag-grid-community.min.js"></script>
+<script src="../../assets/libs/qrcode.min.js"></script>
+<script src="../../assets/js/equipment/equipment-list.js"></script>
+</body>
+</html>

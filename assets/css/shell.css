@@ -1,0 +1,432 @@
+/* ============================================================
+ * shell.css — SPA 셸 레이아웃
+ * 사이드바(다크) + 콘텐츠 영역 + 모바일 오버레이
+ * ============================================================ */
+
+/* ─────────────────────────────────────────────────────────────
+ * 사이드바 토큰
+ * ───────────────────────────────────────────────────────────── */
+:root {
+  --sb-width:        220px;
+  --sb-bg:           #0b1630;
+  --sb-bg-hover:     rgba(255,255,255,0.06);
+  --sb-bg-active:    rgba(255,255,255,0.10);
+  --sb-border:       rgba(255,255,255,0.08);
+  --sb-text:         rgba(255,255,255,0.60);
+  --sb-text-hover:   rgba(255,255,255,0.90);
+  --sb-text-active:  #ffffff;
+  --sb-accent:       #2f6df6;
+  --topbar-h:        48px;
+}
+
+/* ─────────────────────────────────────────────────────────────
+ * 전체 셸 구조
+ * ───────────────────────────────────────────────────────────── */
+html, body { height: 100%; overflow: hidden; }
+
+.app-shell {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+  background: #f0f2f5;
+}
+
+/* ─────────────────────────────────────────────────────────────
+ * 사이드바
+ * ───────────────────────────────────────────────────────────── */
+.sidebar {
+  width: var(--sb-width);
+  min-width: var(--sb-width);
+  height: 100vh;
+  background: var(--sb-bg);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  z-index: 200;
+  flex-shrink: 0;
+  transition: transform 0.25s ease;
+}
+
+/* 브랜드 영역 */
+.sb-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 14px 14px;
+  border-bottom: 1px solid var(--sb-border);
+  flex-shrink: 0;
+}
+
+.sb-brand-logo {
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  background: linear-gradient(135deg, #22c55e, #2563eb);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.sb-brand-text {
+  min-width: 0;
+}
+
+.sb-brand-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--sb-text-active);
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sb-brand-sub {
+  font-size: 10px;
+  color: var(--sb-text);
+  margin-top: 1px;
+}
+
+/* 사용자 영역 */
+.sb-user {
+  display: flex;
+  align-items: center;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--sb-border);
+  flex-shrink: 0;
+}
+
+.sb-user-info { min-width: 0; flex: 1; }
+
+.sb-user-line {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--sb-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 네비게이션 */
+.sb-nav {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 6px 0;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.12) transparent;
+}
+
+.sb-nav::-webkit-scrollbar { width: 3px; }
+.sb-nav::-webkit-scrollbar-track { background: transparent; }
+.sb-nav::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 2px; }
+
+/* 섹션 레이블 */
+.sb-section-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--sb-text);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  padding: 10px 14px 4px;
+  opacity: 0.6;
+}
+
+/* 메뉴 아이템 */
+.sb-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--sb-text);
+  cursor: pointer;
+  border-radius: 0;
+  transition: background 0.12s, color 0.12s;
+  user-select: none;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sb-item:hover {
+  background: var(--sb-bg-hover);
+  color: var(--sb-text-hover);
+}
+
+.sb-item.active {
+  background: var(--sb-bg-active);
+  color: var(--sb-text-active);
+  font-weight: 600;
+  border-right: 2px solid var(--sb-accent);
+}
+
+.sb-item i {
+  font-size: 15px;
+  flex-shrink: 0;
+  width: 18px;
+  text-align: center;
+}
+
+/* 아코디언 부모 (화살표 포함) */
+.sb-item-parent {
+  justify-content: space-between;
+}
+
+.sb-item-parent .sb-item-arrow {
+  font-size: 11px;
+  margin-left: auto;
+  flex-shrink: 0;
+  opacity: 0.4;
+  /* flyout 방식이므로 회전 없음 */
+}
+
+.sb-item-inner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* 서브메뉴 — JS portal 방식 (body에 append, 위치 동적 계산) */
+.sb-submenu { display: none; } /* 원본은 숨김 */
+
+/* flyout 팝업 — JS가 body에 동적 생성 */
+.sb-flyout {
+  position: fixed;
+  z-index: 9999;
+  min-width: 160px;
+  background: #1a2744;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 8px;
+  box-shadow: 6px 6px 20px rgba(0,0,0,0.4);
+  padding: 4px 0;
+  pointer-events: auto;
+}
+
+.sb-sub-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 16px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--sb-text);
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.sb-sub-item:hover {
+  background: var(--sb-bg-hover);
+  color: var(--sb-text-hover);
+}
+
+.sb-sub-item.active {
+  color: var(--sb-text-active);
+  font-weight: 600;
+  background: var(--sb-bg-active);
+}
+
+.sb-sub-item i { font-size: 13px; flex-shrink: 0; width: 16px; text-align: center; }
+
+/* 구분선 */
+.sb-divider {
+  height: 1px;
+  background: var(--sb-border);
+  margin: 6px 14px;
+}
+
+/* 뱃지 (알림 카운트) */
+.sb-badge {
+  margin-left: auto;
+  font-size: 10px;
+  font-weight: 700;
+  height: 16px;
+  min-width: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: var(--sb-accent);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* 하단 영역 */
+.sb-footer {
+  padding: 10px 14px;
+  border-top: 1px solid var(--sb-border);
+  flex-shrink: 0;
+}
+
+.sb-logout {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--sb-text);
+  cursor: pointer;
+  padding: 6px 0;
+  transition: color 0.12s;
+  background: none;
+  border: none;
+  width: 100%;
+  text-align: left;
+}
+
+.sb-logout:hover { color: var(--sb-text-hover); }
+.sb-logout i { font-size: 15px; }
+
+/* ─────────────────────────────────────────────────────────────
+ * 메인 콘텐츠 영역
+ * ───────────────────────────────────────────────────────────── */
+.shell-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* 상단바 */
+.shell-topbar {
+  height: var(--topbar-h);
+  min-height: var(--topbar-h);
+  background: #fff;
+  border-bottom: 1px solid #e5e7eb;
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  gap: 12px;
+  flex-shrink: 0;
+  z-index: 100;
+}
+
+.shell-topbar-hamburger {
+  display: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #374151;
+  font-size: 20px;
+  padding: 4px;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+.shell-topbar-hamburger:hover { background: #f3f4f6; }
+
+.shell-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.shell-breadcrumb-app {
+  font-size: 13px;
+  font-weight: 700;
+  color: #111827;
+  white-space: nowrap;
+}
+
+.shell-breadcrumb-sep {
+  font-size: 12px;
+  color: #9ca3af;
+  flex-shrink: 0;
+}
+
+.shell-breadcrumb-page {
+  font-size: 12px;
+  color: #6b7280;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.shell-topbar-right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.shell-user-chip { display: none; } /* 제거 */
+
+/* 콘텐츠 iframe 영역 */
+.shell-content {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+  background: #f0f2f5;
+}
+
+.shell-iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  display: block;
+  background: #f0f2f5; /* shell-content와 동일한 배경 — 로드 중 깜빡임 방지 */
+  transition: opacity 0.15s ease;
+}
+
+/* iframe 로딩 오버레이 */
+/* shell-loading 제거 — iframe visibility로 처리 */
+
+/* ─────────────────────────────────────────────────────────────
+ * 모바일 오버레이
+ * ───────────────────────────────────────────────────────────── */
+.sb-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 190;
+}
+
+/* ─────────────────────────────────────────────────────────────
+ * 반응형 — 모바일
+ * ───────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .sidebar {
+    position: fixed;
+    left: 0; top: 0; bottom: 0;
+    transform: translateX(-100%);
+    z-index: 200;
+  }
+
+  .sidebar.mobile-open {
+    transform: translateX(0);
+  }
+
+  .sb-overlay.mobile-open {
+    display: block;
+  }
+
+  .shell-topbar-hamburger { display: flex; }
+
+  .shell-content { height: calc(100vh - var(--topbar-h)); }
+}
+
+/* ─────────────────────────────────────────────────────────────
+ * iframe 내부 페이지용 — topbar 숨김 클래스
+ * (각 페이지 HTML에 <body class="in-shell"> 추가 시 적용)
+ * ───────────────────────────────────────────────────────────── */

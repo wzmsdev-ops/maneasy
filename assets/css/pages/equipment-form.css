@@ -1,0 +1,510 @@
+/* ============================================================
+ * equipment-form.css — 장비 등록·수정 (shell 스타일)
+ * ============================================================ */
+
+html, body { height: 100%; margin: 0; }
+body { background: #f0f2f5; }
+
+/* ── 페이지 구조 ── */
+.eform-page {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  padding: 8px 14px;
+  gap: 8px;
+  box-sizing: border-box;
+}
+
+/* eform-actionbar 제거 */
+
+/* ── 탭 ── */
+.eform-tabs {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.eform-tab {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 14px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  background: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+
+.eform-tab:hover { background: #f8fafc; color: #374151; }
+.eform-tab.is-active {
+  background: #0b1630;
+  border-color: #0b1630;
+  color: #fff;
+}
+
+.eform-tab i { font-size: 14px; }
+
+/* ── 본문 ── */
+.eform-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  min-height: 0;
+}
+
+/* 2단 + 하단 사진 구조 */
+.eform-body--2col {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* 상단 2단 영역 — 콘텐츠 높이만큼만 */
+.eform-top-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  align-items: stretch;
+  flex-shrink: 0;
+}
+
+/* 하단 장비사진 — 남은 공간 전부 */
+.eform-photo-row {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.eform-photo-row .eform-section-head {
+  flex-shrink: 0;
+}
+
+.eform-photo-row .eform-photo-body {
+  flex: 1;
+  min-height: 0;
+}
+
+.eform-photo-row .eform-photo-preview-panel {
+  min-height: 0;
+  height: 100%;
+}
+
+.eform-photo-row .eform-photo-dropzone {
+  flex: 1;
+}
+
+/* 좌/우 컬럼 */
+.eform-col {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* stretch 컬럼: 마지막 섹션이 남은 공간 전부 차지 */
+.eform-col--stretch {
+  overflow: hidden;
+}
+
+.eform-col--stretch .eform-section--grow {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+
+
+
+/* ── 섹션 ── */
+.eform-section {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.eform-section-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: #f8fafc;
+  border-bottom: 1px solid #e5e7eb;
+  font-size: 12px;
+  font-weight: 700;
+  color: #374151;
+}
+
+.eform-section-head-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.eform-section-head i {
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.eform-section-desc {
+  font-size: 11px;
+  font-weight: 400;
+  color: #9ca3af;
+  margin-left: 4px;
+}
+
+/* ── 그리드 ── */
+.eform-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  padding: 12px 14px;
+}
+
+/* 2열 그리드 */
+.eform-grid--2 {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+/* 좌우 컬럼 모두 stretch */
+.eform-top-row .eform-col--stretch {
+  display: flex;
+  flex-direction: column;
+}
+
+/* 좌측: 장비정보 섹션이 전체 높이 채우기 */
+.eform-top-row .eform-col--stretch:first-child .eform-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.eform-top-row .eform-col--stretch:first-child .eform-section .eform-grid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  align-content: start;
+}
+
+/* 메모 textarea가 남은 공간 차지 */
+.eform-top-row .eform-col--stretch:first-child .eform-full {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.eform-top-row .eform-col--stretch:first-child .eform-full textarea.input {
+  flex: 1;
+  resize: none;
+  min-height: 80px;
+}
+
+/* 우측: 담당자 섹션이 남은 공간 채우기 */
+.eform-top-row .eform-col--stretch:last-child .eform-section:last-child {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.eform-top-row .eform-col--stretch:last-child .eform-section:last-child .eform-grid {
+  flex: 1;
+  align-content: start;
+}
+
+.eform-full { grid-column: 1 / -1; }
+
+/* form-field/form-label은 common.css 그대로 활용 */
+.eform-grid .form-field { gap: 3px; }
+.eform-grid .form-label { font-size: 11px; font-weight: 600; color: #4b5563; }
+.eform-grid .input { height: 32px; font-size: 12px; }
+.eform-grid textarea.input { height: auto; min-height: 60px; padding: 6px 10px; }
+
+/* ── 사진 영역 ── */
+.eform-file-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  overflow: hidden;
+}
+
+.eform-file-name { font-size: 11px; color: #374151; font-weight: 500; }
+
+/* 사진 섹션 헤더 우측 액션 */
+.eform-photo-head-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: #374151;
+}
+
+/* 사진 본문 — 좌: 미리보기 / 우: 업로드 */
+.eform-photo-body {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 12px;
+  padding: 12px 14px;
+  flex: 1;
+  min-height: 0;
+}
+
+/* 미리보기 패널 */
+.eform-photo-preview-panel {
+  background: #f0f2f5;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 120px;
+}
+
+.eform-photo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.eform-photo-img.is-hidden { display: none; }
+
+.eform-photo-empty-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  color: #d1d5db;
+  font-size: 11px;
+}
+
+.eform-photo-empty-panel i { font-size: 32px; }
+
+/* 업로드 패널 */
+.eform-photo-upload-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* 드롭존 */
+.eform-photo-dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 2px dashed #d1d5db;
+  border-radius: 8px;
+  padding: 20px 16px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  text-align: center;
+  flex: 1;
+  min-height: 80px;
+  background: #fafafa;
+}
+
+.eform-photo-dropzone:hover {
+  border-color: #2563eb;
+  background: #eff6ff;
+}
+
+.eform-photo-dropzone i {
+  font-size: 28px;
+  color: #9ca3af;
+  transition: color 0.15s;
+}
+
+.eform-photo-dropzone:hover i { color: #2563eb; }
+
+.eform-photo-drop-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.eform-photo-drop-sub {
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+/* 파일 선택 후 info */
+.eform-photo-file-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+/* ── 일괄 등록 ── */
+.eform-bulk-body {
+  gap: 8px;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 미리보기 섹션이 남은 공간 전부 차지 */
+#bulkPreviewWrap {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+#bulkPreviewWrap .eform-section-head {
+  flex-shrink: 0;
+}
+
+/* 3단계 스텝 */
+.eform-bulk-steps {
+  display: flex;
+  align-items: flex-start;
+  gap: 0;
+  padding: 16px 14px;
+}
+
+.eform-bulk-step {
+  flex: 1;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.eform-bulk-step-divider {
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  margin-top: 8px;
+  color: #d1d5db;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.eform-bulk-step-num {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #0b1630;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.eform-bulk-step-content {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.eform-bulk-step-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.eform-bulk-step-desc {
+  font-size: 11px;
+  color: #6b7280;
+  line-height: 1.5;
+}
+
+/* 파일 업로드 */
+.eform-bulk-upload-area {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.eform-bulk-dropzone-sm {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border: 1.5px dashed #d1d5db;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  color: #374151;
+  background: #fafafa;
+  transition: border-color 0.12s, background 0.12s;
+}
+
+.eform-bulk-dropzone-sm:hover {
+  border-color: #2563eb;
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.eform-bulk-dropzone-sm i { font-size: 16px; }
+
+.eform-bulk-file-ext {
+  font-size: 10px;
+  color: #9ca3af;
+  font-weight: 400;
+}
+
+/* 상태 메시지 */
+.eform-bulk-status {
+  font-size: 11px;
+  color: #6b7280;
+  margin-top: 2px;
+}
+
+/* 미리보기 */
+.eform-bulk-count { font-size: 11px; font-weight: 600; color: #374151; margin-left: 8px; }
+.eform-bulk-error { font-size: 11px; color: #b91c1c; margin-left: 6px; }
+
+.eform-bulk-table-wrap {
+  overflow-x: auto;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+  padding: 0 14px 14px;
+}
+.eform-bulk-table-wrap::-webkit-scrollbar { width: 4px; height: 4px; }
+.eform-bulk-table-wrap::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 999px; }
+
+/* bulk-table은 기존 스타일 유지 */
+.bulk-table { border-collapse: collapse; font-size: 11px; min-width: 600px; }
+.bulk-table th, .bulk-table td {
+  border: 1px solid #e5e7eb;
+  padding: 5px 8px;
+  white-space: nowrap;
+}
+.bulk-table th { background: #f8fafc; font-weight: 700; color: #374151; }
+.bulk-table tr:hover td { background: #f8faff; }
+.bulk-cell-error { background: #fef2f2 !important; color: #b91c1c; }
+
+/* ── message-box ── */
+.message-box { flex-shrink: 0; }
