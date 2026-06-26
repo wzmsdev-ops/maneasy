@@ -21,16 +21,39 @@
       padding:10px 16px; gap:8px; box-sizing:border-box; overflow:hidden;
     }
 
+    /* ── 메인 탭 (발주요청확인 / 발주목록) ── */
+    .po-main-tabs {
+      display:flex; gap:2px; background:#e5e7eb;
+      border-radius:8px; padding:3px; flex-shrink:0;
+    }
+    .po-main-tabs .tab-btn {
+      flex:1; height:32px; border:none; background:transparent;
+      border-radius:6px; font-size:12px; font-weight:600; color:#6b7280; cursor:pointer;
+      transition:background 0.15s,color 0.15s;
+    }
+    .po-main-tabs .tab-btn:hover { background:rgba(255,255,255,0.6); color:#374151; }
+    .po-main-tabs .tab-btn.active { background:#fff; color:#111827; box-shadow:0 1px 3px rgba(0,0,0,0.08); }
+    .po-main-content { flex:1; min-height:0; position:relative; }
+    .po-main-panel { display:none; position:absolute; inset:0; flex-direction:column; gap:8px; }
+    .po-main-panel.active { display:flex; }
+
+    /* ── 알림 뱃지 (요청확인 탭에 대기건수) ── */
+    .po-tab-count {
+      display:inline-block; min-width:16px; height:16px; padding:0 4px; margin-left:5px;
+      background:#ef4444; color:#fff; border-radius:999px; font-size:10px; font-weight:700;
+      line-height:16px; text-align:center; vertical-align:middle;
+    }
+
     /* ── 액션바 ── */
     .po-actionbar { display:flex; align-items:center; gap:8px; flex-shrink:0; }
     .po-actionbar .spacer { flex:1; }
 
     /* ── 상태 탭 필터 ── */
-    .po-status-tabs { display:flex; gap:3px; flex-shrink:0; }
+    .po-status-tabs { display:flex; gap:3px; flex-shrink:0; flex-wrap:wrap; }
     .po-status-tab {
       height:28px; padding:0 12px; border:1px solid #e5e7eb;
       background:#fff; border-radius:6px; font-size:11px; font-weight:600;
-      color:#6b7280; cursor:pointer; transition:all 0.15s;
+      color:#6b7280; cursor:pointer; transition:all 0.15s; white-space:nowrap;
     }
     .po-status-tab:hover { border-color:#93c5fd; color:#3b82f6; }
     .po-status-tab.active { background:#3b82f6; border-color:#3b82f6; color:#fff; }
@@ -63,6 +86,7 @@
     }
     .m-modal-dialog--form   { width:760px; max-width:calc(100vw - 32px); height:calc(100vh - 48px); }
     .m-modal-dialog--detail { width:760px; max-width:calc(100vw - 32px); max-height:calc(100vh - 48px); }
+    .m-modal-dialog--wide   { width:880px; max-width:calc(100vw - 32px); height:calc(100vh - 48px); }
     .m-modal-head {
       display:flex; align-items:center; justify-content:space-between;
       padding:10px 14px; background:#0b1630; flex-shrink:0;
@@ -119,14 +143,22 @@
     }
     .po-total-bar strong { font-weight:700; color:#111827; font-size:13px; }
 
-    /* ── 상태 배지 ── */
-    .badge-draft     { background:#f3f4f6;color:#6b7280;   padding:1px 8px;border-radius:999px;font-size:10px;font-weight:700; }
-    .badge-ordered   { background:#dbeafe;color:#1d4ed8;   padding:1px 8px;border-radius:999px;font-size:10px;font-weight:700; }
-    .badge-partial   { background:#fef3c7;color:#92400e;   padding:1px 8px;border-radius:999px;font-size:10px;font-weight:700; }
-    .badge-completed { background:#d1fae5;color:#065f46;   padding:1px 8px;border-radius:999px;font-size:10px;font-weight:700; }
-    .badge-cancelled { background:#fee2e2;color:#991b1b;   padding:1px 8px;border-radius:999px;font-size:10px;font-weight:700; }
+    /* ── 안내 박스 ── */
+    .info-box {
+      background:#eff6ff; border:1px solid #bfdbfe; border-radius:6px;
+      padding:8px 12px; font-size:11px; color:#1d4ed8; line-height:1.6; flex-shrink:0;
+    }
 
-    /* 삭제 버튼 */
+    /* ── 상태 배지 ── */
+    .badge-requested  { background:#dbeafe;color:#1d4ed8;padding:1px 8px;border-radius:999px;font-size:10px;font-weight:700; }
+    .badge-processing { background:#fef3c7;color:#92400e;padding:1px 8px;border-radius:999px;font-size:10px;font-weight:700; }
+    .badge-draft      { background:#f3f4f6;color:#6b7280;   padding:1px 8px;border-radius:999px;font-size:10px;font-weight:700; }
+    .badge-ordered    { background:#dbeafe;color:#1d4ed8;   padding:1px 8px;border-radius:999px;font-size:10px;font-weight:700; }
+    .badge-partial    { background:#fef3c7;color:#92400e;   padding:1px 8px;border-radius:999px;font-size:10px;font-weight:700; }
+    .badge-completed  { background:#d1fae5;color:#065f46;   padding:1px 8px;border-radius:999px;font-size:10px;font-weight:700; }
+    .badge-cancelled  { background:#fee2e2;color:#991b1b;   padding:1px 8px;border-radius:999px;font-size:10px;font-weight:700; }
+    .badge-rejected   { background:#fee2e2;color:#991b1b;   padding:1px 8px;border-radius:999px;font-size:10px;font-weight:700; }
+
     /* ── 상세 모달 메타 그리드 ── */
     .po-detail-meta {
       display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px;
@@ -135,38 +167,123 @@
     .po-detail-meta-label { font-size:10px; font-weight:700; color:#9ca3af; }
     .po-detail-meta-value { font-size:12px; font-weight:500; color:#111827; }
     .po-detail-items-wrap { border:1px solid #e5e7eb; border-radius:6px; overflow:hidden; min-height:200px; }
+
+    /* ── 분리된 발주서 카드 목록 ── */
+    .linked-po-card {
+      display:flex; align-items:center; gap:10px; padding:8px 12px;
+      border:1px solid #e5e7eb; border-radius:6px; margin-bottom:6px; font-size:12px;
+    }
+    .linked-po-card:last-child { margin-bottom:0; }
+    .linked-po-vendor { font-weight:700; color:#111827; min-width:120px; }
   </style>
 </head>
 <body>
 <div class="po-page">
 
-  <!-- 액션바 -->
-  <div class="po-actionbar">
-    <div class="po-status-tabs">
-      <button class="po-status-tab active" data-status="">전체</button>
-      <button class="po-status-tab" data-status="DRAFT">초안</button>
-      <button class="po-status-tab" data-status="ORDERED">발주완료</button>
-      <button class="po-status-tab" data-status="PARTIAL">부분입고</button>
-      <button class="po-status-tab" data-status="COMPLETED">완료</button>
-      <button class="po-status-tab" data-status="CANCELLED">취소</button>
-    </div>
-    <div class="spacer"></div>
-    <span id="poCountLabel" style="font-size:11px;color:#9ca3af;"></span>
-    <button class="btn btn-sm btn-primary" id="addPoBtn"><i class="ti ti-plus"></i> 발주 등록</button>
+  <!-- 메인 탭 -->
+  <div class="po-main-tabs">
+    <button class="tab-btn active" data-maintab="review">발주요청확인<span class="po-tab-count" id="reviewCountBadge" style="display:none;">0</span></button>
+    <button class="tab-btn" data-maintab="orders">발주목록</button>
   </div>
 
-  <!-- 발주 목록 그리드 -->
-  <div class="m-card">
-    <div class="m-card-head">
-      <span class="m-card-title">발주 목록</span>
-    </div>
-    <div class="m-card-body">
-      <div id="poGrid" class="m-table-wrap"></div>
-    </div>
-    <div class="pagination-area" id="poPagination"></div>
-  </div>
+  <div class="po-main-content">
 
+    <!-- ══════════════════════════════════════
+         발주요청확인 탭 — 자재담당자가 사용자 요청을 확인하고
+         업체별로 발주서를 분리/확정한다.
+    ══════════════════════════════════════ -->
+    <div id="panel-review" class="po-main-panel active">
+      <div class="po-actionbar">
+        <div class="po-status-tabs">
+          <button class="rv-status-tab active" data-status="REQUESTED">요청</button>
+          <button class="rv-status-tab" data-status="PROCESSING">처리중</button>
+          <button class="rv-status-tab" data-status="">전체</button>
+        </div>
+        <div class="spacer"></div>
+        <span id="rvCountLabel" style="font-size:11px;color:#9ca3af;"></span>
+      </div>
+
+      <div class="m-card">
+        <div class="m-card-head">
+          <span class="m-card-title">발주요청 목록</span>
+        </div>
+        <div class="m-card-body">
+          <div id="rvGrid" class="m-table-wrap"></div>
+        </div>
+        <div class="pagination-area" id="rvPagination"></div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════
+         발주목록 탭 — 기존 발주서 관리
+    ══════════════════════════════════════ -->
+    <div id="panel-orders" class="po-main-panel">
+      <div class="po-actionbar">
+        <div class="po-status-tabs">
+          <button class="po-status-tab active" data-status="">전체</button>
+          <button class="po-status-tab" data-status="DRAFT">초안</button>
+          <button class="po-status-tab" data-status="ORDERED">발주완료</button>
+          <button class="po-status-tab" data-status="PARTIAL">부분입고</button>
+          <button class="po-status-tab" data-status="COMPLETED">완료</button>
+          <button class="po-status-tab" data-status="CANCELLED">취소</button>
+        </div>
+        <div class="spacer"></div>
+        <span id="poCountLabel" style="font-size:11px;color:#9ca3af;"></span>
+        <button class="btn btn-sm btn-primary" id="addPoBtn"><i class="ti ti-plus"></i> 발주 등록</button>
+      </div>
+
+      <div class="m-card">
+        <div class="m-card-head">
+          <span class="m-card-title">발주 목록</span>
+        </div>
+        <div class="m-card-body">
+          <div id="poGrid" class="m-table-wrap"></div>
+        </div>
+        <div class="pagination-area" id="poPagination"></div>
+      </div>
+    </div>
+
+  </div>
 </div><!-- /po-page -->
+
+<!-- ══════════════════════════════════════
+     발주요청 상세 / 분리 모달
+══════════════════════════════════════ -->
+<div id="rvDetailModal" class="m-modal">
+  <div class="m-modal-backdrop" onclick="closeModal('rvDetailModal')"></div>
+  <div class="m-modal-dialog m-modal-dialog--wide">
+    <div class="m-modal-head">
+      <span class="m-modal-title" id="rvDetailTitle">발주요청 상세</span>
+      <button class="m-modal-close" onclick="closeModal('rvDetailModal')"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="m-modal-body">
+      <div class="po-detail-meta" id="rvDetailMeta"></div>
+
+      <!-- REQUESTED 상태: 업체별 분리 편집 그리드 -->
+      <div id="rvSplitSection" class="po-items-section" style="display:none;">
+        <div class="info-box">
+          품목별로 발주할 거래처를 선택하세요. 같은 거래처로 묶인 품목들은 거래처별 발주서(초안)로 자동 분리됩니다.<br>
+          요청수량(사용단위)은 자재의 입고단위 환산수에 따라 입고수량으로 자동 환산됩니다.
+        </div>
+        <div class="po-items-toolbar">
+          <span class="po-items-toolbar-label">요청 품목 — 거래처 지정</span>
+        </div>
+        <div class="po-items-grid-wrap" style="max-height:none;">
+          <div id="rvSplitGrid" class="po-items-grid ag-theme-alpine"></div>
+        </div>
+      </div>
+
+      <!-- PROCESSING/그 외 상태: 분리된 발주서 목록 -->
+      <div id="rvLinkedSection" style="display:none;">
+        <div class="po-items-toolbar-label" style="margin-bottom:6px;">분리된 발주서</div>
+        <div id="rvLinkedList"></div>
+      </div>
+    </div>
+    <div class="m-modal-foot" id="rvDetailFoot">
+      <button class="btn btn-sm" onclick="closeModal('rvDetailModal')">닫기</button>
+    </div>
+  </div>
+</div>
 
 <!-- ══════════════════════════════════════
      발주 등록 / 수정 모달

@@ -105,6 +105,8 @@
     .badge-out    { background:#fee2e2;color:#991b1b;padding:1px 8px;border-radius:999px;font-size:10px;font-weight:700; }
     .badge-adj    { background:#dbeafe;color:#1d4ed8;padding:1px 8px;border-radius:999px;font-size:10px;font-weight:700; }
     .badge-return { background:#ede9fe;color:#6d28d9;padding:1px 8px;border-radius:999px;font-size:10px;font-weight:700; }
+    .badge-dispatch { background:#e0e7ff;color:#4338ca;padding:1px 8px;border-radius:999px;font-size:10px;font-weight:700; }
+    .badge-use      { background:#fee2e2;color:#991b1b;padding:1px 8px;border-radius:999px;font-size:10px;font-weight:700; }
     /* 안내 박스 */
     .info-box {
       background:#eff6ff; border:1px solid #bfdbfe; border-radius:6px;
@@ -116,37 +118,19 @@
 <div class="st-page">
 
   <div class="st-tabs">
-    <button class="tab-btn active" data-tab="current">현재고</button>
-    <button class="tab-btn" data-tab="receipt">입고</button>
-    <button class="tab-btn" data-tab="txlog">입출고 이력</button>
+    <button class="tab-btn active" data-tab="receipt">입고</button>
+    <button class="tab-btn" data-tab="dispatch">불출</button>
+    <button class="tab-btn" data-tab="deptstock">부서별재고</button>
+    <button class="tab-btn" data-tab="use">사용처리</button>
   </div>
 
   <div class="st-content">
 
-    <!-- ═══ 현재고 탭 ═══ -->
-    <div id="tab-current" class="tab-panel active">
+    <!-- ═══ 입고 탭 (자재담당자가 발주 품목을 중앙창고로 입고) ═══ -->
+    <div id="tab-receipt" class="tab-panel active">
       <div class="m-card">
         <div class="m-card-head">
-          <span class="m-card-title">현재고</span>
-          <button class="btn btn-sm" id="outBtn"><i class="ti ti-arrow-right"></i> 출고 등록</button>
-        </div>
-        <div class="m-filter-bar">
-          <span class="m-filter-label">자재</span>
-          <input type="text" id="currentItemKeyword" placeholder="자재명 검색..." />
-          <button class="btn btn-sm" id="currentSearchBtn">검색</button>
-        </div>
-        <div class="m-card-body">
-          <div id="currentGrid" class="m-table-wrap"></div>
-        </div>
-        <div class="pagination-area" id="currentPagination"></div>
-      </div>
-    </div>
-
-    <!-- ═══ 입고 탭 ═══ -->
-    <div id="tab-receipt" class="tab-panel">
-      <div class="m-card">
-        <div class="m-card-head">
-          <span class="m-card-title">입고 목록</span>
+          <span class="m-card-title">입고 목록 <span style="color:#9ca3af;font-weight:400;">— 중앙창고 입고</span></span>
           <button class="btn btn-sm btn-primary" id="addReceiptBtn"><i class="ti ti-plus"></i> 입고 등록</button>
         </div>
         <div class="m-filter-bar">
@@ -163,31 +147,69 @@
       </div>
     </div>
 
-    <!-- ═══ 입출고 이력 탭 ═══ -->
-    <div id="tab-txlog" class="tab-panel">
+    <!-- ═══ 불출 탭 (중앙창고 → 부서) ═══ -->
+    <div id="tab-dispatch" class="tab-panel">
       <div class="m-card">
         <div class="m-card-head">
-          <span class="m-card-title">입출고 이력</span>
+          <span class="m-card-title">불출 목록 <span style="color:#9ca3af;font-weight:400;">— 부서로 자재 전달</span></span>
+          <button class="btn btn-sm btn-primary" id="addDispatchBtn"><i class="ti ti-plus"></i> 불출 등록</button>
         </div>
         <div class="m-filter-bar">
-          <span class="m-filter-label">유형</span>
-          <select id="txTypeFilter">
-            <option value="">전체</option>
-            <option value="IN">입고</option>
-            <option value="OUT">출고</option>
-            <option value="ADJ">조정</option>
-            <option value="RETURN">반납</option>
-          </select>
+          <span class="m-filter-label">부서</span>
+          <select id="dispatchDeptFilter"><option value="">전체</option></select>
           <span class="m-filter-label">기간</span>
-          <input type="date" id="txDateFrom" style="min-width:unset;width:130px;" />
+          <input type="date" id="dispatchDateFrom" style="min-width:unset;width:130px;" />
           <span style="font-size:11px;color:#9ca3af;">~</span>
-          <input type="date" id="txDateTo" style="min-width:unset;width:130px;" />
-          <button class="btn btn-sm" id="txSearchBtn">검색</button>
+          <input type="date" id="dispatchDateTo" style="min-width:unset;width:130px;" />
+          <button class="btn btn-sm" id="dispatchSearchBtn">검색</button>
         </div>
         <div class="m-card-body">
-          <div id="txGrid" class="m-table-wrap"></div>
+          <div id="dispatchGrid" class="m-table-wrap"></div>
         </div>
-        <div class="pagination-area" id="txPagination"></div>
+        <div class="pagination-area" id="dispatchPagination"></div>
+      </div>
+    </div>
+
+    <!-- ═══ 부서별재고 탭 ═══ -->
+    <div id="tab-deptstock" class="tab-panel">
+      <div class="m-card">
+        <div class="m-card-head">
+          <span class="m-card-title">부서별 재고 <span style="color:#9ca3af;font-weight:400;">— 의원 통합 아님, 부서 단위로 관리</span></span>
+        </div>
+        <div class="m-filter-bar">
+          <span class="m-filter-label">부서</span>
+          <select id="deptStockDeptFilter"><option value="">전체</option></select>
+          <span class="m-filter-label">자재</span>
+          <input type="text" id="deptStockKeyword" placeholder="자재명 검색..." />
+          <button class="btn btn-sm" id="deptStockSearchBtn">검색</button>
+        </div>
+        <div class="m-card-body">
+          <div id="deptStockGrid" class="m-table-wrap"></div>
+        </div>
+        <div class="pagination-area" id="deptStockPagination"></div>
+      </div>
+    </div>
+
+    <!-- ═══ 사용처리 탭 (부서 재고 차감) ═══ -->
+    <div id="tab-use" class="tab-panel">
+      <div class="m-card">
+        <div class="m-card-head">
+          <span class="m-card-title">사용처리 이력 <span style="color:#9ca3af;font-weight:400;">— 부서에서 사용한 자재 차감</span></span>
+          <button class="btn btn-sm btn-primary" id="addUseBtn"><i class="ti ti-plus"></i> 사용처리 등록</button>
+        </div>
+        <div class="m-filter-bar">
+          <span class="m-filter-label">부서</span>
+          <select id="useDeptFilter"><option value="">전체</option></select>
+          <span class="m-filter-label">기간</span>
+          <input type="date" id="useDateFrom" style="min-width:unset;width:130px;" />
+          <span style="font-size:11px;color:#9ca3af;">~</span>
+          <input type="date" id="useDateTo" style="min-width:unset;width:130px;" />
+          <button class="btn btn-sm" id="useSearchBtn">검색</button>
+        </div>
+        <div class="m-card-body">
+          <div id="useGrid" class="m-table-wrap"></div>
+        </div>
+        <div class="pagination-area" id="usePagination"></div>
       </div>
     </div>
 
@@ -205,7 +227,8 @@
     <div class="m-modal-body">
       <div class="info-box">
         입고단위로 수량을 입력하면 사용단위로 자동 환산됩니다.<br>
-        예) BOX 5박스 입고 → 사용단위(EA) 60개 자동 계산 (환산수 12)
+        예) BOX 5박스 입고 → 사용단위(EA) 60개 자동 계산 (환산수 12)<br>
+        입고된 자재는 중앙창고(자재담당자 보관) 재고로 적립되며, [불출] 탭에서 부서로 전달합니다.
       </div>
       <div class="m-field">
         <label>자재 <span class="m-req">*</span></label>
@@ -217,7 +240,7 @@
         <span>입고단위: <strong id="rPurchaseUnit">-</strong></span>
         <span>사용단위: <strong id="rUseUnit">-</strong></span>
         <span>환산수: <strong id="rUnitQty">-</strong></span>
-        <span>현재고: <strong id="rCurrentQty">-</strong></span>
+        <span>중앙창고 현재고: <strong id="rCurrentQty">-</strong></span>
       </div>
       <div class="m-field-row">
         <div class="m-field">
@@ -261,43 +284,96 @@
   </div>
 </div>
 
-<!-- ══ 출고 등록 모달 ══ -->
-<div id="outModal" class="m-modal">
-  <div class="m-modal-backdrop" onclick="closeModal('outModal')"></div>
+<!-- ══ 불출 등록 모달 ══ -->
+<div id="dispatchModal" class="m-modal">
+  <div class="m-modal-backdrop" onclick="closeModal('dispatchModal')"></div>
   <div class="m-modal-dialog">
     <div class="m-modal-head">
-      <span class="m-modal-title">출고 등록</span>
-      <button class="m-modal-close" onclick="closeModal('outModal')"><i class="ti ti-x"></i></button>
+      <span class="m-modal-title">불출 등록</span>
+      <button class="m-modal-close" onclick="closeModal('dispatchModal')"><i class="ti ti-x"></i></button>
     </div>
     <div class="m-modal-body">
       <div class="m-field">
         <label>자재 <span class="m-req">*</span></label>
-        <select id="o_item_id">
+        <select id="d_item_id">
           <option value="">자재 선택</option>
         </select>
       </div>
       <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:6px;padding:8px 12px;font-size:11px;color:#374151;display:flex;gap:16px;flex-wrap:wrap;">
-        <span>사용단위: <strong id="oUseUnit">-</strong></span>
-        <span>현재고: <strong id="oCurrentQty">-</strong></span>
+        <span>사용단위: <strong id="dUseUnit">-</strong></span>
+        <span>중앙창고 현재고: <strong id="dCurrentQty">-</strong></span>
+      </div>
+      <div class="m-field">
+        <label>받을 부서 <span class="m-req">*</span></label>
+        <select id="d_dept_id">
+          <option value="">부서 선택</option>
+        </select>
       </div>
       <div class="m-field-row">
         <div class="m-field">
-          <label>출고일 <span class="m-req">*</span></label>
-          <input type="date" id="o_tx_date" />
+          <label>불출일 <span class="m-req">*</span></label>
+          <input type="date" id="d_dispatch_date" />
         </div>
         <div class="m-field">
-          <label>출고수량 (사용단위) <span class="m-req">*</span></label>
-          <input type="number" id="o_qty" min="1" value="1" />
+          <label>불출수량 (사용단위) <span class="m-req">*</span></label>
+          <input type="number" id="d_qty" min="1" value="1" />
         </div>
       </div>
       <div class="m-field">
         <label>메모</label>
-        <textarea id="o_memo" placeholder="출고 사유 등"></textarea>
+        <textarea id="d_memo" placeholder="메모"></textarea>
       </div>
     </div>
     <div class="m-modal-foot">
-      <button class="btn btn-sm" onclick="closeModal('outModal')">취소</button>
-      <button class="btn btn-sm btn-primary" id="outSaveBtn">출고 등록</button>
+      <button class="btn btn-sm" onclick="closeModal('dispatchModal')">취소</button>
+      <button class="btn btn-sm btn-primary" id="dispatchSaveBtn">불출 등록</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 사용처리 등록 모달 ══ -->
+<div id="useModal" class="m-modal">
+  <div class="m-modal-backdrop" onclick="closeModal('useModal')"></div>
+  <div class="m-modal-dialog">
+    <div class="m-modal-head">
+      <span class="m-modal-title">사용처리 등록</span>
+      <button class="m-modal-close" onclick="closeModal('useModal')"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="m-modal-body">
+      <div class="m-field">
+        <label>부서 <span class="m-req">*</span></label>
+        <select id="u_dept_id">
+          <option value="">부서 선택</option>
+        </select>
+      </div>
+      <div class="m-field">
+        <label>자재 <span class="m-req">*</span></label>
+        <select id="u_item_id">
+          <option value="">먼저 부서를 선택하세요</option>
+        </select>
+      </div>
+      <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:6px;padding:8px 12px;font-size:11px;color:#374151;display:flex;gap:16px;flex-wrap:wrap;">
+        <span>사용단위: <strong id="uUseUnit">-</strong></span>
+        <span>해당 부서 현재고: <strong id="uCurrentQty">-</strong></span>
+      </div>
+      <div class="m-field-row">
+        <div class="m-field">
+          <label>사용일 <span class="m-req">*</span></label>
+          <input type="date" id="u_use_date" />
+        </div>
+        <div class="m-field">
+          <label>사용수량 (사용단위) <span class="m-req">*</span></label>
+          <input type="number" id="u_qty" min="1" value="1" />
+        </div>
+      </div>
+      <div class="m-field">
+        <label>메모</label>
+        <textarea id="u_memo" placeholder="사용 사유 등"></textarea>
+      </div>
+    </div>
+    <div class="m-modal-foot">
+      <button class="btn btn-sm" onclick="closeModal('useModal')">취소</button>
+      <button class="btn btn-sm btn-primary" id="useSaveBtn">사용처리 등록</button>
     </div>
   </div>
 </div>
