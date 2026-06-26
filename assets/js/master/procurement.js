@@ -84,14 +84,14 @@ function initMainTabs() {
           if (!_rvListGrid) initRvListGrid();
           setTimeout(function() {
             var el = document.getElementById('rvGrid');
-            if (el && _rvListGrid) { el.style.height = Math.max(300, window.innerHeight - 130) + 'px'; _rvListGrid.sizeColumnsToFit(); }
+            if (el && _rvListGrid) { el.style.height = Math.max(300, window.innerHeight - 214) + 'px'; _rvListGrid.sizeColumnsToFit(); }
           }, 0);
         }
         if (target === 'orders') {
           if (!_poListGrid) initPoListGrid();
           setTimeout(function() {
             var el = document.getElementById('poGrid');
-            if (el && _poListGrid) { el.style.height = Math.max(300, window.innerHeight - 130) + 'px'; _poListGrid.sizeColumnsToFit(); }
+            if (el && _poListGrid) { el.style.height = Math.max(300, window.innerHeight - 214) + 'px'; _poListGrid.sizeColumnsToFit(); }
           }, 0);
         }
       });
@@ -110,7 +110,7 @@ function initRvListGrid() {
     rvEl.style.height = (panel ? panel.clientHeight - 80 : 500) + 'px';
     if (parseInt(rvEl.style.height) < 200) rvEl.style.height = '500px';
   }
-  _rvListGrid = (function(){ var _g = document.getElementById('rvGrid'); if(_g) _g.style.height = Math.max(300, window.innerHeight - 130) + 'px'; })();
+  _rvListGrid = (function(){ var _g = document.getElementById('rvGrid'); if(_g) _g.style.height = Math.max(300, window.innerHeight - 214) + 'px'; })();
   createMgGrid('rvGrid', [
     { headerName: '요청번호', field: 'request_no', width: 150,
       headerClass: 'ag-left-header',
@@ -584,7 +584,7 @@ function initPoListGrid() {
     poEl.style.height = (panel ? panel.clientHeight - 80 : 500) + 'px';
     if (parseInt(poEl.style.height) < 200) poEl.style.height = '500px';
   }
-  _poListGrid = (function(){ var _g = document.getElementById('poGrid'); if(_g) _g.style.height = Math.max(300, window.innerHeight - 130) + 'px'; })();
+  _poListGrid = (function(){ var _g = document.getElementById('poGrid'); if(_g) _g.style.height = Math.max(300, window.innerHeight - 214) + 'px'; })();
   createMgGrid('poGrid', [
     { headerName: '발주번호', field: 'order_no', width: 140,
       headerClass: 'ag-left-header',
