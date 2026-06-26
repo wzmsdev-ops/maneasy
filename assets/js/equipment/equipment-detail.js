@@ -63,8 +63,21 @@ function renderEquipment(eq) {
 
   if (eq.photo_url) {
     const img = document.getElementById('detailPhoto');
-    if (img) { img.src = eq.photo_url; img.style.display = ''; }
+    if (img) {
+      img.src = eq.photo_url;
+      img.style.display = '';
+      const emptyText = img.nextElementSibling;
+      if (emptyText) emptyText.style.display = 'none';
+    }
   }
+
+  // 액션바 동기화
+  const abName   = document.getElementById('actionbarEquipmentName');
+  const abModel  = document.getElementById('actionbarModelName');
+  const abStatus = document.getElementById('actionbarStatus');
+  if (abName)   abName.textContent   = eq.equipment_name || '—';
+  if (abModel)  abModel.textContent  = eq.model_name || '';
+  if (abStatus) abStatus.textContent = STATUS_LABEL[eq.status] || eq.status || '—';
 }
 
 /* ── 이력 ──────────────────────────────────── */
@@ -92,7 +105,9 @@ function renderHistories(rows) {
 
   wrap.innerHTML = `
     <table class="data-table">
-      <thead><tr><th>유형</th><th>작업일</th><th>담당자</th><th>금액</th><th>결과</th><th>설명</th></tr></thead>
+      <thead><tr>
+        <th>유형</th><th>작업일</th><th>담당자</th><th>금액</th><th>결과</th><th>내용</th>
+      </tr></thead>
       <tbody>${rows.map(r => `
         <tr>
           <td>${textSafe(r.history_type || '-')}</td>
@@ -131,7 +146,9 @@ function renderInventoryLogs(rows) {
 
   wrap.innerHTML = `
     <table class="data-table">
-      <thead><tr><th>조사일시</th><th>조사자</th><th>상태</th><th>위치</th><th>메모</th></tr></thead>
+      <thead><tr>
+        <th>조사일시</th><th>조사자</th><th>상태</th><th>위치</th><th>메모</th>
+      </tr></thead>
       <tbody>${rows.map(r => `
         <tr>
           <td>${formatTs(r.checked_at)}</td>
@@ -169,7 +186,9 @@ function renderQcItems(rows) {
 
   wrap.innerHTML = `
     <table class="data-table">
-      <thead><tr><th>항목명</th><th>유형</th><th>단위</th><th>평균(Mean)</th><th>SD</th><th>데이터 수</th><th></th></tr></thead>
+      <thead><tr>
+        <th>항목명</th><th>유형</th><th>단위</th><th>Mean</th><th>SD</th><th>데이터</th><th></th>
+      </tr></thead>
       <tbody>${rows.map(r => `
         <tr>
           <td>${textSafe(r.item_name)}</td>
@@ -178,9 +197,7 @@ function renderQcItems(rows) {
           <td>${r.mean != null ? r.mean : '-'}</td>
           <td>${r.sd != null ? r.sd : '-'}</td>
           <td>${r.lj_entries?.[0]?.count ?? 0}건</td>
-          <td>
-            <button class="btn btn-sm" onclick="goQcData('${r.id}')">데이터 입력</button>
-          </td>
+          <td><button class="btn btn-sm" onclick="goQcData('${r.id}')">데이터 입력</button></td>
         </tr>`).join('')}
       </tbody>
     </table>`;
@@ -214,12 +231,10 @@ async function init() {
 
   initTabs();
 
-  // 수정 버튼
   document.getElementById('editBtn')?.addEventListener('click', () => {
     parent.shellNavigate?.(`equipment/form?id=${equipmentId}`);
   });
 
-  // 정도관리 항목 추가 버튼
   document.getElementById('addQcItemBtn')?.addEventListener('click', () => {
     parent.shellNavigate?.(`qc/items?equipment_id=${equipmentId}`);
   });
