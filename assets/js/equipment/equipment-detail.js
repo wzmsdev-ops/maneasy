@@ -819,15 +819,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     const editBtn = qs('#editEquipmentBtn');
     if (editBtn) {
       editBtn.addEventListener('click', function() {
-        try {
-          if (window.parent && window.parent.shellNavigate) {
-            window.parent.shellNavigate('equipment/form-edit', '', false, { id: currentEquipmentId });
-          } else {
-            location.href = 'form.html?id=' + encodeURIComponent(currentEquipmentId);
-          }
-        } catch(e) {
-          location.href = 'form.html?id=' + encodeURIComponent(currentEquipmentId);
-        }
+        parent.shellNavigate?.('equipment/form?id=' + currentEquipmentId);
       });
     }
 
