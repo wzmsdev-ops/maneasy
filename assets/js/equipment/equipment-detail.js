@@ -143,7 +143,7 @@ function applyActionVisibility() {
   if (addInventoryBtn) addInventoryBtn.style.display = canEditThisItem && !isDeleted ? '' : 'none';
   const isMobile = window.innerWidth <= 768;
   if (printLabelBtn) printLabelBtn.style.display = (detailPermission.canView && !isMobile) ? '' : 'none';
-  if (inspectionCertBtn) inspectionCertBtn.style.display = (isAdmin || isAppAdmin) ? '' : 'none';
+  if (inspectionCertBtn) inspectionCertBtn.style.display = 'none'; // 미사용
 
   if (typeof applyTopActionsColClass === 'function') applyTopActionsColClass();
 }
