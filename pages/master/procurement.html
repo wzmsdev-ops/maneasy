@@ -194,6 +194,12 @@
     ══════════════════════════════════════ -->
     <div id="panel-review" class="po-main-panel active">
       <div class="po-actionbar">
+        <input type="text" id="rvKeyword" placeholder="요청자/부서 검색..."
+          style="height:30px;padding:0 10px;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;outline:none;width:180px;" />
+        <input type="date" id="rvDateFrom" style="height:30px;padding:0 8px;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;outline:none;" />
+        <span style="font-size:11px;color:#9ca3af;">~</span>
+        <input type="date" id="rvDateTo" style="height:30px;padding:0 8px;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;outline:none;" />
+        <button class="btn btn-sm" id="rvSearchBtn"><i class="ti ti-search"></i> 검색</button>
         <div class="po-status-tabs">
           <button class="rv-status-tab active" data-status="REQUESTED">요청</button>
           <button class="rv-status-tab" data-status="PROCESSING">처리중</button>
@@ -219,6 +225,12 @@
     ══════════════════════════════════════ -->
     <div id="panel-orders" class="po-main-panel">
       <div class="po-actionbar">
+        <input type="text" id="poKeyword" placeholder="발주번호/거래처 검색..."
+          style="height:30px;padding:0 10px;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;outline:none;width:200px;" />
+        <input type="date" id="poDateFrom" style="height:30px;padding:0 8px;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;outline:none;" />
+        <span style="font-size:11px;color:#9ca3af;">~</span>
+        <input type="date" id="poDateTo" style="height:30px;padding:0 8px;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;outline:none;" />
+        <button class="btn btn-sm" id="poSearchBtn"><i class="ti ti-search"></i> 검색</button>
         <div class="po-status-tabs">
           <button class="po-status-tab active" data-status="">전체</button>
           <button class="po-status-tab" data-status="DRAFT">초안</button>
