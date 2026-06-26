@@ -1,0 +1,98 @@
+/**
+ * assets/css/ag-grid-custom.css
+ * AG Grid 공통 커스텀 스타일 — 모든 그리드 페이지에서 공유
+ * 적용 순서: ag-grid.min.css → ag-theme-alpine.min.css → ag-grid-custom.css
+ */
+
+/* ── 테마 변수 ── */
+.ag-theme-alpine {
+  --ag-font-size: 11px;
+  --ag-font-family: "Pretendard", "Noto Sans KR", sans-serif;
+  --ag-header-background-color: #f8fafc;
+  --ag-header-foreground-color: #4b5563;
+  --ag-border-color: #e5e7eb;
+  --ag-row-border-color: #f0f0f0;
+  --ag-background-color: #fff;
+  --ag-odd-row-background-color: #fff;
+  --ag-row-hover-color: #f0f5ff;
+  --ag-selected-row-background-color: #eff6ff;
+  --ag-cell-horizontal-padding: 8px;
+}
+
+/* ── 레이아웃 ── */
+.ag-theme-alpine .ag-root-wrapper {
+  border-radius: 8px;
+  overflow: hidden;
+}
+.ag-theme-alpine .ag-body-viewport {
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+}
+.ag-theme-alpine .ag-body-horizontal-scroll {
+  display: none !important;
+}
+
+/* ── 헤더 ── */
+.ag-theme-alpine .ag-header {
+  font-size: 11px;
+}
+.ag-theme-alpine .ag-header-cell-text {
+  font-size: 11px !important;
+  font-family: "Pretendard", "Noto Sans KR", sans-serif !important;
+}
+.ag-theme-alpine .ag-header-cell-label {
+  justify-content: center;
+  font-weight: 700;
+}
+
+/* 헤더 정렬 유틸 클래스 */
+.ag-left-header   .ag-header-cell-label { justify-content: flex-start !important; }
+.ag-right-header  .ag-header-cell-label { justify-content: flex-end   !important; }
+.ag-center-header .ag-header-cell-label { justify-content: center     !important; }
+
+/* ── 셀 ── */
+.ag-theme-alpine .ag-cell {
+  font-size: 11px !important;
+  font-family: "Pretendard", "Noto Sans KR", sans-serif !important;
+  border-right: 1px solid #e5e7eb !important;
+}
+.ag-theme-alpine .ag-cell:last-child {
+  border-right: none !important;
+}
+.ag-theme-alpine .ag-cell * {
+  font-size: 11px !important;
+  font-family: "Pretendard", "Noto Sans KR", sans-serif !important;
+}
+
+/* ── 인라인 편집 (editable 셀) ── */
+.ag-theme-alpine .ag-cell-editor input,
+.ag-theme-alpine .ag-cell-editor select {
+  height: 100%;
+  width: 100%;
+  border: none;
+  outline: 2px solid #3b82f6;
+  padding: 0 6px;
+  font-size: 11px !important;
+  font-family: "Pretendard", "Noto Sans KR", sans-serif !important;
+  background: #fff;
+  box-sizing: border-box;
+}
+
+/* ── 그리드 내 공통 버튼 ── */
+.tbl-btn {
+  height: 22px;
+  padding: 0 8px;
+  border: 1px solid #d1d5db;
+  background: #fff;
+  border-radius: 4px;
+  font-size: 11px !important;
+  font-family: "Pretendard", "Noto Sans KR", sans-serif !important;
+  cursor: pointer;
+  white-space: nowrap;
+  line-height: 1;
+}
+.tbl-btn:hover { background: #f9fafb; }
+.tbl-btn--primary { background: #3b82f6; border-color: #3b82f6; color: #fff; }
+.tbl-btn--primary:hover { background: #2563eb; }
+.tbl-btn--danger  { border-color: #fca5a5; color: #dc2626; }
+.tbl-btn--danger:hover  { background: #fef2f2; }
