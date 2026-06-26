@@ -356,7 +356,7 @@ async function refreshDepts() {
 ════════════════════════════════════════════ */
 async function loadUsers() {
   const { data, error } = await supabaseClient
-    .from('user_profiles')
+    .from('user_profiles_with_email')
     .select('*')
     .order('clinic_code', { ascending: true });
   if (error) throw new Error(error.message);
