@@ -170,7 +170,13 @@ function initStatusTabs() {
       document.querySelectorAll('.pr-status-tab').forEach(function(b) { b.classList.remove('active'); });
       btn.classList.add('active');
       prState.statusFilter = btn.dataset.status || '';
-      loadPrList(1);
+      // 기본 날짜 — 오늘부터 이전 7일
+  var today = new Date();
+  var weekAgo = new Date(today);
+  weekAgo.setDate(today.getDate() - 7);
+  setVal('prDateFrom', weekAgo.toISOString().slice(0, 10));
+  setVal('prDateTo',   today.toISOString().slice(0, 10));
+  loadPrList(1);
     });
   });
 }
