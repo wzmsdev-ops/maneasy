@@ -5,14 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>장비 상세</title>
   <link rel="stylesheet" href="../../assets/css/common.css" />
+  <link rel="stylesheet" href="../../assets/libs/ag-grid/ag-grid.min.css" />
+  <link rel="stylesheet" href="../../assets/libs/ag-grid/ag-theme-alpine.min.css" />
+  <link rel="stylesheet" href="../../assets/css/ag-grid-custom.css" />
   <link rel="stylesheet" href="../../assets/css/pages/equipment-detail.css" />
   <link rel="stylesheet" href="../../assets/font/tabler-icons/tabler-icons.min.css" />
   <script>
     if (new URLSearchParams(location.search).get('shell') === '1')
       document.documentElement.classList.add('in-shell');
   </script>
-  <link rel="stylesheet" href="../../assets/libs/ag-grid/ag-grid.min.css" />
-  <link rel="stylesheet" href="../../assets/libs/ag-grid/ag-theme-alpine.min.css" />
+  
+  
 </head>
 <body class="equipment-detail-page">
 <div class="det-page">
@@ -120,7 +123,6 @@
   <script src="../../assets/libs/qrcode.min.js"></script>
   <script src="../../assets/js/equipment/inspection-cert.js"></script>
   <script src="../../assets/js/equipment/equipment-detail.js"></script>
-
 
 <!-- ── 수리/점검 이력 모달 ── -->
 <div id="historyModal" class="det-modal" aria-hidden="true">
@@ -266,7 +268,6 @@
     </div>
   </div>
 </div>
-
 
 <!-- ── 라벨 출력 모달 ── -->
 <div id="labelModal" class="det-modal" aria-hidden="true">
