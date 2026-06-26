@@ -91,11 +91,15 @@ async function onEquipmentSelected(eqId) {
 
   if (!eqId) return;
 
+  showGlobalLoading('데이터를 불러오는 중...');
   try {
     allItems = await loadItems(eqId);
     renderItemSelector(allItems);
   } catch(e) {
     console.error('[qc/data] loadItems', e);
+  }
+  finally {
+    hideGlobalLoading();
   }
 }
 
