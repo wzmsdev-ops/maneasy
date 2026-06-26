@@ -5,9 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>재고 관리</title>
   <link rel="stylesheet" href="../../assets/css/common.css" />
-  <link rel="stylesheet" href="../../assets/font/tabler-icons/tabler-icons.min.css" />
   <link rel="stylesheet" href="../../assets/libs/ag-grid/ag-grid.min.css" />
   <link rel="stylesheet" href="../../assets/libs/ag-grid/ag-theme-alpine.min.css" />
+  <link rel="stylesheet" href="../../assets/css/ag-grid-custom.css" />
+  <link rel="stylesheet" href="../../assets/font/tabler-icons/tabler-icons.min.css" />
+  
+  
   <script>
     if (new URLSearchParams(location.search).get('shell') === '1')
       document.documentElement.classList.add('in-shell');
@@ -100,32 +103,6 @@
     .stock-qty-low   { color:#d97706; font-weight:700; }
     .stock-qty-zero  { color:#dc2626; font-weight:700; }
     /* AG Grid 공통 */
-    .ag-theme-alpine {
-      --ag-font-size:11px !important;
-      --ag-font-family:"Pretendard","Noto Sans KR",sans-serif !important;
-      --ag-header-background-color:#f8fafc;
-      --ag-header-foreground-color:#4b5563;
-      --ag-border-color:#e5e7eb;
-      --ag-row-border-color:#f0f0f0;
-      --ag-background-color:#fff;
-      --ag-odd-row-background-color:#fff;
-      --ag-row-hover-color:#f0f5ff;
-      --ag-cell-horizontal-padding:8px;
-    }
-    .ag-theme-alpine .ag-root-wrapper { border-radius:0 0 8px 8px; overflow:hidden; }
-    .ag-theme-alpine .ag-body-viewport { overflow-x:hidden !important; overflow-y:auto !important; }
-    .ag-theme-alpine .ag-body-horizontal-scroll { display:none !important; }
-    .ag-theme-alpine .ag-cell { font-size:11px !important; border-right:1px solid #e5e7eb !important; }
-    .ag-theme-alpine .ag-cell:last-child { border-right:none !important; }
-    .ag-theme-alpine .ag-header-cell-label { justify-content:center; font-weight:700; }
-    .ag-left-header .ag-header-cell-label { justify-content:flex-start !important; }
-    .tbl-btn {
-      height:22px; padding:0 8px; border:1px solid #d1d5db; background:#fff;
-      border-radius:4px; font-size:11px; cursor:pointer; white-space:nowrap;
-    }
-    .tbl-btn:hover { background:#f9fafb; }
-    .tbl-btn--danger { border-color:#fca5a5; color:#dc2626; }
-    .tbl-btn--danger:hover { background:#fef2f2; }
     /* 입출고 타입 배지 */
     .badge-in     { background:#d1fae5;color:#065f46;padding:1px 8px;border-radius:999px;font-size:10px;font-weight:700; }
     .badge-out    { background:#fee2e2;color:#991b1b;padding:1px 8px;border-radius:999px;font-size:10px;font-weight:700; }
