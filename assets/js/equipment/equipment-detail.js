@@ -922,6 +922,7 @@ function closeHistoryModal() {
   var modal = qs('#historyModal');
   if (modal) {
     modal.classList.remove('is-open');
+    if (modal.contains(document.activeElement)) document.body.focus();
     modal.setAttribute('aria-hidden', 'true');
   }
 }
@@ -1078,6 +1079,7 @@ function closeInventoryModal() {
   var modal = qs('#inventoryModal');
   if (modal) {
     modal.classList.remove('is-open');
+    if (modal.contains(document.activeElement)) document.body.focus();
     modal.setAttribute('aria-hidden', 'true');
   }
 }
@@ -1232,6 +1234,7 @@ function closeLabelModal() {
   var modal = qs('#labelModal');
   if (modal) {
     modal.classList.remove('is-open');
+    if (modal.contains(document.activeElement)) document.body.focus();
     modal.setAttribute('aria-hidden', 'true');
   }
 }
