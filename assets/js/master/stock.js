@@ -202,8 +202,10 @@ async function loadReceipts(page) {
       .order('receipt_date', { ascending: false })
       .range(from, to);
 
+    var keyword = (document.getElementById('receiptKeyword')?.value || '').trim();
     if (dateFrom) q = q.gte('receipt_date', dateFrom);
     if (dateTo)   q = q.lte('receipt_date', dateTo);
+    if (keyword)  q = q.ilike('receipt_no', '%' + keyword + '%');
 
     var { data, error, count } = await q;
     if (error) throw new Error(error.message);
@@ -497,9 +499,11 @@ async function loadDispatches(page) {
       .order('dispatch_date', { ascending: false })
       .range(from, to);
 
-    if (deptId)   q = q.eq('dept_id', deptId);
-    if (dateFrom) q = q.gte('dispatch_date', dateFrom);
-    if (dateTo)   q = q.lte('dispatch_date', dateTo);
+    var dispatchKw = (document.getElementById('dispatchKeyword')?.value || '').trim();
+    if (deptId)      q = q.eq('dept_id', deptId);
+    if (dateFrom)    q = q.gte('dispatch_date', dateFrom);
+    if (dateTo)      q = q.lte('dispatch_date', dateTo);
+    if (dispatchKw)  q = q.ilike('dispatch_no', '%' + dispatchKw + '%');
 
     var { data, error, count } = await q;
     if (error) throw new Error(error.message);
