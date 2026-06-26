@@ -325,20 +325,20 @@ function createMgGrid(containerId, colDefs, rows, options) {
 
   // 높이 결정 — el 자체 → 가시 부모 → window.innerHeight 순으로 폴백
   function resolveHeight() {
-    // 1) el 본인 높이
-    if (el.clientHeight > 40) return el.clientHeight;
-    // 2) 가시 부모 체인
+    // 1) el 자신의 높이 (CSS calc로 이미 설정된 경우)
+    if (el.offsetHeight > 40) return el.offsetHeight;
+    // 2) 직접 부모 체인에서 실제 높이 탐색
     var p = el.parentElement;
     while (p) {
-      if (p.clientHeight > 40) return p.clientHeight;
+      if (p.offsetHeight > 40) return p.offsetHeight;
       p = p.parentElement;
     }
-    // 3) window 기반 추정 (헤더+툴바 약 120px 차감)
-    return Math.max(300, window.innerHeight - 120);
+    // 3) window 기반 추정
+    return Math.max(300, window.innerHeight - 160);
   }
 
   var gridH = resolveHeight();
-  el.style.height = gridH + 'px';
+  if (!el.style.height) el.style.height = gridH + 'px';
 
   var ROW_H    = 34;
   var HEADER_H = 34;
