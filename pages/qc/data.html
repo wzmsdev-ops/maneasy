@@ -17,25 +17,14 @@
 
 <div class="lj-page">
 
-  <!-- 액션바: 항목 선택 필터 -->
+  <!-- 액션바: 장비 → 항목 선택 -->
   <div class="lj-actionbar">
-    <div class="lj-actionbar-left">
-
-      <select id="groupFilterSelect" class="input lj-filter-select" onchange="onGroupFilterChange(this.value)">
-        <option value="">전체 그룹</option>
-      </select>
-      <select id="itemSelect" class="input lj-filter-select lj-item-select"></select>
-    </div>
-    <div class="lj-actionbar-right">
-      <!-- 날짜 프리셋 -->
-      <button type="button" class="btn btn-sm lj-date-preset-btn" data-days="7">7일</button>
-      <button type="button" class="btn btn-sm lj-date-preset-btn" data-days="30">30일</button>
-      <button type="button" class="btn btn-sm lj-date-preset-btn" data-days="90">3개월</button>
-      <button type="button" class="btn btn-sm lj-date-preset-btn" data-days="0">전체</button>
-      <input type="date" id="chartDateFrom" class="input lj-date-input" />
-      <span style="color:#9ca3af;font-size:12px;">~</span>
-      <input type="date" id="chartDateTo" class="input lj-date-input" />
-      <button type="button" id="chartDateApplyBtn" class="btn btn-sm btn-primary">조회</button>
+    <div class="lj-actionbar-left" style="gap:8px;flex-wrap:wrap;">
+      <select id="equipmentSelect" class="input lj-filter-select" style="min-width:220px;"></select>
+      <div id="itemSection" style="display:none;">
+        <select id="itemSelect" class="input lj-filter-select lj-item-select" style="min-width:180px;"></select>
+      </div>
+      <div id="itemInfo" style="display:none;font-size:12px;color:#6b7280;align-self:center;"></div>
     </div>
   </div>
 
@@ -49,12 +38,11 @@
     </div>
   </div>
 
-  <!-- 항목 미선택 상태 -->
   <div id="itemEmptyState" class="lj-card lj-empty-card">
     <div class="lj-empty">
       <i class="ti ti-flask-off" style="font-size:40px;color:#d1d5db;"></i>
-      <p class="lj-empty-title" id="itemEmptyTitle">검사 항목을 선택하세요</p>
-      <p class="lj-empty-desc" id="itemEmptyDesc">상단에서 검사 항목을 선택하면 데이터를 입력할 수 있습니다.</p>
+      <p class="lj-empty-title" id="itemEmptyTitle">장비와 항목을 선택하세요</p>
+      <p class="lj-empty-desc" id="itemEmptyDesc">상단에서 장비 → 검사항목을 선택하면 데이터를 입력할 수 있습니다.</p>
     </div>
   </div>
 
