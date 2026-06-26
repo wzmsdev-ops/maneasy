@@ -2,26 +2,31 @@
  * assets/js/master/org.js
  * 조직 관리 — 의원 / 부서 / 사용자
  * admin role만 접근 가능
+ *
+ * 연동 구조:
+ *   clinicCache → 부서 탭 필터 + 부서 모달 select + 사용자 모달 select
+ *   deptCache   → 부서 탭 필터 + 사용자 탭 필터 + 사용자 모달 select (의원 선택 후 필터)
+ *   userCache   → 사용자 탭 렌더링 (clinic_code / team_code 기준 필터)
  */
 'use strict';
 
-let currentUser = null;
-
-// 편집 중인 row ID
+let currentUser    = null;
 let editingClinicId = null;
 let editingDeptId   = null;
 let editingUserId   = null;
 
-// 캐시
-let clinicCache = [];
+let clinicCache = [];   // { id, clinic_code, clinic_name, ... }
+let deptCache   = [];   // { id, clinic_id, dept_code, dept_name, ... }
+let userCache   = [];   // user_profiles rows
 
 /* ── 유틸 ─────────────────────────────────── */
 function ts(v) {
   return String(v == null ? '' : v)
     .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
-function val(id) { return (document.getElementById(id)?.value || '').trim(); }
+function val(id)       { return (document.getElementById(id)?.value || '').trim(); }
 function setVal(id, v) { const el = document.getElementById(id); if (el) el.value = v ?? ''; }
+
 function badgeActive(v) {
   return v === 'Y'
     ? '<span class="badge-active">활성</span>'
@@ -37,7 +42,7 @@ function badgeRole(r) {
   return map[r] || ts(r);
 }
 
-/* ── 탭 ────────────────────────────────────── */
+/* ── 탭 ── */
 function initTabs() {
   document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -50,10 +55,39 @@ function initTabs() {
   });
 }
 
-/* ── 모달 ────────────────────────────────────── */
+/* ── 모달 ── */
 function openModal(id) { document.getElementById(id)?.classList.add('is-open'); }
 function closeModal(id) { document.getElementById(id)?.classList.remove('is-open'); }
 window.closeModal = closeModal;
+
+/* ════════════════════════════════════════════
+   공통 select 헬퍼
+════════════════════════════════════════════ */
+
+/** 의원 select 채우기 (여러 곳에서 공유) */
+function fillClinicSelect(selId, placeholder, selectedId) {
+  const sel = document.getElementById(selId);
+  if (!sel) return;
+  sel.innerHTML = `<option value="">${placeholder}</option>` +
+    clinicCache.map(c =>
+      `<option value="${c.id}" data-code="${ts(c.clinic_code)}" data-name="${ts(c.clinic_name)}">${ts(c.clinic_name)}</option>`
+    ).join('');
+  if (selectedId) sel.value = selectedId;
+}
+
+/** 특정 의원(clinic_id)에 속한 부서만 select에 채우기 */
+function fillDeptSelect(selId, placeholder, clinicId, selectedId) {
+  const sel = document.getElementById(selId);
+  if (!sel) return;
+  const filtered = clinicId
+    ? deptCache.filter(d => d.clinic_id === clinicId)
+    : deptCache;
+  sel.innerHTML = `<option value="">${placeholder}</option>` +
+    filtered.map(d =>
+      `<option value="${d.id}" data-code="${ts(d.dept_code)}" data-name="${ts(d.dept_name)}">${ts(d.dept_name)}</option>`
+    ).join('');
+  if (selectedId) sel.value = selectedId;
+}
 
 /* ════════════════════════════════════════════
    의원 (clinics)
@@ -96,6 +130,33 @@ function renderClinics(rows) {
         </tr>`).join('')}
       </tbody>
     </table>`;
+
+  // 의원이 바뀌면 부서/사용자 탭 필터 select, 모달 select도 동기화
+  syncClinicSelects();
+}
+
+/** 의원 데이터가 바뀔 때마다 연관 select 전부 갱신 */
+function syncClinicSelects() {
+  // 부서 탭 필터
+  const deptFilter = document.getElementById('deptClinicFilter');
+  if (deptFilter) {
+    const cur = deptFilter.value;
+    deptFilter.innerHTML = '<option value="">전체</option>' +
+      clinicCache.map(c => `<option value="${c.id}">${ts(c.clinic_name)}</option>`).join('');
+    if (cur) deptFilter.value = cur;
+  }
+  // 사용자 탭 필터
+  const userFilter = document.getElementById('userClinicFilter');
+  if (userFilter) {
+    const cur = userFilter.value;
+    userFilter.innerHTML = '<option value="">전체</option>' +
+      clinicCache.map(c => `<option value="${c.clinic_code}">${ts(c.clinic_name)}</option>`).join('');
+    if (cur) userFilter.value = cur;
+  }
+  // 부서 모달 — 의원 select
+  fillClinicSelect('d_clinic_id', '의원을 선택하세요', null);
+  // 사용자 모달 — 의원 select
+  fillClinicSelect('u_clinic_select', '선택 안 함', null);
 }
 
 function openAddClinic() {
@@ -134,7 +195,6 @@ async function saveClinic() {
   };
   if (!payload.clinic_code) throw new Error('의원 코드는 필수입니다.');
   if (!payload.clinic_name) throw new Error('의원명은 필수입니다.');
-
   if (editingClinicId) {
     const { error } = await supabaseClient.from('clinics').update(payload).eq('id', editingClinicId);
     if (error) throw new Error(error.message);
@@ -145,7 +205,7 @@ async function saveClinic() {
 }
 
 async function deleteClinic(id) {
-  if (!confirm('의원을 삭제하시겠습니까?')) return;
+  if (!confirm('의원을 삭제하시겠습니까?\n소속 부서가 있으면 삭제되지 않습니다.')) return;
   const { error } = await supabaseClient.from('clinics').delete().eq('id', id);
   if (error) { alert('삭제 실패: ' + error.message); return; }
   await refreshClinics();
@@ -155,38 +215,31 @@ window.deleteClinic = deleteClinic;
 async function refreshClinics() {
   const rows = await loadClinics();
   renderClinics(rows);
-  // 부서 모달 select 동기화
-  populateClinicSelect(rows);
 }
 
 /* ════════════════════════════════════════════
    부서 (departments)
 ════════════════════════════════════════════ */
-let deptCache = [];
-
-function populateClinicSelect(clinics) {
-  const sel = document.getElementById('d_clinic_id');
-  if (!sel) return;
-  sel.innerHTML = '<option value="">선택 안 함</option>' +
-    clinics.map(c => `<option value="${c.id}">${ts(c.clinic_name)}</option>`).join('');
-}
-
 async function loadDepts() {
   const { data, error } = await supabaseClient
     .from('departments')
-    .select('*, clinics(clinic_name)')
+    .select('*, clinics(clinic_name, clinic_code)')
     .order('sort_order', { ascending: true });
   if (error) throw new Error(error.message);
   return data || [];
 }
 
-function renderDepts(rows) {
+function renderDepts(rows, filterClinicId) {
   deptCache = rows;
   const list  = document.getElementById('deptList');
   const empty = document.getElementById('deptEmpty');
   if (!list) return;
 
-  if (!rows.length) { empty.style.display = ''; list.innerHTML = ''; return; }
+  const filtered = filterClinicId
+    ? rows.filter(r => r.clinic_id === filterClinicId)
+    : rows;
+
+  if (!filtered.length) { empty.style.display = ''; list.innerHTML = ''; return; }
   empty.style.display = 'none';
 
   list.innerHTML = `
@@ -194,7 +247,7 @@ function renderDepts(rows) {
       <thead><tr>
         <th>코드</th><th>부서명</th><th>소속 의원</th><th>순서</th><th>상태</th><th class="action-cell"></th>
       </tr></thead>
-      <tbody>${rows.map(r => `
+      <tbody>${filtered.map(r => `
         <tr>
           <td><code>${ts(r.dept_code)}</code></td>
           <td>${ts(r.dept_name)}</td>
@@ -208,14 +261,38 @@ function renderDepts(rows) {
         </tr>`).join('')}
       </tbody>
     </table>`;
+
+  // 사용자 탭 부서 필터도 갱신
+  syncDeptFilter();
+}
+
+/** 사용자 탭 부서 필터 select 갱신 (현재 선택된 의원 기준) */
+function syncDeptFilter() {
+  const userClinicFilter = document.getElementById('userClinicFilter');
+  const clinicCode = userClinicFilter?.value || '';
+  const userDeptFilter = document.getElementById('userDeptFilter');
+  if (!userDeptFilter) return;
+
+  const cur = userDeptFilter.value;
+  const clinic = clinicCache.find(c => c.clinic_code === clinicCode);
+  const filtered = clinic
+    ? deptCache.filter(d => d.clinic_id === clinic.id)
+    : deptCache;
+
+  userDeptFilter.innerHTML = '<option value="">전체</option>' +
+    filtered.map(d => `<option value="${d.dept_code}">${ts(d.dept_name)}</option>`).join('');
+  if (cur) userDeptFilter.value = cur;
 }
 
 function openAddDept() {
   editingDeptId = null;
+  setVal('d_clinic_id', '');
   ['d_dept_code','d_dept_name'].forEach(id => setVal(id, ''));
   setVal('d_sort_order', '0');
   setVal('d_active', 'Y');
-  setVal('d_clinic_id', '');
+  // 현재 부서 탭 필터에 의원이 선택돼 있으면 모달에 미리 세팅
+  const filterVal = document.getElementById('deptClinicFilter')?.value || '';
+  if (filterVal) setVal('d_clinic_id', filterVal);
   document.getElementById('deptModalTitle').textContent = '부서 추가';
   openModal('deptModal');
 }
@@ -224,9 +301,9 @@ function openEditDept(id) {
   const row = deptCache.find(r => r.id === id);
   if (!row) return;
   editingDeptId = id;
+  setVal('d_clinic_id',  row.clinic_id || '');
   setVal('d_dept_code',  row.dept_code);
   setVal('d_dept_name',  row.dept_name);
-  setVal('d_clinic_id',  row.clinic_id || '');
   setVal('d_sort_order', row.sort_order ?? 0);
   setVal('d_active',     row.active);
   document.getElementById('deptModalTitle').textContent = '부서 수정';
@@ -235,17 +312,18 @@ function openEditDept(id) {
 window.openEditDept = openEditDept;
 
 async function saveDept() {
+  const clinicId = val('d_clinic_id');
+  if (!clinicId) throw new Error('소속 의원을 선택해주세요.');
   const payload = {
     dept_code:  val('d_dept_code'),
     dept_name:  val('d_dept_name'),
-    clinic_id:  val('d_clinic_id') || null,
+    clinic_id:  clinicId,
     sort_order: Number(val('d_sort_order') || 0),
     active:     val('d_active'),
     updated_at: new Date().toISOString(),
   };
   if (!payload.dept_code) throw new Error('부서 코드는 필수입니다.');
   if (!payload.dept_name) throw new Error('부서명은 필수입니다.');
-
   if (editingDeptId) {
     const { error } = await supabaseClient.from('departments').update(payload).eq('id', editingDeptId);
     if (error) throw new Error(error.message);
@@ -265,44 +343,46 @@ window.deleteDept = deleteDept;
 
 async function refreshDepts() {
   const rows = await loadDepts();
-  renderDepts(rows);
+  const filterVal = document.getElementById('deptClinicFilter')?.value || '';
+  renderDepts(rows, filterVal || null);
 }
 
 /* ════════════════════════════════════════════
    사용자 (user_profiles)
 ════════════════════════════════════════════ */
-let userCache = [];
-
 async function loadUsers() {
   const { data, error } = await supabaseClient
     .from('user_profiles')
     .select('*')
-    .order('created_at', { ascending: true });
+    .order('clinic_code', { ascending: true });
   if (error) throw new Error(error.message);
   return data || [];
 }
 
-function renderUsers(rows) {
+function renderUsers(rows, filterClinicCode, filterDeptCode) {
   userCache = rows;
   const list  = document.getElementById('userList');
   const empty = document.getElementById('userEmpty');
   if (!list) return;
 
-  if (!rows.length) { empty.style.display = ''; list.innerHTML = ''; return; }
+  let filtered = rows;
+  if (filterClinicCode) filtered = filtered.filter(r => r.clinic_code === filterClinicCode);
+  if (filterDeptCode)   filtered = filtered.filter(r => r.team_code   === filterDeptCode);
+
+  if (!filtered.length) { empty.style.display = ''; list.innerHTML = ''; return; }
   empty.style.display = 'none';
 
   list.innerHTML = `
     <table class="data-table">
       <thead><tr>
-        <th>이름</th><th>역할</th><th>의원</th><th>팀</th><th>부서</th><th>전화</th><th>상태</th><th class="action-cell"></th>
+        <th>이름</th><th>역할</th><th>의원</th><th>팀/부서</th><th>전화</th><th>상태</th><th class="action-cell"></th>
       </tr></thead>
-      <tbody>${rows.map(r => `
+      <tbody>${filtered.map(r => `
         <tr>
           <td>${ts(r.user_name || '-')}</td>
           <td>${badgeRole(r.role)}</td>
           <td>${ts(r.clinic_name || '-')}</td>
-          <td>${ts(r.team_name || '-')}</td>
-          <td>${ts(r.department || '-')}</td>
+          <td>${ts(r.team_name || r.department || '-')}</td>
           <td>${ts(r.phone || '-')}</td>
           <td>${badgeActive(r.active)}</td>
           <td class="action-cell">
@@ -313,33 +393,57 @@ function renderUsers(rows) {
     </table>`;
 }
 
+/** 사용자 모달: 의원 선택 → 해당 의원 부서만 부서 select에 뿌리기 */
+function onUserClinicSelectChange() {
+  const clinicId = document.getElementById('u_clinic_select')?.value || '';
+  fillDeptSelect('u_dept_select', '선택 안 함', clinicId || null, null);
+}
+
 function openEditUser(id) {
   const row = userCache.find(r => r.id === id);
   if (!row) return;
   editingUserId = id;
-  setVal('u_user_name',   row.user_name);
-  setVal('u_phone',       row.phone);
-  setVal('u_role',        row.role);
-  setVal('u_clinic_code', row.clinic_code);
-  setVal('u_clinic_name', row.clinic_name);
-  setVal('u_team_code',   row.team_code);
-  setVal('u_team_name',   row.team_name);
-  setVal('u_department',  row.department);
-  setVal('u_active',      row.active);
+
+  setVal('u_user_name',  row.user_name);
+  setVal('u_phone',      row.phone);
+  setVal('u_role',       row.role);
+  setVal('u_active',     row.active);
+  setVal('u_department', row.department);
+
+  // 의원 select: clinic_code 기준으로 id 찾아 세팅
+  const clinic = clinicCache.find(c => c.clinic_code === row.clinic_code);
+  fillClinicSelect('u_clinic_select', '선택 안 함', clinic?.id || null);
+
+  // 부서 select: 해당 의원 부서로 채운 뒤 team_code 기준으로 선택
+  const dept = deptCache.find(d => d.dept_code === row.team_code);
+  fillDeptSelect('u_dept_select', '선택 안 함', clinic?.id || null, dept?.id || null);
+
   document.getElementById('userModalTitle').textContent = '사용자 수정';
   openModal('userModal');
 }
 window.openEditUser = openEditUser;
 
 async function saveUser() {
+  // 선택된 의원 option에서 code/name 추출
+  const clinicSel  = document.getElementById('u_clinic_select');
+  const clinicOpt  = clinicSel?.options[clinicSel.selectedIndex];
+  const clinic_code = clinicOpt?.dataset.code || '';
+  const clinic_name = clinicOpt?.dataset.name || '';
+
+  // 선택된 부서 option에서 code/name 추출
+  const deptSel  = document.getElementById('u_dept_select');
+  const deptOpt  = deptSel?.options[deptSel.selectedIndex];
+  const team_code = deptOpt?.dataset.code || '';
+  const team_name = deptOpt?.dataset.name || '';
+
   const payload = {
     user_name:   val('u_user_name'),
     phone:       val('u_phone'),
     role:        val('u_role'),
-    clinic_code: val('u_clinic_code'),
-    clinic_name: val('u_clinic_name'),
-    team_code:   val('u_team_code'),
-    team_name:   val('u_team_name'),
+    clinic_code,
+    clinic_name,
+    team_code,
+    team_name,
     department:  val('u_department'),
     active:      val('u_active'),
     updated_at:  new Date().toISOString(),
@@ -350,11 +454,13 @@ async function saveUser() {
 
 async function refreshUsers() {
   const rows = await loadUsers();
-  renderUsers(rows);
+  const cc = document.getElementById('userClinicFilter')?.value || '';
+  const dc = document.getElementById('userDeptFilter')?.value || '';
+  renderUsers(rows, cc, dc);
 }
 
 /* ════════════════════════════════════════════
-   저장 버튼 공통 핸들러
+   저장 버튼 공통
 ════════════════════════════════════════════ */
 function bindSaveBtn(btnId, saveFn, modalId, refreshFn) {
   document.getElementById(btnId)?.addEventListener('click', async () => {
@@ -373,6 +479,33 @@ function bindSaveBtn(btnId, saveFn, modalId, refreshFn) {
 }
 
 /* ════════════════════════════════════════════
+   필터 이벤트 바인딩
+════════════════════════════════════════════ */
+function initFilters() {
+  // 부서 탭 — 의원 필터
+  document.getElementById('deptClinicFilter')?.addEventListener('change', e => {
+    renderDepts(deptCache, e.target.value || null);
+  });
+
+  // 사용자 탭 — 의원 필터
+  document.getElementById('userClinicFilter')?.addEventListener('change', e => {
+    syncDeptFilter();                        // 부서 필터 갱신
+    setVal('userDeptFilter', '');           // 부서 필터 초기화
+    const cc = e.target.value;
+    renderUsers(userCache, cc, '');
+  });
+
+  // 사용자 탭 — 부서 필터
+  document.getElementById('userDeptFilter')?.addEventListener('change', e => {
+    const cc = document.getElementById('userClinicFilter')?.value || '';
+    renderUsers(userCache, cc, e.target.value);
+  });
+
+  // 사용자 모달 — 의원 select → 부서 select 연동
+  document.getElementById('u_clinic_select')?.addEventListener('change', onUserClinicSelectChange);
+}
+
+/* ════════════════════════════════════════════
    초기화
 ════════════════════════════════════════════ */
 async function init() {
@@ -380,8 +513,8 @@ async function init() {
   if (!currentUser) return;
 
   initTabs();
+  initFilters();
 
-  // 버튼 바인딩
   document.getElementById('addClinicBtn')?.addEventListener('click', openAddClinic);
   document.getElementById('addDeptBtn')?.addEventListener('click', openAddDept);
 
@@ -396,10 +529,10 @@ async function init() {
       loadDepts(),
       loadUsers(),
     ]);
-    renderClinics(clinics);
-    populateClinicSelect(clinics);
-    renderDepts(depts);
-    renderUsers(users);
+    // 순서 중요: clinic 먼저 → select 동기화 → dept/user 렌더
+    renderClinics(clinics);   // clinicCache 세팅 + select 동기화
+    renderDepts(depts, null); // deptCache 세팅 + 사용자 탭 부서 필터 동기화
+    renderUsers(users, '', '');
   } catch (e) {
     alert('초기화 실패: ' + e.message);
     console.error('[master/org]', e);
