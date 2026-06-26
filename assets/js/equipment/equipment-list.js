@@ -175,3 +175,5 @@ async function init() {
 }
 
 function initEquipmentList() { init(); }
+
+document.addEventListener("DOMContentLoaded", init);
