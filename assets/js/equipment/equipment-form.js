@@ -118,9 +118,13 @@ async function saveEquipment() {
       .eq('id', editingId);
     if (error) throw new Error(error.message);
   } else {
-    // 등록
+    // 등록 — equipment_no 자동 생성
     payload.created_by = session?.user?.id || null;
     payload.deleted_yn = 'N';
+
+    const { data: seqData } = await supabaseClient.rpc('generate_equipment_id');
+    if (seqData) payload.equipment_no = seqData;
+
     const { data, error } = await supabaseClient
       .from('equipments')
       .insert(payload)
