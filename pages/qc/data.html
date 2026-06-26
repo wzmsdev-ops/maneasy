@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>데이터 입력 · 정도관리</title>
   <link rel="stylesheet" href="../../assets/css/common.css" />
+  <link rel="stylesheet" href="../../assets/libs/ag-grid/ag-grid.min.css" />
+  <link rel="stylesheet" href="../../assets/libs/ag-grid/ag-theme-alpine.min.css" />
+  <link rel="stylesheet" href="../../assets/css/ag-grid-custom.css" />
   <link rel="stylesheet" href="../../assets/css/pages/qc-common.css" />
   <link rel="stylesheet" href="../../assets/css/pages/qc-data.css" />
   <link rel="stylesheet" href="../../assets/font/tabler-icons/tabler-icons.min.css" />
@@ -12,8 +15,8 @@
     if (new URLSearchParams(location.search).get('shell') === '1')
       document.documentElement.classList.add('in-shell');
   </script>
-  <link rel="stylesheet" href="../../assets/libs/ag-grid/ag-grid.min.css" />
-  <link rel="stylesheet" href="../../assets/libs/ag-grid/ag-theme-alpine.min.css" />
+  
+  
 </head>
 <body class="qc-data-page">
 
@@ -157,8 +160,6 @@
 <script src="../../assets/js/core/supabase.js"></script>
 <script src="../../assets/js/core/auth.js"></script>
 <script src="../../assets/js/core/db.js"></script>
-
-
 
 <script src="../../assets/libs/chart.umd.js"></script>
 <script src="../../assets/js/qc/data.js"></script>
