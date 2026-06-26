@@ -217,7 +217,11 @@ function renderEntryTable(entries) {
   ];
 
   if (_entryGrid) { updateMgGrid(_entryGrid, sorted); return; }
-  _entryGrid = createMgGrid('entryList', cols, sorted, {
+  _entryGrid = (function(){
+    var _el = document.getElementById('entryList');
+    if (_el) { _el.classList.add('ag-theme-alpine'); if (!_el.style.height) _el.style.height = '300px'; }
+  })();
+  createMgGrid('entryList', cols, sorted, {
     pageSize: 10, fit: false, noRowsText: '입력된 데이터가 없습니다.',
   });
 }
