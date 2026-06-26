@@ -3,10 +3,17 @@ let currentEquipmentData = null;
 let detailPermission = { canView: false, canEdit: false, canDelete: false, isAdmin: false, isAppAdmin: false };
 
 function getCurrentUser() {
-  if (window.auth && typeof window.auth.getSession === 'function') {
-    return window.auth.getSession() || null;
-  }
-  return null;
+  // Supabase 세션에서 동기적으로 현재 유저 반환
+  // auth.getSession()은 async라 직접 호출 불가 — _cachedUser 사용
+  return window._detailCurrentUser || null;
+}
+
+async function initCurrentUser() {
+  const session = await auth.requireAuth();
+  if (!session) return null;
+  const user = await auth.getSession();
+  window._detailCurrentUser = user;
+  return user;
 }
 
 async function getEquipmentPermissionContext() {
@@ -784,10 +791,7 @@ async function completeRepairHistory(historyId, equipmentId) {
 }
 
 document.addEventListener('DOMContentLoaded', async function() {
-  const user = window.auth && typeof window.auth.requireAuth === 'function'
-    ? window.auth.requireAuth()
-    : null;
-
+  const user = await initCurrentUser();
   if (!user) return;
 
   try {
