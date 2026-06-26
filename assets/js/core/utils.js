@@ -316,23 +316,27 @@ function createMgGrid(containerId, colDefs, rows, options) {
   if (!el) return null;
   if (typeof agGrid === 'undefined') return null;
 
-  var pageSize   = options.pageSize   || 20;
+  var pageSize   = options.pageSize || 15;
   var noRowsText = options.noRowsText || '조회된 데이터가 없습니다.';
-  var fit        = options.fit !== false;
+  var rowH    = 34;
+  var headerH = 34;
 
-  // 높이 계산
-  var baseH = 34;
-  var gridH = el.clientHeight || (pageSize * 34 + baseH);
-  var dataH = gridH - baseH;
-  var rowH  = fit ? Math.max(26, Math.floor(dataH / pageSize)) : 34;
-  var rem   = fit ? Math.max(0, dataH - rowH * pageSize) : 0;
+  // ag-theme-alpine 클래스 자동 추가
+  if (!el.classList.contains('ag-theme-alpine')) {
+    el.classList.add('ag-theme-alpine');
+  }
 
+  // 높이: 없으면 pageSize 기반으로 설정
+  if (!el.style.height && el.clientHeight === 0) {
+    el.style.height = (rowH * pageSize + headerH) + 'px';
+  }
+
+  // equipment-list.js defaultColDef와 동일
   var defaultColDef = {
     sortable: true,
     resizable: true,
     suppressMovable: true,
-    headerClass: 'ag-center-header',
-    cellStyle: { display: 'flex', alignItems: 'center', justifyContent: 'flex-start', fontSize: '13px' },
+    cellStyle: { display: 'flex', alignItems: 'center' },
   };
 
   var gridOptions = {
@@ -340,26 +344,15 @@ function createMgGrid(containerId, colDefs, rows, options) {
     defaultColDef: defaultColDef,
     rowData: rows,
     rowHeight: rowH,
-    headerHeight: baseH + rem,
+    headerHeight: headerH,
     suppressHorizontalScroll: true,
     suppressScrollOnNewData: true,
     overlayNoRowsTemplate: '<span style="color:#9ca3af;font-size:12px;">' + noRowsText + '</span>',
     onGridReady: function(params) {
       params.api.sizeColumnsToFit();
-      window.addEventListener('resize', function() { params.api.sizeColumnsToFit(); });
-    },
-    onFirstDataRendered: function(params) {
-      if (!fit) return;
-      var viewport = el.querySelector('.ag-body-viewport');
-      if (!viewport) return;
-      var viewH = viewport.clientHeight;
-      var rH    = Math.max(26, Math.floor(viewH / pageSize));
-      var r     = Math.max(0, viewH - rH * pageSize);
-      if (rH !== params.api.getGridOption('rowHeight')) {
-        params.api.setGridOption('rowHeight', rH);
-        params.api.setGridOption('headerHeight', baseH + r);
-        params.api.resetRowHeights();
-      }
+      window.addEventListener('resize', function() {
+        if (params.api) params.api.sizeColumnsToFit();
+      });
     },
   };
 
@@ -374,10 +367,7 @@ function createMgGrid(containerId, colDefs, rows, options) {
   return api;
 }
 
-/**
- * updateMgGrid(api, rows)
- * 기존 그리드 인스턴스에 데이터만 교체
- */
+
 function updateMgGrid(api, rows) {
   if (api && rows) api.setGridOption('rowData', rows);
 }
