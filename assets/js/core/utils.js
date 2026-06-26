@@ -296,3 +296,87 @@ function applyTopActionsColClass() {
     }
   }
 })();
+
+
+// ── AG Grid 공통 헬퍼 ──────────────────────────────────────
+/**
+ * createMgGrid(containerId, colDefs, rows, options)
+ *
+ * options:
+ *   pageSize   {number}  페이지당 행 수 (기본 20). 높이 계산에 사용.
+ *   fit        {boolean} true면 컨테이너 높이에 맞게 rowHeight 자동 계산 (기본 true)
+ *   noRowsText {string}  데이터 없을 때 문구
+ *   onRowClick {fn}      행 클릭 핸들러 (params.data 전달)
+ *
+ * 반환값: gridApi 인스턴스 (destroy/setGridOption 가능)
+ */
+function createMgGrid(containerId, colDefs, rows, options) {
+  options = options || {};
+  var el = document.getElementById(containerId);
+  if (!el) return null;
+  if (typeof agGrid === 'undefined') return null;
+
+  var pageSize   = options.pageSize   || 20;
+  var noRowsText = options.noRowsText || '조회된 데이터가 없습니다.';
+  var fit        = options.fit !== false;
+
+  // 높이 계산
+  var baseH = 34;
+  var gridH = el.clientHeight || (pageSize * 34 + baseH);
+  var dataH = gridH - baseH;
+  var rowH  = fit ? Math.max(26, Math.floor(dataH / pageSize)) : 34;
+  var rem   = fit ? Math.max(0, dataH - rowH * pageSize) : 0;
+
+  var defaultColDef = {
+    sortable: true,
+    resizable: true,
+    suppressMovable: true,
+    cellStyle: { display: 'flex', alignItems: 'center' },
+  };
+
+  var gridOptions = {
+    columnDefs: colDefs,
+    defaultColDef: defaultColDef,
+    rowData: rows,
+    rowHeight: rowH,
+    headerHeight: baseH + rem,
+    suppressHorizontalScroll: true,
+    suppressScrollOnNewData: true,
+    overlayNoRowsTemplate: '<span style="color:#9ca3af;font-size:13px;">' + noRowsText + '</span>',
+    onGridReady: function(params) {
+      params.api.sizeColumnsToFit();
+      window.addEventListener('resize', function() { params.api.sizeColumnsToFit(); });
+    },
+    onFirstDataRendered: function(params) {
+      if (!fit) return;
+      var viewport = el.querySelector('.ag-body-viewport');
+      if (!viewport) return;
+      var viewH = viewport.clientHeight;
+      var rH    = Math.max(26, Math.floor(viewH / pageSize));
+      var r     = Math.max(0, viewH - rH * pageSize);
+      if (rH !== params.api.getGridOption('rowHeight')) {
+        params.api.setGridOption('rowHeight', rH);
+        params.api.setGridOption('headerHeight', baseH + r);
+        params.api.resetRowHeights();
+      }
+    },
+  };
+
+  if (options.onRowClick) {
+    gridOptions.onRowClicked = function(params) {
+      if (params.data) options.onRowClick(params.data);
+    };
+    gridOptions.rowStyle = { cursor: 'pointer' };
+  }
+
+  var api = agGrid.createGrid(el, gridOptions);
+  return api;
+}
+
+/**
+ * updateMgGrid(api, rows)
+ * 기존 그리드 인스턴스에 데이터만 교체
+ */
+function updateMgGrid(api, rows) {
+  if (api && rows) api.setGridOption('rowData', rows);
+}
