@@ -22,11 +22,24 @@
     }
 
     /* ── 액션바 ── */
-    .pr-actionbar { display:flex; align-items:center; gap:6px; flex-shrink:0; flex-wrap:nowrap; }
-    .pr-actionbar .spacer { flex:1; }
-    .pr-actionbar input[type=text]  { height:30px; padding:0 10px; border:1px solid #e5e7eb; border-radius:6px; font-size:12px; outline:none; }
-    .pr-actionbar input[type=date]  { height:30px; padding:0 6px; border:1px solid #e5e7eb; border-radius:6px; font-size:12px; outline:none; width:130px; }
-    .pr-actionbar input[type=text]:focus, .pr-actionbar input[type=date]:focus { border-color:#2563eb; }
+    .pr-actionbar {
+      display: flex; align-items: center; gap: 8px;
+      background: #fff; border: 1px solid #e5e7eb; border-radius: 8px;
+      padding: 7px 12px; flex-shrink: 0; height: 44px; box-sizing: border-box;
+    }
+    .pr-actionbar input[type=text] {
+      height: 28px; padding: 0 10px; border: 1px solid #e5e7eb;
+      border-radius: 6px; font-size: 12px; outline: none;
+    }
+    .pr-actionbar input[type=text]:focus { border-color: #2563eb; }
+    .pr-actionbar input[type=date] {
+      height: 28px; padding: 0 6px; border: 1px solid #e5e7eb;
+      border-radius: 6px; font-size: 12px; outline: none; width: 130px;
+    }
+    .pr-actionbar input[type=date]:focus { border-color: #2563eb; }
+    .pr-actionbar .pr-divider {
+      width: 1px; height: 20px; background: #e5e7eb; flex-shrink: 0; margin: 0 2px;
+    }
 
     /* ── 상태 탭 필터 ── */
     .pr-status-tabs { display:flex; gap:3px; flex-shrink:0; flex-wrap:wrap; }
