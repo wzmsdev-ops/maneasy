@@ -8,14 +8,14 @@
  * ───────────────────────────────────────────────────────────── */
 :root {
   --sb-width:        220px;
-  --sb-bg:           #0b1630;
+  --sb-bg:           #0c1f3f;
   --sb-bg-hover:     rgba(255,255,255,0.06);
-  --sb-bg-active:    rgba(255,255,255,0.10);
+  --sb-bg-active:    rgba(201,168,76,0.15);
   --sb-border:       rgba(255,255,255,0.08);
   --sb-text:         rgba(255,255,255,0.60);
   --sb-text-hover:   rgba(255,255,255,0.90);
   --sb-text-active:  #ffffff;
-  --sb-accent:       #2f6df6;
+  --sb-accent:       #c9a84c;
   --topbar-h:        48px;
 }
 
@@ -49,47 +49,25 @@ html, body { height: 100%; overflow: hidden; }
 
 /* 브랜드 영역 */
 .sb-brand {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 16px 14px 14px;
+  display: block;
+  padding: 0;
   border-bottom: 1px solid var(--sb-border);
   flex-shrink: 0;
+  overflow: hidden;
+}
+.sb-brand-img {
+  display: block;
+  width: 100%;
+  height: auto;
 }
 
 .sb-brand-logo {
-  width: 28px;
-  height: 28px;
-  border-radius: 7px;
-  background: linear-gradient(135deg, #22c55e, #2563eb);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
-  font-size: 13px;
-  font-weight: 800;
-  flex-shrink: 0;
+  display: none;
 }
 
-.sb-brand-text {
-  min-width: 0;
-}
-
-.sb-brand-title {
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--sb-text-active);
-  line-height: 1.3;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.sb-brand-sub {
-  font-size: 10px;
-  color: var(--sb-text);
-  margin-top: 1px;
-}
+.sb-brand-text { display: none; }
+.sb-brand-title { display: none; }
+.sb-brand-sub   { display: none; }
 
 /* 사용자 영역 */
 .sb-user {
