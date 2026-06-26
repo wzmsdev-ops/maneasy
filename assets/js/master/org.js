@@ -107,11 +107,14 @@ function renderClinics(rows) {
   const empty = document.getElementById('clinicEmpty');
   if (!list) return;
 
-  if (!rows.length) { empty.style.display = ''; list.innerHTML = ''; return; }
-  empty.style.display = 'none';
+  if (empty) empty.style.display = rows.length ? 'none' : '';
 
   if (!window._clinicGrid) {
-    window._clinicGrid = createMgGrid('clinicList', [
+    window._clinicGrid = (function(){
+    var _el = document.getElementById('clinicList');
+    if (_el) { _el.classList.add('ag-theme-alpine'); if (!_el.style.height) _el.style.height = '520px'; }
+  })();
+  createMgGrid('clinicList', [
       { headerName: '코드',   field: 'clinic_code', flex: 1, minWidth: 90 },
       { headerName: '의원명', field: 'clinic_name', flex: 2, minWidth: 120 },
       { headerName: '전화',   field: 'phone',       flex: 1, minWidth: 110, valueFormatter: p => p.value || '-' },
@@ -237,11 +240,14 @@ function renderDepts(rows, filterClinicId) {
     ? rows.filter(r => r.clinic_id === filterClinicId)
     : rows;
 
-  if (!filtered.length) { empty.style.display = ''; list.innerHTML = ''; return; }
-  empty.style.display = 'none';
+  if (empty) empty.style.display = filtered.length ? 'none' : '';
 
   if (!window._deptGrid) {
-    window._deptGrid = createMgGrid('deptList', [
+    window._deptGrid = (function(){
+    var _el = document.getElementById('deptList');
+    if (_el) { _el.classList.add('ag-theme-alpine'); if (!_el.style.height) _el.style.height = '520px'; }
+  })();
+  createMgGrid('deptList', [
       { headerName: '코드',     field: 'dept_code',  flex: 1, minWidth: 90 },
       { headerName: '부서명',   field: 'dept_name',  flex: 2, minWidth: 100 },
       { headerName: '소속 의원', flex: 1, minWidth: 100,
@@ -366,11 +372,14 @@ function renderUsers(rows, filterClinicCode, filterDeptCode) {
   if (filterClinicCode) filtered = filtered.filter(r => r.clinic_code === filterClinicCode);
   if (filterDeptCode)   filtered = filtered.filter(r => r.team_code   === filterDeptCode);
 
-  if (!filtered.length) { empty.style.display = ''; list.innerHTML = ''; return; }
-  empty.style.display = 'none';
+  if (empty) empty.style.display = filtered.length ? 'none' : '';
 
   if (!window._userGrid) {
-    window._userGrid = createMgGrid('userList', [
+    window._userGrid = (function(){
+    var _el = document.getElementById('userList');
+    if (_el) { _el.classList.add('ag-theme-alpine'); if (!_el.style.height) _el.style.height = '520px'; }
+  })();
+  createMgGrid('userList', [
       { headerName: '이름',   field: 'user_name',  flex: 1, minWidth: 80, valueFormatter: p => p.value || '-' },
       { headerName: '역할',   field: 'role',       flex: 0, width: 90,
         cellRenderer: p => { const s = document.createElement('span'); s.innerHTML = badgeRole(p.value); return s; } },
