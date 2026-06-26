@@ -95,15 +95,21 @@ window.auth = (function () {
   /* ── 로그인 페이지 ─────────────────────────────── */
 
   async function initLoginPage() {
-    const { data: { session } } = await supabaseClient.auth.getSession();
-    if (session) {
-      // 승인 대기 확인
-      const user = await getSession();
-      if (user && user.active !== 'Y') {
-        await clearSession();
-      } else if (session) {
-        location.replace(getAppUrl());
-        return;
+    // ?logout=1 이면 세션 체크 없이 바로 로그인 화면 표시 (루프 방지)
+    const urlParams = new URLSearchParams(location.search);
+    if (urlParams.get('logout') === '1') {
+      // URL 파라미터 제거 후 로그인 화면 유지
+      history.replaceState(null, '', location.pathname);
+    } else {
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      if (session) {
+        const user = await getSession();
+        if (user && user.active !== 'Y') {
+          await clearSession();
+        } else {
+          location.replace(getAppUrl());
+          return;
+        }
       }
     }
 
@@ -238,10 +244,9 @@ window.auth = (function () {
 
   async function logout() {
     await clearSession();
-    // 세션 정리 완료 후 이동 (비동기 처리 여유)
     setTimeout(function() {
-      location.replace(getLoginUrl());
-    }, 100);
+      location.replace(getLoginUrl() + '?logout=1');
+    }, 150);
   }
 
   return { getSession, clearSession, requireAuth, requireAdmin, initLoginPage, logout };
