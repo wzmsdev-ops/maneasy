@@ -1178,7 +1178,7 @@ async function genDocNo(prefix) {
   var year = new Date().getFullYear();
   var { data, error } = await supabaseClient.rpc('next_doc_seq', { p_prefix: prefix, p_year: year });
   if (error || data == null) return prefix + '-' + year + '-' + Date.now().toString().slice(-6);
-  return prefix + '-' + year + '-' + String(data).padStart(4, '0');
+  return prefix + '-' + year + '-' + String(data).padStart(6, '0');
 }
 
 /* ── 캐시 로드 ── */
