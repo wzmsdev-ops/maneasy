@@ -112,11 +112,12 @@ function navigate(page, skipHistory) {
   document.getElementById('breadcrumbPage').textContent = meta.page;
   document.getElementById('breadcrumbSep').style.display = meta.page ? '' : 'none';
 
+  const [pagePath, pageQuery] = page.split('?');
   document.getElementById('shellFrame').src =
-    `${CONFIG.SITE_BASE_URL}/pages/${page}.html`;
+    `${CONFIG.SITE_BASE_URL}/pages/${pagePath}.html${pageQuery ? '?' + pageQuery : ''}`;
 
   document.querySelectorAll('.sb-item.active').forEach(el => el.classList.remove('active'));
-  document.querySelector(`.sb-item[data-page="${page}"]`)?.classList.add('active');
+  document.querySelector(`.sb-item[data-page="${pagePath}"]`)?.classList.add('active');
 
   if (!skipHistory) history.pushState({ page }, '', `?page=${page}`);
   closeSidebar();
