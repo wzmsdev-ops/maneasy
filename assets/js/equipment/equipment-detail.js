@@ -91,34 +91,25 @@ async function loadHistories() {
   return data || [];
 }
 
+let _historyGrid = null;
 function renderHistories(rows) {
-  const wrap  = document.getElementById('historyList');
   const empty = document.getElementById('historyEmpty');
-  if (!wrap) return;
+  if (empty) empty.style.display = rows.length ? 'none' : '';
 
-  if (!rows.length) {
-    if (empty) empty.style.display = '';
-    wrap.innerHTML = '';
-    return;
-  }
-  if (empty) empty.style.display = 'none';
+  const cols = [
+    { headerName: '유형',   field: 'history_type',  flex: 1, minWidth: 80,  valueFormatter: p => p.value || '-' },
+    { headerName: '작업일', field: 'work_date',     flex: 1, minWidth: 90,  valueFormatter: p => formatDate(p.value) },
+    { headerName: '담당자', field: 'requester',     flex: 1, minWidth: 80,  valueFormatter: p => p.value || '-' },
+    { headerName: '금액',   field: 'amount',        flex: 1, minWidth: 90,
+      valueFormatter: p => p.value != null ? Number(p.value).toLocaleString('ko-KR') + '원' : '-' },
+    { headerName: '결과',   field: 'result_status', flex: 1, minWidth: 80,  valueFormatter: p => p.value || '-' },
+    { headerName: '내용',   field: 'description',   flex: 2, minWidth: 120, valueFormatter: p => p.value || '-' },
+  ];
 
-  wrap.innerHTML = `
-    <table class="data-table">
-      <thead><tr>
-        <th>유형</th><th>작업일</th><th>담당자</th><th>금액</th><th>결과</th><th>내용</th>
-      </tr></thead>
-      <tbody>${rows.map(r => `
-        <tr>
-          <td>${textSafe(r.history_type || '-')}</td>
-          <td>${formatDate(r.work_date)}</td>
-          <td>${textSafe(r.requester || '-')}</td>
-          <td>${r.amount != null ? Number(r.amount).toLocaleString('ko-KR') + '원' : '-'}</td>
-          <td>${textSafe(r.result_status || '-')}</td>
-          <td>${textSafe(r.description || '-')}</td>
-        </tr>`).join('')}
-      </tbody>
-    </table>`;
+  if (_historyGrid) { updateMgGrid(_historyGrid, rows); return; }
+  _historyGrid = createMgGrid('historyList', cols, rows, {
+    pageSize: 10, fit: false, noRowsText: '이력이 없습니다.',
+  });
 }
 
 /* ── 재고조사 ──────────────────────────────── */
@@ -132,33 +123,23 @@ async function loadInventoryLogs() {
   return data || [];
 }
 
+let _inventoryGrid = null;
 function renderInventoryLogs(rows) {
-  const wrap  = document.getElementById('inventoryList');
   const empty = document.getElementById('inventoryEmpty');
-  if (!wrap) return;
+  if (empty) empty.style.display = rows.length ? 'none' : '';
 
-  if (!rows.length) {
-    if (empty) empty.style.display = '';
-    wrap.innerHTML = '';
-    return;
-  }
-  if (empty) empty.style.display = 'none';
+  const cols = [
+    { headerName: '조사일시', field: 'checked_at',      flex: 1, minWidth: 120, valueFormatter: p => formatTs(p.value) },
+    { headerName: '조사자',   field: 'checked_by_name', flex: 1, minWidth: 80,  valueFormatter: p => p.value || '-' },
+    { headerName: '상태',     field: 'status_at_check', flex: 1, minWidth: 80,  valueFormatter: p => p.value || '-' },
+    { headerName: '위치',     field: 'location_at_check', flex: 1, minWidth: 80, valueFormatter: p => p.value || '-' },
+    { headerName: '메모',     field: 'memo',            flex: 2, minWidth: 100, valueFormatter: p => p.value || '-' },
+  ];
 
-  wrap.innerHTML = `
-    <table class="data-table">
-      <thead><tr>
-        <th>조사일시</th><th>조사자</th><th>상태</th><th>위치</th><th>메모</th>
-      </tr></thead>
-      <tbody>${rows.map(r => `
-        <tr>
-          <td>${formatTs(r.checked_at)}</td>
-          <td>${textSafe(r.checked_by_name || '-')}</td>
-          <td>${textSafe(r.status_at_check || '-')}</td>
-          <td>${textSafe(r.location_at_check || '-')}</td>
-          <td>${textSafe(r.memo || '-')}</td>
-        </tr>`).join('')}
-      </tbody>
-    </table>`;
+  if (_inventoryGrid) { updateMgGrid(_inventoryGrid, rows); return; }
+  _inventoryGrid = createMgGrid('inventoryList', cols, rows, {
+    pageSize: 10, fit: false, noRowsText: '재고조사 이력이 없습니다.',
+  });
 }
 
 /* ── 정도관리 항목 ─────────────────────────── */
@@ -172,35 +153,34 @@ async function loadQcItems() {
   return data || [];
 }
 
+let _qcGrid = null;
 function renderQcItems(rows) {
-  const wrap  = document.getElementById('qcItemList');
   const empty = document.getElementById('qcItemEmpty');
-  if (!wrap) return;
+  if (empty) empty.style.display = rows.length ? 'none' : '';
 
-  if (!rows.length) {
-    if (empty) empty.style.display = '';
-    wrap.innerHTML = '';
-    return;
-  }
-  if (empty) empty.style.display = 'none';
+  const cols = [
+    { headerName: '항목명', field: 'item_name', flex: 2, minWidth: 120 },
+    { headerName: '유형',   field: 'item_type', flex: 1, minWidth: 70,
+      valueFormatter: p => p.value === 'quantitative' ? '정량' : '정성' },
+    { headerName: '단위',   field: 'unit',      flex: 1, minWidth: 60,  valueFormatter: p => p.value || '-' },
+    { headerName: 'Mean',   field: 'mean',      flex: 1, minWidth: 70,  valueFormatter: p => p.value != null ? p.value : '-' },
+    { headerName: 'SD',     field: 'sd',        flex: 1, minWidth: 70,  valueFormatter: p => p.value != null ? p.value : '-' },
+    { headerName: '데이터', flex: 1, minWidth: 70,
+      valueGetter: p => (p.data.lj_entries?.[0]?.count ?? 0) + '건' },
+    { headerName: '',       flex: 1, minWidth: 100, sortable: false,
+      cellRenderer: p => {
+        const btn = document.createElement('button');
+        btn.className = 'btn btn-sm';
+        btn.textContent = '데이터 입력';
+        btn.onclick = () => goQcData(p.data.id);
+        return btn;
+      }},
+  ];
 
-  wrap.innerHTML = `
-    <table class="data-table">
-      <thead><tr>
-        <th>항목명</th><th>유형</th><th>단위</th><th>Mean</th><th>SD</th><th>데이터</th><th></th>
-      </tr></thead>
-      <tbody>${rows.map(r => `
-        <tr>
-          <td>${textSafe(r.item_name)}</td>
-          <td>${textSafe(r.item_type === 'quantitative' ? '정량' : '정성')}</td>
-          <td>${textSafe(r.unit || '-')}</td>
-          <td>${r.mean != null ? r.mean : '-'}</td>
-          <td>${r.sd != null ? r.sd : '-'}</td>
-          <td>${r.lj_entries?.[0]?.count ?? 0}건</td>
-          <td><button class="btn btn-sm" onclick="goQcData('${r.id}')">데이터 입력</button></td>
-        </tr>`).join('')}
-      </tbody>
-    </table>`;
+  if (_qcGrid) { updateMgGrid(_qcGrid, rows); return; }
+  _qcGrid = createMgGrid('qcItemList', cols, rows, {
+    pageSize: 10, fit: false, noRowsText: '등록된 정도관리 항목이 없습니다.',
+  });
 }
 
 function goQcData(itemId) {
