@@ -67,10 +67,7 @@ function renderVendors(rows) {
   if (empty) empty.style.display = 'none';
 
   if (!window._vendorGrid) {
-    window._vendorGrid = (function(){
-    var _el = document.getElementById('vendorList');
-    if (_el) { _el.classList.add('ag-theme-alpine'); if (!_el.style.height) _el.style.height = '520px'; }
-  })();
+    window._vendorGrid =
   createMgGrid('vendorList', [
       { headerName: '코드',     field: 'vendor_code', flex: 1, minWidth: 90 },
       { headerName: '거래처명', field: 'vendor_name', flex: 2, minWidth: 120 },
@@ -191,10 +188,7 @@ function renderItems(rows) {
   if (empty) empty.style.display = 'none';
 
   if (!window._itemGrid) {
-    window._itemGrid = (function(){
-    var _el = document.getElementById('itemList');
-    if (_el) { _el.classList.add('ag-theme-alpine'); if (!_el.style.height) _el.style.height = '520px'; }
-  })();
+    window._itemGrid =
   createMgGrid('itemList', [
       { headerName: '코드',   field: 'item_code',  flex: 1, minWidth: 90 },
       { headerName: '자재명', field: 'item_name',  flex: 2, minWidth: 120 },
