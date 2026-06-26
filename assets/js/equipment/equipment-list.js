@@ -314,9 +314,12 @@ function getStatusBadge(status) {
 
 function getActionButtons(item) {
   var id = escapeHtml(item.equipment_id || '');
-  var btns = '<a class="tbl-btn" href="detail.html?id=' + id + '&shell=1" onclick="saveListState()">상세</a>';
+  var btns = '<button class="tbl-btn" onclick="saveListState();parent.shellNavigate(\'equipment/detail?id=' + id + '\')">상세</button>';
   if (equipmentListState.canEdit && canEditItem(item)) {
     btns += '<button class="tbl-btn tbl-btn--primary" onclick="saveListState();openEditForm(\'' + id + '\')">수정</button>';
+  }
+  if (equipmentListState.canEdit) {
+    btns += '<button class="tbl-btn" onclick="openListLabelModal(\'' + id + '\')">라벨</button>';
   }
   if (equipmentListState.canEdit) {
     btns += '<button class="tbl-btn" onclick="openListLabelModal(\'' + id + '\')">라벨</button>';
@@ -672,12 +675,18 @@ async function loadEquipmentList(nextPage) {
     var totalCount = sbResult.count || 0;
     var totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
 
+    var rows = (sbResult.data || []).map(function(r) {
+      r.equipment_id = r.id;  // 원본 필드명 호환
+      r.qr_value     = r.qr_value || r.id;
+      return r;
+    });
+
     equipmentListState.hasNext    = page < totalPages;
     equipmentListState.hasPrev    = page > 1;
     equipmentListState.totalCount = totalCount;
     equipmentListState.totalPages = totalPages;
 
-    renderEquipmentList(sbResult.data || []);
+    renderEquipmentList(rows);
     renderListSummary();
     renderPagination();
     syncListQueryParams(filters);
@@ -797,7 +806,11 @@ async function exportEquipmentExcel() {
     var exportResult = await sbExport;
     if (exportResult.error) throw new Error(exportResult.error.message);
 
-    var data = exportResult.data || [];
+    var data = (exportResult.data || []).map(function(r) {
+      r.equipment_id = r.id;
+      r.qr_value = r.qr_value || r.id;
+      return r;
+    });
 
     if (!data.length) {
       showMessage('다운로드할 데이터가 없습니다.', 'error');
