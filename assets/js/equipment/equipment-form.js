@@ -82,11 +82,27 @@ function fillForm(eq) {
   const clinicSel = document.getElementById('clinic_code');
   const teamSel   = document.getElementById('team_code');
   if (clinicSel && eq.clinic_code) {
-    clinicSel.value = eq.clinic_code;
-    clinicSel.dispatchEvent(new Event('change'));
+    // 1) 의원 select에 해당 옵션이 실제로 있는지 확인 후 세팅
+    const clinicOpt = Array.from(clinicSel.options).find(o => o.value === eq.clinic_code);
+    if (clinicOpt) {
+      clinicSel.value = eq.clinic_code;
+      clinicSel.dispatchEvent(new Event('change'));  // → fillDeptSelect 실행
+    }
   }
   if (teamSel && eq.team_code) {
-    setTimeout(() => { teamSel.value = eq.team_code; }, 50);
+    // fillDeptSelect가 동기라서 dispatchEvent 직후 옵션이 채워짐
+    // 그래도 nextTick으로 안전하게 처리
+    const setTeam = () => {
+      const teamOpt = Array.from(teamSel.options).find(o => o.value === eq.team_code);
+      if (teamOpt) {
+        teamSel.value = eq.team_code;
+        // team_name도 수동으로 세팅 (change 이벤트 없이)
+        setVal('teamName', teamOpt.textContent.trim());
+      }
+    };
+    // 즉시 시도 후 실패하면 setTimeout으로 재시도
+    setTeam();
+    if (teamSel.value !== eq.team_code) setTimeout(setTeam, 100);
   }
 
   if (eq.photo_url) renderPhotoPreview(eq.photo_url);
