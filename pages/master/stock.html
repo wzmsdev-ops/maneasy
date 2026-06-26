@@ -129,7 +129,16 @@
     .po-actionbar input[type=date]:focus, .m-filter-bar input[type=date]:focus,
     .po-actionbar select:focus, .m-filter-bar select:focus { border-color: #2563eb; }
     .po-actionbar .spacer { flex: 1; }
-  </style>
+
+    .pr-divider {
+      width: 1px; height: 20px; background: #d1d5db; flex-shrink: 0; margin: 0 4px;
+    }
+    .po-actionbar input[type=text], .m-filter-bar input[type=text] {
+      flex: 1; min-width: 0;
+    }
+    .po-actionbar input[type=date], .m-filter-bar input[type=date] { flex-shrink: 0; }
+    .po-actionbar .spacer { flex: 0; }
+    </style>
 </head>
 <body>
 <div class="st-page">
@@ -145,12 +154,13 @@
     <!-- ═══ 입고 탭 (자재담당자가 발주 품목을 중앙창고로 입고) ═══ -->
     <div id="tab-receipt" class="tab-panel active">
       <div class="m-filter-bar">
-        <input type="text" id="receiptKeyword" placeholder="자재명/발주번호 검색..." style="width:180px;" />
         <span class="m-filter-label">기간</span>
-        <input type="date" id="receiptDateFrom" style="height:30px;padding:0 6px;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;outline:none;width:130px;" />
-        <span style="font-size:11px;color:#9ca3af;">~</span>
-        <input type="date" id="receiptDateTo" style="height:30px;padding:0 6px;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;outline:none;width:130px;" />
-        <button class="btn btn-sm" id="receiptSearchBtn"><i class="ti ti-search"></i> 검색</button>
+        <input type="date" id="receiptDateFrom" style="height:30px;padding:0 6px;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;outline:none;width:130px;flex-shrink:0;" />
+        <span style="font-size:11px;color:#9ca3af;flex-shrink:0;">~</span>
+        <input type="date" id="receiptDateTo" style="height:30px;padding:0 6px;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;outline:none;width:130px;flex-shrink:0;" />
+        <div class="pr-divider"></div>
+        <input type="text" id="receiptKeyword" placeholder="자재명/입고번호 검색..." style="flex:1;min-width:0;height:28px;padding:0 10px;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;outline:none;" />
+        <button class="btn btn-sm btn-primary" id="receiptSearchBtn"><i class="ti ti-search"></i> 조회</button>
         <div style="flex:1;"></div>
         <button class="btn btn-sm btn-primary" id="addReceiptBtn"><i class="ti ti-plus"></i> 입고 등록</button>
       </div>
@@ -165,13 +175,15 @@
     <!-- ═══ 불출 탭 (중앙창고 → 부서) ═══ -->
     <div id="tab-dispatch" class="tab-panel">
       <div class="m-filter-bar">
-        <select id="dispatchDeptFilter"><option value="">전체 부서</option></select>
-        <input type="text" id="dispatchKeyword" placeholder="자재명 검색..." style="width:160px;" />
-        <span class="m-filter-label">기간</span>
-        <input type="date" id="dispatchDateFrom" style="height:30px;padding:0 6px;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;outline:none;width:130px;" />
-        <span style="font-size:11px;color:#9ca3af;">~</span>
-        <input type="date" id="dispatchDateTo" style="height:30px;padding:0 6px;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;outline:none;width:130px;" />
-        <button class="btn btn-sm" id="dispatchSearchBtn"><i class="ti ti-search"></i> 검색</button>
+        <select id="dispatchDeptFilter" style="height:28px;padding:0 8px;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;flex-shrink:0;"><option value="">전체 부서</option></select>
+        <div class="pr-divider"></div>
+        <span class="m-filter-label" style="flex-shrink:0;">기간</span>
+        <input type="date" id="dispatchDateFrom" style="height:30px;padding:0 6px;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;outline:none;width:130px;flex-shrink:0;" />
+        <span style="font-size:11px;color:#9ca3af;flex-shrink:0;">~</span>
+        <input type="date" id="dispatchDateTo" style="height:30px;padding:0 6px;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;outline:none;width:130px;flex-shrink:0;" />
+        <div class="pr-divider"></div>
+        <input type="text" id="dispatchKeyword" placeholder="자재명 검색..." style="flex:1;min-width:0;height:28px;padding:0 10px;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;outline:none;" />
+        <button class="btn btn-sm btn-primary" id="dispatchSearchBtn"><i class="ti ti-search"></i> 조회</button>
         <div style="flex:1;"></div>
         <button class="btn btn-sm btn-primary" id="addDispatchBtn"><i class="ti ti-plus"></i> 불출 등록</button>
       </div>
@@ -186,9 +198,10 @@
     <!-- ═══ 부서별재고 탭 ═══ -->
     <div id="tab-deptstock" class="tab-panel">
       <div class="m-filter-bar">
-        <select id="deptStockDeptFilter"><option value="">전체 부서</option></select>
-        <input type="text" id="deptStockKeyword" placeholder="자재명 검색..." style="width:180px;" />
-        <button class="btn btn-sm" id="deptStockSearchBtn"><i class="ti ti-search"></i> 검색</button>
+        <select id="deptStockDeptFilter" style="height:28px;padding:0 8px;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;flex-shrink:0;"><option value="">전체 부서</option></select>
+        <div class="pr-divider"></div>
+        <input type="text" id="deptStockKeyword" placeholder="자재명 검색..." style="flex:1;min-width:0;height:28px;padding:0 10px;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;outline:none;" />
+        <button class="btn btn-sm btn-primary" id="deptStockSearchBtn"><i class="ti ti-search"></i> 조회</button>
       </div>
       <div class="m-card">
         <div class="m-card-body">
