@@ -1302,7 +1302,7 @@ function buildLabelHtmlForList(item, sizeClass, qrId) {
   return (
     '<div class="prlabel prlabel--' + sc + '">' +
       '<div class="prlabel-body">' +
-        '<div class="prlabel-hospital">녹십자아이메드 의료장비 관리시스템</div>' +
+        '<div class="prlabel-hospital">녹십자아이메드 업무지원 시스템</div>' +
         '<div class="prlabel-title">' + escapeHtml(item.equipment_name || '-') + '</div>' +
         '<div class="prlabel-rows">' +
           '<div class="prlabel-row">' +
@@ -1442,7 +1442,7 @@ function openListLabelModal(equipmentId) {
           '<div class="label-sheet-wrap">' +
             '<div class="device-label size-90x48" id="listLabelDevice">' +
               '<div class="device-label-main">' +
-                '<div class="label-hospital">녹십자아이메드 의료장비 관리시스템</div>' +
+                '<div class="label-hospital">녹십자아이메드 업무지원 시스템</div>' +
                 '<div class="label-title" id="llm_name">-</div>' +
                 '<div class="label-info-block">' +
                   '<div class="label-row label-row-emphasis">' +
