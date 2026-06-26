@@ -323,14 +323,23 @@ function createMgGrid(containerId, colDefs, rows, options) {
     el.classList.add('ag-theme-alpine');
   }
 
-  // 컨테이너 높이 확인 — 없으면 부모 체인 탐색
+  // 컨테이너 높이 설정
+  // display:none 탭 안에 있으면 clientHeight=0 → height:100% 세팅 (flex parent가 결정)
+  // display 상태에서는 clientHeight로 계산
   var gridH = el.clientHeight;
+  if (!el.style.height) {
+    if (gridH > 0) {
+      el.style.height = gridH + 'px';
+    } else {
+      // 비활성 탭 등 — 부모 flex가 결정하도록 100% 세팅
+      el.style.height = '100%';
+    }
+  }
   if (!gridH) {
     var p = el.parentElement;
     while (p && !gridH) { gridH = p.clientHeight; p = p.parentElement; }
   }
-  if (!gridH) gridH = 500;
-  if (!el.style.height) el.style.height = gridH + 'px';
+  if (!gridH) gridH = 400;
 
   // rowHeight 고정 34px, 컨테이너 높이로 pageSize 자동 계산
   var ROW_H    = 34;
