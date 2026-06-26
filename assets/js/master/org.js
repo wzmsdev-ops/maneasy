@@ -51,6 +51,13 @@ function initTabs() {
       document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
       btn.classList.add('active');
       document.getElementById(`tab-${target}`)?.classList.add('active');
+
+      // 탭 전환 후 그리드 width 재계산 (display:none 상태에서 초기화되면 width=0)
+      requestAnimationFrame(() => {
+        const gridMap = { clinics: '_clinicGrid', departments: '_deptGrid', users: '_userGrid' };
+        const g = window[gridMap[target]];
+        if (g) g.sizeColumnsToFit();
+      });
     });
   });
 }
