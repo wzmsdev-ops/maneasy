@@ -242,4 +242,5 @@ async function init() {
   }
 }
 
+function initEquipmentDetail() { init(); }
 document.addEventListener('DOMContentLoaded', init);
