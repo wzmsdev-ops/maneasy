@@ -423,6 +423,7 @@ function renderEquipmentList(items) {
     suppressPaginationPanel: true,
     suppressScrollOnNewData: true,
     suppressHorizontalScroll: true,
+    suppressCellFocus: true,
     overlayNoRowsTemplate: '<span style="color:#9ca3af;font-size:12px;">조회된 장비가 없습니다.</span>',
     onGridReady: function(params) {
       params.api.sizeColumnsToFit();
