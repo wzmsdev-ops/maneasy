@@ -748,51 +748,131 @@ function initStatusTabs() {
 ══════════════════════════════════════════ */
 
 /** 품목 select cellEditor */
-function ItemSelectEditor() {}
-ItemSelectEditor.prototype.init = function(params) {
-  this.value = params.value;
-  this.eInput = document.createElement('select');
-  this.eInput.style.cssText = 'width:100%;height:100%;border:none;outline:2px solid #3b82f6;padding:0 6px;font-size:11px;background:#fff;box-sizing:border-box;';
-  this.eInput.innerHTML = '<option value="">자재 선택</option>' +
-    itemCache.map(function(it) {
-      return '<option value="' + it.id + '">' + ts(it.item_name) + '</option>';
-    }).join('');
-  this.eInput.value = params.value || '';
-  var self = this;
-  this.eInput.addEventListener('change', function() {
-    self.value = self.eInput.value;
-    params.stopEditing();
+// ItemSelectEditor 제거 — 2패널 검색으로 대체
+
+/* ══════════════════════════════════════════
+   발주 등록 모달 — 자재 검색 그리드
+══════════════════════════════════════════ */
+var _poSearchGrid = null;
+
+function initPoSearchGrid() {
+  var el = document.getElementById('poSearchGrid');
+  if (!el || typeof agGrid === 'undefined') return;
+
+  var colDefs = [
+    { headerName: '카테고리', field: 'category', width: 90,
+      cellStyle: { justifyContent:'center', fontSize:'10px', color:'#6b7280' }
+    },
+    { headerName: '자재명', field: 'item_name', flex: 2, minWidth: 120,
+      headerClass: 'ag-left-header',
+      cellStyle: { justifyContent:'flex-start', fontWeight:600 }
+    },
+    { headerName: '입고단위', field: 'purchase_unit', width: 75,
+      cellStyle: { justifyContent:'center', color:'#6b7280' }
+    },
+    { headerName: '단가', field: 'standard_price', width: 90,
+      cellStyle: { justifyContent:'flex-end' },
+      valueFormatter: function(p) {
+        return p.value ? Number(p.value).toLocaleString('ko-KR') + '원' : '-';
+      }
+    },
+    { headerName: '', width: 56, sortable: false,
+      cellStyle: { justifyContent:'center', padding:'0 4px' },
+      cellRenderer: function(p) {
+        var btn = document.createElement('button');
+        btn.className = 'btn btn-sm btn-primary';
+        btn.style.cssText = 'padding:2px 8px;font-size:11px;';
+        var isAdded = isPoItemAdded(p.data.id);
+        btn.textContent = isAdded ? '추가됨' : '추가';
+        if (isAdded) { btn.style.background = '#059669'; btn.style.borderColor = '#059669'; }
+        btn.onclick = function() {
+          addPoItemFromSearch(p.data);
+          btn.textContent = '추가됨';
+          btn.style.background = '#059669';
+          btn.style.borderColor = '#059669';
+        };
+        return btn;
+      }
+    },
+  ];
+
+  _poSearchGrid = agGrid.createGrid(el, {
+    columnDefs: colDefs,
+    rowData: [],
+    rowHeight: 34,
+    headerHeight: 34,
+    suppressCellFocus: true,
+    defaultColDef: {
+      sortable: true, resizable: true, suppressMovable: true,
+      cellStyle: { display:'flex', alignItems:'center', justifyContent:'center' },
+    },
+    suppressHorizontalScroll: true,
+    overlayNoRowsTemplate: '<span style="color:#9ca3af;font-size:12px;">카테고리/자재명을 입력해 검색하세요.</span>',
+    onGridReady: function(params) {
+      setTimeout(function() { params.api.sizeColumnsToFit(); }, 0);
+    },
   });
-};
-ItemSelectEditor.prototype.getGui = function() { return this.eInput; };
-ItemSelectEditor.prototype.afterGuiAttached = function() { this.eInput.focus(); };
-ItemSelectEditor.prototype.getValue = function() { return this.value; };
-ItemSelectEditor.prototype.isPopup = function() { return false; };
+}
+
+function searchPoItems() {
+  var kw  = (document.getElementById('po_item_keyword')?.value || '').toLowerCase();
+  var cat = document.getElementById('po_item_category')?.value || '';
+  var filtered = itemCache.filter(function(i) {
+    var matchCat = !cat || i.category === cat;
+    var matchKw  = !kw  || i.item_name.toLowerCase().includes(kw) || (i.item_code || '').toLowerCase().includes(kw);
+    return matchCat && matchKw;
+  });
+  if (_poSearchGrid) _poSearchGrid.setGridOption('rowData', filtered);
+  var cnt = document.getElementById('poSearchCount');
+  if (cnt) cnt.textContent = filtered.length ? filtered.length + '건' : '';
+}
+
+function isPoItemAdded(itemId) {
+  if (!_poItemGrid) return false;
+  var found = false;
+  _poItemGrid.forEachNode(function(n) { if (n.data.item_id === itemId) found = true; });
+  return found;
+}
+
+function addPoItemFromSearch(item) {
+  if (isPoItemAdded(item.id)) return; // 중복 방지
+  _rowIdCounter++;
+  var row = {
+    _rowId:        _rowIdCounter,
+    item_id:       item.id,
+    item_name:     item.item_name,
+    purchase_unit: item.purchase_unit || '',
+    use_unit:      item.use_unit || '',
+    order_qty:     1,
+    unit_price:    item.standard_price || 0,
+    supply_price:  item.standard_price || 0,
+    memo:          '',
+    _existingId:   null,
+  };
+  if (_poItemGrid) {
+    _poItemGrid.applyTransaction({ add: [row] });
+    refreshPoTotal();
+    updatePoItemCount();
+  }
+}
+
+function updatePoItemCount() {
+  var cnt = 0;
+  if (_poItemGrid) _poItemGrid.forEachNode(function() { cnt++; });
+  var el = document.getElementById('poItemCount');
+  if (el) el.textContent = cnt ? cnt + '건' : '';
+}
 
 function initPoItemGrid() {
   var el = document.getElementById('poItemGrid');
   if (!el || typeof agGrid === 'undefined') return;
 
   var colDefs = [
-    { headerName: '자재명', field: 'item_id', flex: 2,
+    { headerName: '자재명', field: 'item_name', flex: 2,
       headerClass: 'ag-left-header',
-      cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-start' },
-      editable: true,
-      cellEditorFramework: ItemSelectEditor,
-      cellEditorParams: {},
+      cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-start', fontWeight:600 },
       cellRenderer: function(p) {
-        if (!p.value) return '<span style="color:#9ca3af;">자재를 선택하세요</span>';
-        var item = itemCache.find(function(it) { return it.id === p.value; });
-        return ts(item ? item.item_name : p.value);
-      },
-      onCellValueChanged: function(p) {
-        var item = itemCache.find(function(it) { return it.id === p.newValue; });
-        if (item) {
-          p.node.setDataValue('purchase_unit', item.purchase_unit || '');
-          p.node.setDataValue('use_unit',      item.use_unit      || '');
-          p.node.setDataValue('unit_price',     item.standard_price || 0);
-          recalcRow(p.node);
-        }
+        return ts(p.value || '-');
       }
     },
     { headerName: '입고단위', field: 'purchase_unit', width: 80,
@@ -931,6 +1011,8 @@ function removePoItemRow(rowId) {
   if (toRemove) {
     _poItemGrid.applyTransaction({ remove: [toRemove] });
     refreshPoTotal();
+    updatePoItemCount();
+    if (_poSearchGrid) _poSearchGrid.refreshCells({ force: true });
   }
 }
 
@@ -1017,8 +1099,19 @@ function openAddPo() {
   // 모달 표시 후 그리드 초기화 (display:block 상태에서 height 확보)
   setTimeout(function() {
     if (!_poItemGrid) initPoItemGrid();
+    if (!_poSearchGrid) initPoSearchGrid();
     clearPoItemGrid();
+    updatePoItemCount();
     if (_poItemGrid) _poItemGrid.sizeColumnsToFit();
+    if (_poSearchGrid) { _poSearchGrid.setGridOption('rowData', []); _poSearchGrid.sizeColumnsToFit(); }
+    // 카테고리 옵션 채우기
+    var catSel = document.getElementById('po_item_category');
+    if (catSel && catSel.options.length <= 1) {
+      var cats = [...new Set(itemCache.map(function(i){ return i.category || ''; }))].filter(Boolean).sort();
+      catSel.innerHTML = '<option value="">전체 카테고리</option>' +
+        cats.map(function(c){ return '<option value="' + c + '">' + c + '</option>'; }).join('');
+    }
+    document.getElementById('po_item_keyword') && (document.getElementById('po_item_keyword').value = '');
   }, 50);
 }
 
@@ -1278,6 +1371,7 @@ async function init() {
   document.getElementById('rvKeyword')?.addEventListener('keydown', function(e) { if (e.key === 'Enter') loadRvList(1); });
   // 발주목록 검색
   document.getElementById('poSearchBtn')?.addEventListener('click', function() { loadPoList(1); });
+  document.getElementById('po_item_keyword')?.addEventListener('keydown', function(e) { if (e.key === 'Enter') searchPoItems(); });
   document.getElementById('poKeyword')?.addEventListener('keydown', function(e) { if (e.key === 'Enter') loadPoList(1); });
 initRvStatusTabs();
   initRvListGrid();   // review 탭이 기본 활성 → 즉시 초기화
