@@ -78,8 +78,8 @@
       display:flex; flex-direction:column;
       box-shadow:0 20px 60px rgba(0,0,0,0.16); border:1px solid #e5e7eb; overflow:hidden;
     }
-    .m-modal-dialog--form   { width:700px; max-width:calc(100vw - 32px); height:calc(100vh - 48px); }
-    .m-modal-dialog--detail { width:660px; max-width:calc(100vw - 32px); max-height:calc(100vh - 48px); }
+    .m-modal-dialog--form   { width:calc(100vw - 48px); max-width:1280px; height:calc(100vh - 48px); }
+    .m-modal-dialog--detail { width:720px; max-width:calc(100vw - 32px); max-height:calc(100vh - 48px); }
     .m-modal-head {
       display:flex; align-items:center; justify-content:space-between;
       padding:10px 14px; background:#0b1630; flex-shrink:0;
@@ -336,28 +336,47 @@
       <button class="m-modal-close" onclick="closeModal('prModal')"><i class="ti ti-x"></i></button>
     </div>
 
-    <div class="m-modal-body">
-      <!-- 자재 검색 -->
-      <div class="m-field">
-        <label>자재 검색</label>
-        <div class="pr-search-wrap">
-          <input type="text" id="pr_search_kw" placeholder="자재명을 입력해 검색하세요..." autocomplete="off" />
-          <button class="btn btn-sm btn-primary" id="prSearchBtn" type="button"><i class="ti ti-search"></i> 조회</button>
-          <div id="prSearchResults" class="pr-search-results"></div>
-        </div>
+    <div class="m-modal-body" style="padding:0;display:flex;flex-direction:column;overflow:hidden;">
+      <!-- 검색 툴바 -->
+      <div class="pr-modal-toolbar">
+        <select id="pr_category">
+          <option value="">전체 카테고리</option>
+        </select>
+        <input type="text" id="pr_search_kw" placeholder="자재명 검색..." autocomplete="off" />
+        <button class="btn btn-sm btn-primary" onclick="searchPrItems()">
+          <i class="ti ti-search"></i> 조회
+        </button>
       </div>
 
-      <!-- 선택 품목 AG Grid -->
-      <div class="pr-items-section">
-        <div class="pr-items-toolbar-label">요청 품목</div>
-        <div class="pr-items-grid-wrap">
-          <div id="prItemGrid" class="pr-items-grid ag-theme-alpine"></div>
+      <!-- 2패널 -->
+      <div class="pr-two-panel">
+
+        <!-- 좌: 검색 결과 -->
+        <div class="pr-search-panel">
+          <div class="pr-search-panel-head">
+            <i class="ti ti-search" style="color:#9ca3af;"></i>
+            검색 결과
+            <span id="prSearchCount"></span>
+          </div>
+          <div id="prSearchGrid" class="pr-grid ag-theme-alpine"></div>
         </div>
+
+        <!-- 우: 요청 품목 -->
+        <div class="pr-items-panel">
+          <div class="pr-items-panel-head">
+            <i class="ti ti-shopping-cart" style="color:#2563eb;"></i>
+            요청 품목
+            <span id="prItemCount"></span>
+          </div>
+          <div id="prItemGrid" class="pr-grid ag-theme-alpine"></div>
+        </div>
+
       </div>
 
-      <div class="m-field">
+      <!-- 메모 -->
+      <div class="pr-memo-row">
         <label>요청 메모</label>
-        <textarea id="pr_memo" placeholder="요청 사유, 참고사항 등"></textarea>
+        <input type="text" id="pr_memo" placeholder="요청 사유, 참고사항 등" />
       </div>
     </div>
 
