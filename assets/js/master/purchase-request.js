@@ -54,11 +54,9 @@ window.closeModal = closeModal;
    1. 발주요청 목록
 ══════════════════════════════════════════ */
 function initPrListGrid() {
-  _prListGrid = (function(){
-  var _el = document.getElementById('prGrid');
-  if (_el) _el.style.height = Math.max(200, window.innerHeight - 152) + 'px';
-})();
-  createMgGrid('prGrid', [
+  var _el_prGrid = document.getElementById('prGrid');
+  if (_el_prGrid) _el_prGrid.style.height = Math.max(200, window.innerHeight - 152) + 'px';
+  _prListGrid = createMgGrid('prGrid', [
     { headerName: '요청번호', field: 'request_no', width: 150,
       headerClass: 'ag-left-header',
       cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-start' },
