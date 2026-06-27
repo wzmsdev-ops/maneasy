@@ -379,6 +379,7 @@ function createMgGrid(containerId, colDefs, rows, options) {
     suppressPaginationPanel: true,
     suppressScrollOnNewData: true,
     suppressHorizontalScroll: true,
+    suppressCellFocus: true,
     overlayNoRowsTemplate: '<span style="color:#9ca3af;font-size:12px;">' + noRowsText + '</span>',
     onGridReady: function(params) {
       var _api = params.api;
