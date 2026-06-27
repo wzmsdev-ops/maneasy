@@ -583,10 +583,20 @@ async function syncRequestStatus(requestId) {
   if (!linked.length) return; // 아직 분리 전
 
   var statuses = linked.map(function(i) { return i.purchase_order_items?.purchase_orders?.status; });
-  var newStatus = 'PROCESSING';
-  if (statuses.every(function(s) { return s === 'COMPLETED'; })) newStatus = 'COMPLETED';
-  else if (statuses.some(function(s) { return s === 'PARTIAL' || s === 'COMPLETED'; })) newStatus = 'PARTIAL';
-  else if (statuses.some(function(s) { return s === 'ORDERED'; })) newStatus = 'ORDERED';
+  var activeStatuses = statuses.filter(function(s) { return s && s !== 'CANCELLED'; });
+  var newStatus;
+  if (!activeStatuses.length) {
+    // 연결된 발주서가 전부 취소 → 발주요청을 REQUESTED로 되돌림
+    newStatus = 'REQUESTED';
+  } else if (activeStatuses.every(function(s) { return s === 'COMPLETED'; })) {
+    newStatus = 'COMPLETED';
+  } else if (activeStatuses.some(function(s) { return s === 'PARTIAL' || s === 'COMPLETED'; })) {
+    newStatus = 'PARTIAL';
+  } else if (activeStatuses.some(function(s) { return s === 'ORDERED'; })) {
+    newStatus = 'ORDERED';
+  } else {
+    newStatus = 'PROCESSING';
+  }
 
   await supabaseClient.from('purchase_requests')
     .update({ status: newStatus, updated_at: new Date().toISOString() }).eq('id', requestId);
