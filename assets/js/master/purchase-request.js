@@ -92,12 +92,12 @@ function initPrListGrid() {
         wrap.style.cssText = 'display:flex;gap:4px;align-items:center;height:100%;';
         var vBtn = document.createElement('button');
         vBtn.className = 'tbl-btn'; vBtn.textContent = '상세';
-        vBtn.onclick = function() { openPrDetail(p.data.id); };
+        vBtn.onclick = function(e) { e.stopPropagation(); openPrDetail(p.data.id); };
         wrap.appendChild(vBtn);
         return wrap;
       }
     },
-  ], [], { noRowsText: '작성한 발주요청이 없습니다.' });
+  ], [], { noRowsText: '작성한 발주요청이 없습니다.', onRowClick: function(data) { openPrDetail(data.id); } });
 }
 
 async function loadPrList(page) {
