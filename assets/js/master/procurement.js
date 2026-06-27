@@ -46,6 +46,9 @@ function fmtN(n)       { return Number(n || 0).toLocaleString('ko-KR') + '원'; 
 function fmtDate(v)    { return v ? String(v).slice(0, 10) : '-'; }
 function calcVat(s)    { return Math.round((s || 0) * 0.1); }
 
+// VAT 입력칸을 사용자가 직접 수정했는지 추적 — 수정했으면 품목이 바뀌어도 자동계산으로 덮어쓰지 않음
+var _poVatTouched = false;
+
 var STATUS_LABEL = { DRAFT:'초안', ORDERED:'발주완료', PARTIAL:'부분입고', COMPLETED:'완료', CANCELLED:'취소' };
 var STATUS_BADGE = { DRAFT:'badge-draft', ORDERED:'badge-ordered', PARTIAL:'badge-partial', COMPLETED:'badge-completed', CANCELLED:'badge-cancelled' };
 function badgeStatus(s) {
@@ -677,7 +680,8 @@ async function loadPoList(page) {
     if (label) label.textContent = '총 ' + (count || 0) + '건';
 
     updateMgGrid(_poListGrid, (data || []).map(function(r) {
-      r._vat   = calcVat(r.supply_price);
+      // 저장된(보정 포함) vat_amount를 우선 사용 — 없으면 계산값으로 대체
+      r._vat   = (r.vat_amount != null && r.vat_amount !== 0) ? r.vat_amount : calcVat(r.supply_price);
       r._total = (r.supply_price || 0) + r._vat;
       return r;
     }));
@@ -864,14 +868,21 @@ function refreshPoTotal() {
       supplyTotal += Number(node.data.supply_price || 0);
     });
   }
-  var vat   = calcVat(supplyTotal);
+  var vatInput = document.getElementById('poTotalVat');
+  // 사용자가 VAT를 직접 보정하지 않았으면 공급가액 합계 기준 자동계산값으로 채움
+  if (vatInput && !_poVatTouched) vatInput.value = calcVat(supplyTotal);
+  var vat   = Number(vatInput?.value || 0);
   var total = supplyTotal + vat;
   var s = document.getElementById('poTotalSupply');
-  var v = document.getElementById('poTotalVat');
   var t = document.getElementById('poTotalAmount');
   if (s) s.textContent = fmtN(supplyTotal);
-  if (v) v.textContent = fmtN(vat);
   if (t) t.textContent = fmtN(total);
+}
+
+/** VAT 입력칸을 사용자가 직접 수정했을 때 — 이후 품목 변경으로 자동계산되어 덮어써지지 않도록 표시 */
+function onPoVatInput() {
+  _poVatTouched = true;
+  refreshPoTotal();
 }
 
 var _rowIdCounter = 0;
@@ -982,6 +993,8 @@ function openAddPo() {
   setVal('po_expected_date', '');
   setVal('po_vendor_id',     '');
   setVal('po_memo',          '');
+  _poVatTouched = false;
+  setVal('poTotalVat', '0');
   document.getElementById('poModalTitle').textContent = '발주 등록';
   openModal('poModal');
   // 모달 표시 후 그리드 초기화 (display:block 상태에서 height 확보)
@@ -1006,6 +1019,9 @@ async function openEditPo(id) {
     setVal('po_expected_date', po.expected_date || '');
     setVal('po_vendor_id',     po.vendor_id);
     setVal('po_memo',          po.memo);
+    // 기존에 저장된(혹은 보정된) VAT 값을 그대로 불러옴 — 품목을 다시 채울 때 자동계산으로 덮어쓰지 않게 표시
+    setVal('poTotalVat', po.vat_amount ?? 0);
+    _poVatTouched = true;
 
     document.getElementById('poModalTitle').textContent = '발주 수정';
     openModal('poModal');
@@ -1059,11 +1075,14 @@ async function savePo() {
   });
   if (!itemRows.length) throw new Error('품목을 1개 이상 추가해주세요.');
 
+  var vatAmount = Number(val('poTotalVat') || 0);
+
   var poPayload = {
     vendor_id:     vendorId,
     order_date:    val('po_order_date') || new Date().toISOString().slice(0, 10),
     expected_date: val('po_expected_date') || null,
     supply_price:  supplyTotal,
+    vat_amount:    vatAmount,
     memo:          val('po_memo'),
     status:        'DRAFT',
     updated_at:    new Date().toISOString(),
@@ -1134,9 +1153,9 @@ async function openPoDetail(id) {
       }
     }, 50);
 
-    // 합계
+    // 합계 — 저장된 vat_amount(보정값 포함)를 우선 사용, 없으면 계산값으로 대체
     var supplyTotal = po.supply_price || 0;
-    var vat   = calcVat(supplyTotal);
+    var vat   = (po.vat_amount != null && po.vat_amount !== 0) ? po.vat_amount : calcVat(supplyTotal);
     var total = supplyTotal + vat;
     var totalEl = document.getElementById('poDetailTotal');
     if (totalEl) totalEl.innerHTML =
