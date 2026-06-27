@@ -25,6 +25,9 @@ function fmtN(v)    { return Number(v || 0).toLocaleString('ko-KR'); }
 
 /* ── 현재고 그리드 ─────────────────────────── */
 function initStockGrid() {
+  // stockGrid는 페이지 첫 로드 시 초기화 — 레이아웃 안정 후 width 재조정
+  var el = document.getElementById('stockGrid');
+  if (el && !el.style.width) el.style.width = '100%';
   var colDefs = [
     { headerName: '자재명', field: 'items', flex: 2, minWidth: 140,
       headerClass: 'ag-left-header',
@@ -55,6 +58,12 @@ function initStockGrid() {
     },
   ];
   _gridStock = createMgGrid('stockGrid', colDefs, [], { noRowsText: '보유 재고가 없습니다.' });
+  // 레이아웃 안정 후 너비 재조정 (DOMContentLoaded 직후엔 container width가 0일 수 있음)
+  requestAnimationFrame(function() {
+    requestAnimationFrame(function() {
+      if (_gridStock) _gridStock.sizeColumnsToFit();
+    });
+  });
 }
 
 async function loadMyStock() {
