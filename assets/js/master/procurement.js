@@ -911,8 +911,24 @@ function initPoItemGrid() {
     },
     { headerName: '공급가액', field: 'supply_price', width: 120,
       headerClass: 'ag-right-header',
-      cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-end', background:'#f8fafc' },
-      cellRenderer: function(p) { return '<strong>' + Number(p.value || 0).toLocaleString('ko-KR') + '원</strong>'; }
+      cellStyle: function(p) {
+        return { display:'flex', alignItems:'center', justifyContent:'flex-end',
+          background: p.data._supplyTouched ? '#fffbeb' : '#fff' };
+      },
+      editable: true,
+      cellEditor: 'agNumberCellEditor',
+      cellEditorParams: { min: 0 },
+      cellRenderer: function(p) {
+        var mark = p.data._supplyTouched ? ' <span style="color:#d97706;font-size:10px;font-weight:400;">(직접수정)</span>' : '';
+        return '<strong>' + Number(p.value || 0).toLocaleString('ko-KR') + '원</strong>' + mark;
+      },
+      onCellValueChanged: function(p) {
+        // 거래처마다 공급가 계산방식이 달라 수량×단가와 다를 수 있으므로 직접 보정 가능.
+        // 보정한 행은 표시해둬서, 이후 수량/단가를 바꿔도 자동계산이 이 보정값을 덮어쓰지 않게 함.
+        p.node.data._supplyTouched = true;
+        p.api.refreshCells({ rowNodes: [p.node], force: true });
+        refreshPoTotal();
+      }
     },
     { headerName: '메모', field: 'memo', flex: 1,
       headerClass: 'ag-left-header',
@@ -960,6 +976,7 @@ function initPoItemGrid() {
 }
 
 function recalcRow(node) {
+  if (node.data._supplyTouched) { refreshPoTotal(); return; } // 공급가액을 직접 보정한 행은 자동계산 안 함
   var qty   = Number(node.data.order_qty  || 1);
   var price = Number(node.data.unit_price || 0);
   node.setDataValue('supply_price', qty * price);
