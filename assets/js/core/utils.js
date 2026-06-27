@@ -397,6 +397,15 @@ function createMgGrid(containerId, colDefs, rows, options) {
           _api.sizeColumnsToFit();
         }
       });
+      // 가로폭이 처음 측정될 때 아직 자리를 잡기 전이거나(폰트 로딩, 형제 요소 변화 등)
+      // 이후에 컨테이너 폭이 바뀌는 경우에도 항상 다시 맞춰지도록 — window resize 이벤트
+      // 하나에만 의존하면 그런 변화를 못 잡아서 컬럼이 좁게 고정된 채로 남는 문제가 있었음
+      if (typeof ResizeObserver !== 'undefined') {
+        var ro = new ResizeObserver(function() {
+          if (_api) _api.sizeColumnsToFit();
+        });
+        ro.observe(el);
+      }
     },
   };
 
