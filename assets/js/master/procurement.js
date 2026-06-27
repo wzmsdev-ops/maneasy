@@ -181,10 +181,19 @@ async function loadRvList(page) {
     if (rows.length) {
       var ids = rows.map(function(r) { return r.id; });
       var { data: items } = await supabaseClient
-        .from('purchase_request_items').select('request_id').in('request_id', ids);
-      var countMap = {};
-      (items || []).forEach(function(it) { countMap[it.request_id] = (countMap[it.request_id] || 0) + 1; });
-      rows.forEach(function(r) { r._itemCount = countMap[r.id] || 0; });
+        .from('purchase_request_items')
+        .select('request_id, items(item_name)')
+        .in('request_id', ids)
+        .order('created_at', { ascending: true });
+      var countMap = {}, firstMap = {};
+      (items || []).forEach(function(it) {
+        countMap[it.request_id] = (countMap[it.request_id] || 0) + 1;
+        if (!firstMap[it.request_id]) firstMap[it.request_id] = it.items?.item_name || '';
+      });
+      rows.forEach(function(r) {
+        r._itemCount  = countMap[r.id] || 0;
+        r._firstItem  = firstMap[r.id] || '-';
+      });
     }
 
     updateMgGrid(_rvListGrid, rows);
@@ -614,10 +623,20 @@ function initPoListGrid() {
     { headerName: '발주일', field: 'order_date', width: 100,
       cellRenderer: function(p) { return fmtDate(p.value); }
     },
-    { headerName: '거래처', field: 'vendors', flex: 1,
+    { headerName: '거래처', field: 'vendors', width: 140,
+      headerClass: 'ag-left-header',
+      cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-start', fontWeight:600 },
+      cellRenderer: function(p) { return ts(p.value?.vendor_name || '-'); }
+    },
+    { headerName: '품목', field: '_itemSummary', flex: 2, minWidth: 150,
       headerClass: 'ag-left-header',
       cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-start' },
-      cellRenderer: function(p) { return ts(p.value?.vendor_name || '-'); }
+      cellRenderer: function(p) {
+        var first = ts(p.data._firstItem || '-');
+        var cnt   = p.data._itemCount || 0;
+        if (cnt > 1) return first + ' <span style="color:#9ca3af;font-size:10px;">외 ' + (cnt-1) + '건</span>';
+        return first;
+      }
     },
     { headerName: '납품예정일', field: 'expected_date', width: 100,
       cellRenderer: function(p) { return fmtDate(p.value); }
