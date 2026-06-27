@@ -190,7 +190,10 @@ window.openEditClinic = openEditClinic;
 
 async function saveClinic() {
   const payload = {
-    clinic_code: val('c_clinic_code'),
+    clinic_code: editingClinicId ? val('c_clinic_code') : await (async () => {
+      const { data } = await supabaseClient.rpc('generate_clinic_code');
+      return data || 'CLINIC-' + Date.now().toString().slice(-6);
+    })(),
     clinic_name: val('c_clinic_name'),
     address:     val('c_address'),
     phone:       val('c_phone'),
@@ -198,7 +201,7 @@ async function saveClinic() {
     active:      val('c_active'),
     updated_at:  new Date().toISOString(),
   };
-  if (!payload.clinic_code) throw new Error('의원 코드는 필수입니다.');
+  // clinic_code는 자동생성
   if (!payload.clinic_name) throw new Error('의원명은 필수입니다.');
   if (editingClinicId) {
     const { error } = await supabaseClient.from('clinics').update(payload).eq('id', editingClinicId);
@@ -319,14 +322,17 @@ async function saveDept() {
   const clinicId = val('d_clinic_id');
   if (!clinicId) throw new Error('소속 의원을 선택해주세요.');
   const payload = {
-    dept_code:  val('d_dept_code'),
+    dept_code: editingDeptId ? val('d_dept_code') : await (async () => {
+      const { data } = await supabaseClient.rpc('generate_dept_code');
+      return data || 'DEPT-' + Date.now().toString().slice(-6);
+    })(),
     dept_name:  val('d_dept_name'),
     clinic_id:  clinicId,
     sort_order: Number(val('d_sort_order') || 0),
     active:     val('d_active'),
     updated_at: new Date().toISOString(),
   };
-  if (!payload.dept_code) throw new Error('부서 코드는 필수입니다.');
+  // dept_code는 자동생성
   if (!payload.dept_name) throw new Error('부서명은 필수입니다.');
   if (editingDeptId) {
     const { error } = await supabaseClient.from('departments').update(payload).eq('id', editingDeptId);
