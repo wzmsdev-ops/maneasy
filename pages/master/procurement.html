@@ -337,7 +337,7 @@
 ══════════════════════════════════════ -->
 <div id="poModal" class="m-modal">
   <div class="m-modal-backdrop" onclick="closeModal('poModal')"></div>
-  <div class="m-modal-dialog m-modal-dialog--form">
+  <div class="m-modal-dialog m-modal-dialog--detail" style="min-width:760px;">
 
     <div class="m-modal-head">
       <span class="m-modal-title" id="poModalTitle">발주 등록</span>
@@ -346,16 +346,16 @@
 
     <div class="m-modal-body">
       <!-- 기본 정보 -->
-      <div class="m-field-row3">
-        <div class="m-field">
+      <div style="display:flex;align-items:flex-end;gap:8px;">
+        <div class="m-field" style="flex:1;">
           <label>발주번호</label>
           <input type="text" id="po_order_no" class="m-readonly" readonly placeholder="저장 시 자동 생성" />
         </div>
-        <div class="m-field">
+        <div class="m-field" style="flex-shrink:0;">
           <label>발주일 <span class="m-req">*</span></label>
           <input type="date" id="po_order_date" style="height:30px;padding:0 6px;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;outline:none;width:130px;" />
         </div>
-        <div class="m-field">
+        <div class="m-field" style="flex-shrink:0;margin-left:auto;">
           <label>납품 예정일</label>
           <input type="date" id="po_expected_date" style="height:30px;padding:0 6px;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;outline:none;width:130px;" />
         </div>
@@ -385,8 +385,12 @@
 
         <!-- 합계 -->
         <div class="po-total-bar">
-          <span>공급가액 합계 <strong id="poTotalSupply">0원</strong></span>
-          <span>VAT <input type="number" id="poTotalVat" class="po-vat-input" value="0" oninput="onPoVatInput()" /><span class="po-vat-hint">세금계산서와 다르면 직접 수정</span></span>
+          <span>공급가액 <strong id="poTotalSupply">0원</strong></span>
+          <span style="display:flex;align-items:center;gap:6px;">
+            <span>부가세</span>
+            <input type="number" id="poTotalVat" class="po-vat-input" value="0" oninput="onPoVatInput()" />
+            <span class="po-vat-hint">세금계산서와 다르면 직접 수정</span>
+          </span>
           <span>합계 <strong id="poTotalAmount">0원</strong></span>
         </div>
       </div>
