@@ -392,19 +392,19 @@
 
         <!-- 우: 발주 품목 -->
         <div style="flex:1;min-width:0;display:flex;flex-direction:column;">
-          <div style="padding:4px 12px;font-size:11px;font-weight:700;color:#6b7280;background:#f8fafc;flex-shrink:0;border-bottom:1px solid #f3f4f6;display:flex;align-items:center;justify-content:space-between;">
-            <span>발주 품목 <span id="poItemCount" style="color:#2563eb;"></span></span>
+          <div style="padding:4px 12px;font-size:11px;font-weight:700;color:#6b7280;background:#f8fafc;flex-shrink:0;border-bottom:1px solid #f3f4f6;display:flex;align-items:center;justify-content:space-between;gap:12px;">
+            <span style="white-space:nowrap;">발주 품목 <span id="poItemCount" style="color:#2563eb;"></span></span>
+            <div class="po-total-bar" style="border:none;background:transparent;padding:0;flex-shrink:0;">
+              <span style="white-space:nowrap;">공급가액 <strong id="poTotalSupply">0원</strong></span>
+              <span style="display:flex;align-items:center;gap:6px;white-space:nowrap;">
+                <span>부가세</span>
+                <input type="number" id="poTotalVat" class="po-vat-input" value="0" oninput="onPoVatInput()" />
+                <span class="po-vat-hint">세금계산서와 다르면 직접 수정</span>
+              </span>
+              <span style="white-space:nowrap;">합계 <strong id="poTotalAmount">0원</strong></span>
+            </div>
           </div>
           <div id="poItemGrid" class="ag-theme-alpine" style="flex:1;min-height:0;"></div>
-          <div class="po-total-bar" style="flex-shrink:0;border-top:1px solid #e5e7eb;">
-            <span>공급가액 <strong id="poTotalSupply">0원</strong></span>
-            <span style="display:flex;align-items:center;gap:6px;">
-              <span>부가세</span>
-              <input type="number" id="poTotalVat" class="po-vat-input" value="0" oninput="onPoVatInput()" />
-              <span class="po-vat-hint">세금계산서와 다르면 직접 수정</span>
-            </span>
-            <span>합계 <strong id="poTotalAmount">0원</strong></span>
-          </div>
         </div>
 
       </div>
