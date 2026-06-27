@@ -254,7 +254,8 @@ function renderPagination(containerId, state, loadFn) {
   if (!el) return;
   var total = state.totalPages;
   var cur   = state.page;
-  if (total <= 1) { el.innerHTML = ''; return; }
+  if (total <= 1) { el.innerHTML = ''; el.style.display = 'none'; return; }
+  el.style.display = '';
 
   var BLOCK = 10;
   var bs = Math.floor((cur - 1) / BLOCK) * BLOCK + 1;
