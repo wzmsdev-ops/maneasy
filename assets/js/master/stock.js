@@ -10,7 +10,8 @@
  * 사용처리(부서 재고 차감)는 부서 직원 본인이 처리해야 하므로 이 화면(자재담당자 전용)이 아니라
  * 별도의 자가서비스 화면(pages/master/use-stock.html, 전체 사용자 접근)으로 분리되어 있습니다.
  *
- * 부가세: supply_price(공급가액)만 저장, VAT는 조회 시 계산
+ * 부가세: 입고 등록 시 공급가액의 10%로 자동계산해서 보여주고, 세금계산서와 다르면
+ *         사용자가 직접 보정하여 stock_receipts.vat_amount에 그대로 저장합니다.
  */
 'use strict';
 
@@ -28,6 +29,7 @@ var itemCache    = [];   // 자재 목록
 var deptCache    = [];   // 부서 목록
 var centralCache = {};   // item_id → 중앙창고(dept_id=NULL) 현재고
 var orderItemsMap = {};  // (입고 모달) item_id → {order_item_id, order_qty, received_qty, purchase_unit, unit_price}
+var _receiptVatTouched = false; // 입고 모달에서 부가세를 사용자가 직접 수정했는지 여부
 
 /* ── 유틸 ── */
 function ts(v) {
@@ -38,6 +40,7 @@ function val(id)       { return (document.getElementById(id)?.value || '').trim(
 function setVal(id, v) { var el = document.getElementById(id); if (el) el.value = v ?? ''; }
 function fmtN(n)       { return Number(n || 0).toLocaleString('ko-KR'); }
 function fmtDate(v)    { return v ? String(v).slice(0, 10) : '-'; }
+function calcVat(s)    { return Math.round((s || 0) * 0.1); }
 
 var TX_LABEL = { IN:'입고', OUT:'출고', ADJ:'조정', RETURN:'반납' };
 var TX_BADGE = { IN:'badge-in', OUT:'badge-out', ADJ:'badge-adj', RETURN:'badge-return' };
@@ -179,6 +182,10 @@ function initReceiptGrid() {
       cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-end' },
       cellRenderer: function(p) { return '<strong>' + fmtN(p.value) + '원</strong>'; }
     },
+    { headerName: '부가세', field: 'vat_amount', width: 100,
+      cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-end' },
+      cellRenderer: function(p) { return fmtN(p.value) + '원'; }
+    },
   ];
   var _receiptGridEl = document.getElementById('receiptGrid');
   if (_receiptGridEl) _receiptGridEl.style.height = Math.max(300, window.innerHeight - 172) + 'px';
@@ -233,8 +240,11 @@ function openAddReceipt() {
   setVal('r_use_qty', '');
   setVal('r_unit_price', '0');
   setVal('r_supply_price', '0');
+  setVal('r_vat_amount', '0');
+  setVal('r_total_price', '0');
   setVal('r_memo', '');
   orderItemsMap = {};
+  _receiptVatTouched = false;
   populateReceiptItemSelect(itemCache);
   updateReceiptInfo();
   openModal('receiptModal');
@@ -310,7 +320,9 @@ function updateReceiptInfo() {
     var useQty = qty * unitQty;
     var price  = Number(val('r_unit_price') || 0);
     setVal('r_use_qty',      useQty);
-    setVal('r_supply_price', qty * price);
+    var supply = qty * price;
+    setVal('r_supply_price', supply);
+    refreshReceiptVatTotal(supply);
 
     document.getElementById('rPurchaseUnit').textContent = purchaseUnit || '-';
     document.getElementById('rUseUnit').textContent      = useUnit      || '-';
@@ -319,8 +331,24 @@ function updateReceiptInfo() {
     document.getElementById('rItemInfo').style.display   = 'flex';
   } else {
     setVal('r_use_qty', ''); setVal('r_supply_price', '');
+    setVal('r_vat_amount', '0'); setVal('r_total_price', '0');
     document.getElementById('rItemInfo').style.display = 'none';
   }
+}
+
+/** 공급가액 기준으로 부가세(자동계산, 보정값 유지)와 합계를 갱신 */
+function refreshReceiptVatTotal(supply) {
+  var vatInput = document.getElementById('r_vat_amount');
+  if (vatInput && !_receiptVatTouched) vatInput.value = calcVat(supply);
+  var vat = Number(vatInput?.value || 0);
+  setVal('r_total_price', (supply || 0) + vat);
+}
+
+/** 부가세 입력칸을 사용자가 직접 수정했을 때 — 이후 수량/단가 변경으로 덮어쓰지 않도록 표시 */
+function onReceiptVatInput() {
+  _receiptVatTouched = true;
+  var supply = Number(val('r_supply_price') || 0);
+  refreshReceiptVatTotal(supply);
 }
 
 function recalcReceiptInfo() {
@@ -331,7 +359,9 @@ function recalcReceiptInfo() {
   var qty     = Number(val('r_receipt_qty') || 1);
   var price   = Number(val('r_unit_price') || 0);
   setVal('r_use_qty', qty * unitQty);
-  setVal('r_supply_price', qty * price);
+  var supply = qty * price;
+  setVal('r_supply_price', supply);
+  refreshReceiptVatTotal(supply);
 }
 
 async function saveReceipt() {
@@ -363,6 +393,7 @@ async function saveReceipt() {
     purchase_unit_qty: item.purchase_unit_qty || 1,
     receipt_qty:       receiptQty,
     unit_price:        unitPrice,
+    vat_amount:        Number(val('r_vat_amount') || 0),
     memo:              val('r_memo'),
   };
 
