@@ -65,14 +65,21 @@ function initPrListGrid() {
     { headerName: '요청일', field: 'request_date', width: 100,
       cellRenderer: function(p) { return fmtDate(p.value); }
     },
-    { headerName: '부서', field: 'departments', flex: 1,
+    { headerName: '부서', field: 'departments', width: 110,
       headerClass: 'ag-left-header',
       cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-start' },
       cellRenderer: function(p) { return ts(p.value?.dept_name || '-'); }
     },
-    { headerName: '품목수', field: '_itemCount', width: 80,
-      cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-end' },
-      cellRenderer: function(p) { return fmtN(p.value); }
+    { headerName: '대표품목', field: '_repItem', flex: 1, minWidth: 140,
+      headerClass: 'ag-left-header',
+      cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-start' },
+      cellRenderer: function(p) {
+        var name  = p.data._repItemName;
+        var count = p.data._itemCount || 0;
+        if (!name) return '-';
+        if (count > 1) return ts(name) + ' <span style="color:#9ca3af;">외 ' + (count - 1) + '품목</span>';
+        return ts(name);
+      }
     },
     { headerName: '메모', field: 'memo', flex: 1,
       headerClass: 'ag-left-header',
@@ -146,14 +153,24 @@ async function loadPrList(page) {
     if (label) label.textContent = '총 ' + (count || 0) + '건';
 
     var rows = data || [];
-    // 품목수 카운트 조회
+    // 품목수 + 대표품목명(가장 먼저 추가된 품목) 조회
     if (rows.length) {
       var ids = rows.map(function(r) { return r.id; });
       var { data: items } = await supabaseClient
-        .from('purchase_request_items').select('request_id').in('request_id', ids);
+        .from('purchase_request_items')
+        .select('request_id, created_at, items(item_name)')
+        .in('request_id', ids)
+        .order('created_at', { ascending: true });
       var countMap = {};
-      (items || []).forEach(function(it) { countMap[it.request_id] = (countMap[it.request_id] || 0) + 1; });
-      rows.forEach(function(r) { r._itemCount = countMap[r.id] || 0; });
+      var repMap   = {};
+      (items || []).forEach(function(it) {
+        countMap[it.request_id] = (countMap[it.request_id] || 0) + 1;
+        if (!repMap[it.request_id]) repMap[it.request_id] = it.items?.item_name || '';
+      });
+      rows.forEach(function(r) {
+        r._itemCount    = countMap[r.id] || 0;
+        r._repItemName  = repMap[r.id] || '';
+      });
     }
 
     updateMgGrid(_prListGrid, rows);
