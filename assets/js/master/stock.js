@@ -93,7 +93,8 @@ function renderPagination(areaId, state, loadFn) {
   var container = document.getElementById(areaId);
   if (!container) return;
   var page = state.page, totalPages = state.totalPages;
-  if (totalPages <= 1) { container.innerHTML = ''; return; }
+  if (totalPages <= 1) { container.innerHTML = ''; container.style.display = 'none'; return; }
+  container.style.display = '';
 
   var blockSize = 10;
   var blockStart = Math.floor((page - 1) / blockSize) * blockSize + 1;
