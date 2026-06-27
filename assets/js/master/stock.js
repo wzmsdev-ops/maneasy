@@ -737,7 +737,8 @@ async function saveReceipt() {
     }
   }
 
-  var receiptDate  = val('r_receipt_date');
+  var receiptDate  = val('receiptDate');
+  if (!receiptDate) throw new Error('입고일을 입력해주세요.');
   var vatTotal     = Number(val('r_vat_amount') || 0);
   var supplyTotal  = rows.reduce(function(sum, r) { return sum + Number(r.supply_price || 0); }, 0);
   var vatAssigned  = 0;
