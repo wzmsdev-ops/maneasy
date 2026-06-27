@@ -20,7 +20,7 @@ var poState = {
 };
 var rvState = {
   page: 1, pageSize: 20, totalPages: 1, loading: false,
-  statusFilter: 'REQUESTED',
+  statusFilter: '',  // 기본값: 전체 (REQUESTED로 고정하면 PROCESSING 상태 요청이 안보임)
 };
 
 var _poListGrid   = null;   // 발주 목록 그리드
