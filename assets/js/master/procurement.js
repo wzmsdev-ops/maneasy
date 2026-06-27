@@ -202,7 +202,8 @@ function renderRvPagination() {
   var container = document.getElementById('rvPagination');
   if (!container) return;
   var page = rvState.page, totalPages = rvState.totalPages;
-  if (totalPages <= 1) { container.innerHTML = ''; return; }
+  if (totalPages <= 1) { container.innerHTML = ''; container.style.display = 'none'; return; }
+  container.style.display = '';
   var bs = Math.floor((page-1)/10)*10+1, end = Math.min(totalPages, bs+9), pages = [];
   for (var i = bs; i <= end; i++)
     pages.push('<button class="pagination-btn' + (i===page?' is-active':'') + '" data-page="' + i + '">' + i + '</button>');
@@ -721,7 +722,8 @@ function renderPagination() {
   var container = document.getElementById('poPagination');
   if (!container) return;
   var page = poState.page, totalPages = poState.totalPages;
-  if (totalPages <= 1) { container.innerHTML = ''; return; }
+  if (totalPages <= 1) { container.innerHTML = ''; container.style.display = 'none'; return; }
+  container.style.display = '';
   var bs = Math.floor((page-1)/10)*10+1, end = Math.min(totalPages, bs+9), pages = [];
   for (var i = bs; i <= end; i++)
     pages.push('<button class="pagination-btn' + (i===page?' is-active':'') + '" data-page="' + i + '">' + i + '</button>');
