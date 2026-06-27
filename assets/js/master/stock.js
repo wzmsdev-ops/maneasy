@@ -189,7 +189,7 @@ function initReceiptGrid() {
   ];
   var _receiptGridEl = document.getElementById('receiptGrid');
   if (_receiptGridEl) _receiptGridEl.style.height = Math.max(300, window.innerHeight - 160) + 'px';
-  _gridReceipt = createMgGrid('receiptGrid', colDefs, [], { noRowsText: '입고 내역이 없습니다.', onRowClick: function(data) { openReceiptDetail(data.id); } });
+  _gridReceipt = createMgGrid('receiptGrid', colDefs, [], { noRowsText: '입고 내역이 없습니다.' });
 }
 
 async function loadReceipts(page) {
@@ -510,7 +510,7 @@ function initDispatchGrid() {
   ];
   var _dispatchGridEl = document.getElementById('dispatchGrid');
   if (_dispatchGridEl) _dispatchGridEl.style.height = Math.max(300, window.innerHeight - 160) + 'px';
-  _gridDispatch = createMgGrid('dispatchGrid', colDefs, [], { noRowsText: '불출 내역이 없습니다.', onRowClick: function(data) { openDispatchDetail && openDispatchDetail(data.id); } });
+  _gridDispatch = createMgGrid('dispatchGrid', colDefs, [], { noRowsText: '불출 내역이 없습니다.' });
 }
 
 async function loadDispatches(page) {
