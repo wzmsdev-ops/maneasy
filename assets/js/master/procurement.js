@@ -522,6 +522,14 @@ async function splitPrIntoOrders(pr, ev) {
           .update({ order_item_id: newPoItem.id }).eq('id', r._reqItemId);
         if (linkErr) throw new Error(linkErr.message);
       }
+
+      // 품목 insert 후 실제 합산으로 supply_price 재계산 업데이트
+      var actualTotal = groupRows.reduce(function(sum, r) {
+        return sum + (Number(r._orderQty || 1) * Number(r.unit_price || 0));
+      }, 0);
+      await supabaseClient.from('purchase_orders')
+        .update({ supply_price: actualTotal })
+        .eq('id', newPo.id);
     }
 
     await supabaseClient.from('purchase_requests')
@@ -1157,8 +1165,10 @@ async function openPoDetail(id) {
       }
     }, 50);
 
-    // 합계 — 저장된 vat_amount(보정값 포함)를 우선 사용, 없으면 계산값으로 대체
-    var supplyTotal = po.supply_price || 0;
+    // 합계 — items 합산으로 계산 (po.supply_price는 저장 시점 스냅샷이라 수정 후 맞지 않을 수 있음)
+    var supplyTotal = gridRows.reduce(function(sum, r) {
+      return sum + (r.order_qty * r.unit_price);
+    }, 0);
     var vat   = (po.vat_amount != null && po.vat_amount !== 0) ? po.vat_amount : calcVat(supplyTotal);
     var total = supplyTotal + vat;
     var totalEl = document.getElementById('poDetailTotal');
