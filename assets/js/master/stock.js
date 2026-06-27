@@ -185,6 +185,8 @@ function initReceiptPoGrid() {
   ];
 
   _gridReceiptPo = agGrid.createGrid(el, {
+    suppressCellFocus: true,
+    suppressPropertyNamesCheck: true,
     columnDefs: colDefs,
     rowData: [],
     rowHeight: 34,
@@ -456,6 +458,8 @@ function initReceiptItemGrid() {
   if (!el || typeof agGrid === 'undefined') return;
 
   _gridReceiptItem = agGrid.createGrid(el, {
+    suppressCellFocus: true,
+    suppressPropertyNamesCheck: true,
     columnDefs: [
       { headerName: '자재명', field: 'item_name', flex: 2,
         headerClass: 'ag-left-header',
@@ -544,6 +548,8 @@ function initReceiptSearchGrid() {
   if (!el || typeof agGrid === 'undefined') return;
 
   _gridReceiptSearch = agGrid.createGrid(el, {
+    suppressCellFocus: true,
+    suppressPropertyNamesCheck: true,
     columnDefs: [
       { headerName: '카테고리', field: 'category', width: 90,
         cellStyle: { justifyContent:'center', fontSize:'10px', color:'#6b7280' }
@@ -909,6 +915,8 @@ function initDispatchStockGrid() {
   ];
 
   _gridDispatchStock = agGrid.createGrid(el, {
+    suppressCellFocus: true,
+    suppressPropertyNamesCheck: true,
     columnDefs: colDefs,
     rowData: [],
     rowHeight: 34,
