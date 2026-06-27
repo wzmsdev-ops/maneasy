@@ -110,7 +110,7 @@ function initStockSearchGrid() {
     suppressHorizontalScroll: true,
     overlayNoRowsTemplate: '<span style="color:#9ca3af;font-size:12px;">카테고리/자재명을 입력해 검색하세요.</span>',
     onGridReady: function(params) {
-      setTimeout(function() { params.api.sizeColumnsToFit(); }, 0);
+      setTimeout(function() { if (el.offsetWidth > 0) params.api.sizeColumnsToFit(); }, 0);
     },
   });
 }
@@ -216,7 +216,7 @@ function initUseItemGrid() {
     stopEditingWhenCellsLoseFocus: true,
     singleClickEdit: true,
     overlayNoRowsTemplate: '<span style="color:#9ca3af;font-size:12px;">왼쪽에서 자재를 추가하세요.</span>',
-    onGridReady: function(params) { params.api.sizeColumnsToFit(); },
+    onGridReady: function(params) { if (el.offsetWidth > 0) params.api.sizeColumnsToFit(); },
   });
 }
 
