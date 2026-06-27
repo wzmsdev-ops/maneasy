@@ -380,19 +380,19 @@ function createMgGrid(containerId, colDefs, rows, options) {
     suppressScrollOnNewData: true,
     suppressHorizontalScroll: true,
     suppressCellFocus: true,
+    suppressPropertyNamesCheck: true,
     overlayNoRowsTemplate: '<span style="color:#9ca3af;font-size:12px;">' + noRowsText + '</span>',
     onGridReady: function(params) {
       var _api = params.api;
       setTimeout(function() {
-        if (_api) {
-          // 탭 전환/모달 닫힘 등으로 레이아웃이 안정된 뒤 실제 높이로 재조정
+        if (_api && el.offsetWidth > 0) {
           var h = resolveHeight();
           if (h !== gridH) { gridH = h; el.style.height = h + 'px'; }
           _api.sizeColumnsToFit();
         }
       }, 0);
       window.addEventListener('resize', function() {
-        if (_api) {
+        if (_api && el.offsetWidth > 0) {
           gridH = resolveHeight();
           el.style.height = gridH + 'px';
           _api.sizeColumnsToFit();
