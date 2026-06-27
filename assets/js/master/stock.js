@@ -73,9 +73,12 @@ function initTabs() {
         if (tg) {
           if (!window[tg.api]) tg.init();
           setTimeout(function() {
-            var el = document.getElementById(tg.id);
             var api = window[tg.api];
-            if (el) el.style.height = Math.max(300, window.innerHeight - 160) + 'px';
+            var el  = document.getElementById(tg.id);
+            // 매직넘버 추정 대신, 그리드가 노출하는 resolveHeight()로 부모 flex 컨테이너를
+            // 실측해서 맞춘다 (탭이 숨겨져 있던 동안엔 clientHeight가 0이었을 수 있으므로,
+            // 탭이 active로 바뀐 지금 다시 재측정해야 정확함)
+            if (el && api && api._resolveHeight) el.style.height = api._resolveHeight() + 'px';
             if (api) api.sizeColumnsToFit();
             if (tg.load) tg.load();
           }, 0);
@@ -187,8 +190,6 @@ function initReceiptGrid() {
       cellRenderer: function(p) { return fmtN(p.value) + '원'; }
     },
   ];
-  var _receiptGridEl = document.getElementById('receiptGrid');
-  if (_receiptGridEl) _receiptGridEl.style.height = Math.max(300, window.innerHeight - 160) + 'px';
   _gridReceipt = createMgGrid('receiptGrid', colDefs, [], { noRowsText: '입고 내역이 없습니다.' });
 }
 
@@ -508,8 +509,6 @@ function initDispatchGrid() {
       cellRenderer: function(p) { return ts(p.value || '-'); }
     },
   ];
-  var _dispatchGridEl = document.getElementById('dispatchGrid');
-  if (_dispatchGridEl) _dispatchGridEl.style.height = Math.max(300, window.innerHeight - 160) + 'px';
   _gridDispatch = createMgGrid('dispatchGrid', colDefs, [], { noRowsText: '불출 내역이 없습니다.' });
 }
 
@@ -643,8 +642,6 @@ function initDeptStockGrid() {
       }
     },
   ];
-  var _deptStockGridEl = document.getElementById('deptStockGrid');
-  if (_deptStockGridEl) _deptStockGridEl.style.height = Math.max(300, window.innerHeight - 160) + 'px';
   _gridDeptStock = createMgGrid('deptStockGrid', colDefs, [], { noRowsText: '부서별 재고 데이터가 없습니다.' });
 }
 
