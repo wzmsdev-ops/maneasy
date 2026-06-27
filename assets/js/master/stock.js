@@ -198,7 +198,7 @@ function initReceiptPoGrid() {
     },
     onRowClicked: function(p) { selectReceiptPo(p.data); },
     overlayNoRowsTemplate: '<span style="color:#9ca3af;font-size:12px;">조회 조건을 입력해 검색하세요.</span>',
-    onGridReady: function(params) { setTimeout(function() { params.api.sizeColumnsToFit(); }, 0); },
+    onGridReady: function(params) { setTimeout(function() { if (el.offsetWidth > 0) params.api.sizeColumnsToFit(); }, 0); },
   });
 }
 
@@ -532,7 +532,7 @@ function initReceiptItemGrid() {
     stopEditingWhenCellsLoseFocus: true,
     singleClickEdit: true,
     overlayNoRowsTemplate: '<span style="color:#9ca3af;font-size:12px;">발주를 선택하거나 왼쪽에서 검색해서 자재를 추가하세요.</span>',
-    onGridReady: function(params) { params.api.sizeColumnsToFit(); },
+    onGridReady: function(params) { if (el.offsetWidth > 0) params.api.sizeColumnsToFit(); },
   });
 }
 
@@ -601,7 +601,7 @@ function initReceiptSearchGrid() {
     suppressHorizontalScroll: true,
     overlayNoRowsTemplate: '<span style="color:#9ca3af;font-size:12px;">카테고리/자재명을 입력해 검색하세요.</span>',
     onGridReady: function(params) {
-      setTimeout(function() { params.api.sizeColumnsToFit(); }, 0);
+      setTimeout(function() { if (el.offsetWidth > 0) params.api.sizeColumnsToFit(); }, 0);
     },
   });
 }
@@ -920,7 +920,7 @@ function initDispatchStockGrid() {
       cellStyle: { display:'flex', alignItems:'center', justifyContent:'center' },
     },
     overlayNoRowsTemplate: '<span style="color:#9ca3af;font-size:12px;">검색 조건을 입력하세요.</span>',
-    onGridReady: function(params) { setTimeout(function() { params.api.sizeColumnsToFit(); }, 0); },
+    onGridReady: function(params) { setTimeout(function() { if (el.offsetWidth > 0) params.api.sizeColumnsToFit(); }, 0); },
   });
 }
 
