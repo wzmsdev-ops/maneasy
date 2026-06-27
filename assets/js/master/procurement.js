@@ -643,12 +643,12 @@ function initPoListGrid() {
         wrap.style.cssText = 'display:flex;gap:4px;align-items:center;height:100%;';
         var vBtn = document.createElement('button');
         vBtn.className = 'tbl-btn'; vBtn.textContent = '상세';
-        vBtn.onclick = function()(e) { e.stopPropagation(); openPoDetail(p.data.id); };
+        vBtn.onclick = function(e) { e.stopPropagation(); openPoDetail(p.data.id); };
         wrap.appendChild(vBtn);
         if (p.data.status === 'DRAFT') {
           var eBtn = document.createElement('button');
           eBtn.className = 'tbl-btn tbl-btn--primary'; eBtn.textContent = '수정';
-          eBtn.onclick = function()(e) { e.stopPropagation(); openEditPo(p.data.id); };
+          eBtn.onclick = function(e) { e.stopPropagation(); openEditPo(p.data.id); };
           wrap.appendChild(eBtn);
         }
         return wrap;
