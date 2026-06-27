@@ -100,11 +100,9 @@ function initMainTabs() {
    A. 발주요청확인 — 목록
 ══════════════════════════════════════════ */
 function initRvListGrid() {
-  _rvListGrid = (function(){
-  var _el = document.getElementById('rvGrid');
-  if (_el) _el.style.height = Math.max(200, window.innerHeight - 158) + 'px';
-})();
-  createMgGrid('rvGrid', [
+  var _el_rv = document.getElementById('rvGrid');
+  if (_el_rv) _el_rv.style.height = Math.max(200, window.innerHeight - 158) + 'px';
+  _rvListGrid = createMgGrid('rvGrid', [
     { headerName: '요청번호', field: 'request_no', width: 150,
       headerClass: 'ag-left-header',
       cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-start' },
@@ -585,11 +583,9 @@ async function syncRequestStatus(requestId) {
    1. 발주 목록 그리드 (createMgGrid 활용)
 ══════════════════════════════════════════ */
 function initPoListGrid() {
-  _poListGrid = (function(){
-  var _el = document.getElementById('poGrid');
-  if (_el) _el.style.height = Math.max(200, window.innerHeight - 158) + 'px';
-})();
-  createMgGrid('poGrid', [
+  var _el_po = document.getElementById('poGrid');
+  if (_el_po) _el_po.style.height = Math.max(200, window.innerHeight - 158) + 'px';
+  _poListGrid = createMgGrid('poGrid', [
     { headerName: '발주번호', field: 'order_no', width: 140,
       headerClass: 'ag-left-header',
       cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-start' },
