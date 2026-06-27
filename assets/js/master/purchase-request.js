@@ -54,8 +54,6 @@ window.closeModal = closeModal;
    1. 발주요청 목록
 ══════════════════════════════════════════ */
 function initPrListGrid() {
-  var _prGridEl = document.getElementById('prGrid');
-  if (_prGridEl) _prGridEl.style.height = Math.max(300, window.innerHeight - 166) + 'px';
   _prListGrid = createMgGrid('prGrid', [
     { headerName: '요청번호', field: 'request_no', width: 150,
       headerClass: 'ag-left-header',
@@ -231,10 +229,6 @@ function initPrSearchGrid() {
   var el = document.getElementById('prSearchGrid');
   if (!el || typeof agGrid === 'undefined') return;
 
-  // 높이 계산 — 모달 내부
-  // pr-two-panel CSS height:calc(100vh-210px) — JS 강제 설정 불필요
-  if (!el.style.height) el.style.height = Math.max(200, window.innerHeight - 210) + 'px';
-
   var colDefs = [
     { headerName: '카테고리', field: 'category', width: 90,
       cellStyle: { justifyContent:'center', fontSize:'10px', color:'#6b7280' }
@@ -324,8 +318,6 @@ function isPrItemAdded(itemId) {
 function initPrItemGrid() {
   var el = document.getElementById('prItemGrid');
   if (!el || typeof agGrid === 'undefined') return;
-
-  if (!el.style.height) el.style.height = Math.max(200, window.innerHeight - 210) + 'px';
 
   var colDefs = [
     { headerName: '자재명', field: 'item_name', flex: 2, minWidth: 120,

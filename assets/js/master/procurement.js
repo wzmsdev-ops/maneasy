@@ -82,17 +82,11 @@ function initMainTabs() {
       requestAnimationFrame(function() {
         if (target === 'review') {
           if (!_rvListGrid) initRvListGrid();
-          setTimeout(function() {
-            var el = document.getElementById('rvGrid');
-            if (el && _rvListGrid) { el.style.height = Math.max(300, window.innerHeight - 214) + 'px'; _rvListGrid.sizeColumnsToFit(); }
-          }, 0);
+          else if (_rvListGrid) setTimeout(function() { _rvListGrid.sizeColumnsToFit(); }, 0);
         }
         if (target === 'orders') {
           if (!_poListGrid) initPoListGrid();
-          setTimeout(function() {
-            var el = document.getElementById('poGrid');
-            if (el && _poListGrid) { el.style.height = Math.max(300, window.innerHeight - 214) + 'px'; _poListGrid.sizeColumnsToFit(); }
-          }, 0);
+          else if (_poListGrid) setTimeout(function() { _poListGrid.sizeColumnsToFit(); }, 0);
         }
       });
     });
@@ -103,15 +97,6 @@ function initMainTabs() {
    A. 발주요청확인 — 목록
 ══════════════════════════════════════════ */
 function initRvListGrid() {
-  // po-main-panel position:absolute 구조에서 clientHeight=0 방지
-  var rvEl = document.getElementById('rvGrid');
-  if (rvEl && !rvEl.style.height) {
-    var panel = document.getElementById('panel-review');
-    rvEl.style.height = (panel ? panel.clientHeight - 80 : 500) + 'px';
-    if (parseInt(rvEl.style.height) < 200) rvEl.style.height = '500px';
-  }
-  var _rvGridEl = document.getElementById('rvGrid');
-  if (_rvGridEl) _rvGridEl.style.height = Math.max(300, window.innerHeight - 214) + 'px';
   _rvListGrid = createMgGrid('rvGrid', [
     { headerName: '요청번호', field: 'request_no', width: 150,
       headerClass: 'ag-left-header',
@@ -603,14 +588,6 @@ async function syncRequestStatus(requestId) {
    1. 발주 목록 그리드 (createMgGrid 활용)
 ══════════════════════════════════════════ */
 function initPoListGrid() {
-  var poEl = document.getElementById('poGrid');
-  if (poEl && !poEl.style.height) {
-    var panel = document.getElementById('panel-orders');
-    poEl.style.height = (panel ? panel.clientHeight - 80 : 500) + 'px';
-    if (parseInt(poEl.style.height) < 200) poEl.style.height = '500px';
-  }
-  var _poGridEl = document.getElementById('poGrid');
-  if (_poGridEl) _poGridEl.style.height = Math.max(300, window.innerHeight - 214) + 'px';
   _poListGrid = createMgGrid('poGrid', [
     { headerName: '발주번호', field: 'order_no', width: 140,
       headerClass: 'ag-left-header',
