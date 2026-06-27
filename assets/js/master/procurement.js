@@ -112,10 +112,20 @@ function initRvListGrid() {
     { headerName: '요청자', field: 'requester_name', width: 100,
       cellRenderer: function(p) { return ts(p.value || '-'); }
     },
-    { headerName: '부서', field: 'departments', flex: 1,
+    { headerName: '부서', field: 'departments', width: 110,
       headerClass: 'ag-left-header',
       cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-start' },
       cellRenderer: function(p) { return ts(p.value?.dept_name || '-'); }
+    },
+    { headerName: '품목', field: '_firstItem', flex: 2, minWidth: 150,
+      headerClass: 'ag-left-header',
+      cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-start' },
+      cellRenderer: function(p) {
+        var first = ts(p.value || '-');
+        var cnt   = p.data._itemCount || 0;
+        if (cnt > 1) return first + ' <span style="color:#9ca3af;font-size:10px;">외 ' + (cnt-1) + '건</span>';
+        return first;
+      }
     },
     { headerName: '상태', field: 'status', width: 90,
       cellRenderer: function(p) {
@@ -178,7 +188,7 @@ async function loadRvList(page) {
       var ids = rows.map(function(r) { return r.id; });
       var { data: items } = await supabaseClient
         .from('purchase_request_items')
-        .select('request_id, items(item_name)')
+        .select('request_id, items!inner(item_name)')
         .in('request_id', ids)
         .order('created_at', { ascending: true });
       var countMap = {}, firstMap = {};
@@ -624,11 +634,11 @@ function initPoListGrid() {
       cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-start', fontWeight:600 },
       cellRenderer: function(p) { return ts(p.value?.vendor_name || '-'); }
     },
-    { headerName: '품목', field: '_itemSummary', flex: 2, minWidth: 150,
+    { headerName: '품목', field: '_firstItem', flex: 2, minWidth: 150,
       headerClass: 'ag-left-header',
       cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-start' },
       cellRenderer: function(p) {
-        var first = ts(p.data._firstItem || '-');
+        var first = ts(p.value || '-');
         var cnt   = p.data._itemCount || 0;
         if (cnt > 1) return first + ' <span style="color:#9ca3af;font-size:10px;">외 ' + (cnt-1) + '건</span>';
         return first;
@@ -723,7 +733,7 @@ async function loadPoList(page) {
       var poIds = poRows.map(function(r){ return r.id; });
       var { data: poItemData } = await supabaseClient
         .from('purchase_order_items')
-        .select('order_id, items(item_name)')
+        .select('order_id, item_id, items!inner(item_name)')
         .in('order_id', poIds)
         .order('created_at', { ascending: true });
       var poCountMap = {}, poFirstMap = {};
