@@ -234,7 +234,24 @@ async function loadReceipts(page) {
 }
 
 /* ── 입고 등록 모달 ── */
-function openAddReceipt() {
+/** 입고 모달의 "연결 발주" select 채우기 — ORDERED/PARTIAL 상태만.
+ *  페이지 최초 로드 시 + 입고 모달을 열 때마다 다시 호출해서, 방금 발주확정한
+ *  건도 페이지를 새로고침하지 않고 곧바로 목록에 보이게 함. */
+async function loadOrderOptions() {
+  var { data: orders } = await supabaseClient
+    .from('purchase_orders').select('id, order_no')
+    .in('status', ['ORDERED', 'PARTIAL'])
+    .order('created_at', { ascending: false });
+  var oSel = document.getElementById('r_order_id');
+  if (oSel) {
+    var cur = oSel.value;
+    oSel.innerHTML = '<option value="">발주 없이 직접 입고</option>' +
+      (orders || []).map(function(o) { return '<option value="' + o.id + '">' + ts(o.order_no) + '</option>'; }).join('');
+    if (cur) oSel.value = cur;
+  }
+}
+
+async function openAddReceipt() {
   setVal('r_order_id', '');
   setVal('r_item_id', '');
   setVal('r_receipt_date', new Date().toISOString().slice(0, 10));
@@ -250,6 +267,7 @@ function openAddReceipt() {
   populateReceiptItemSelect(itemCache);
   updateReceiptInfo();
   openModal('receiptModal');
+  await loadOrderOptions(); // 방금 발주확정한 건도 새로고침 없이 곧바로 목록에 보이도록 매번 재조회
 }
 
 /** 발주 선택에 따라 자재 select 옵션 갱신 */
@@ -722,15 +740,7 @@ async function loadCaches() {
   (sc || []).forEach(function(r) { centralCache[r.item_id] = r.qty; });
 
   // 연결 발주 select (입고 모달) — ORDERED/PARTIAL 상태만
-  var { data: orders } = await supabaseClient
-    .from('purchase_orders').select('id, order_no')
-    .in('status', ['ORDERED', 'PARTIAL'])
-    .order('created_at', { ascending: false });
-  var oSel = document.getElementById('r_order_id');
-  if (oSel) {
-    oSel.innerHTML = '<option value="">발주 없이 직접 입고</option>' +
-      (orders || []).map(function(o) { return '<option value="' + o.id + '">' + ts(o.order_no) + '</option>'; }).join('');
-  }
+  await loadOrderOptions();
 }
 
 /* ── 채번 ── */
