@@ -85,11 +85,11 @@ function initMainTabs() {
       requestAnimationFrame(function() {
         if (target === 'review') {
           if (!_rvListGrid) initRvListGrid();
-          else if (_rvListGrid) setTimeout(function() { _rvListGrid.sizeColumnsToFit(); }, 0);
+          loadRvList(1);
         }
         if (target === 'orders') {
           if (!_poListGrid) initPoListGrid();
-          else if (_poListGrid) setTimeout(function() { _poListGrid.sizeColumnsToFit(); }, 0);
+          loadPoList(1);
         }
       });
     });
