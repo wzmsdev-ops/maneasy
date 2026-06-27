@@ -101,7 +101,7 @@ function populateCategorySelect(rows) {
   const sel = document.getElementById('i_category');
   if (!sel) return;
   const cur = sel.value;
-  sel.innerHTML = '<option value="">선택 안 함</option>' +
+  sel.innerHTML = '<option value="">자재구분 선택</option>' +
     rows.filter(r => r.active === 'Y')
         .map(r => `<option value="${ts(r.category_name)}">${ts(r.category_name)}</option>`).join('');
   if (cur) sel.value = cur;
@@ -144,13 +144,9 @@ async function saveCategory() {
   if (!payload.category_name) throw new Error('구분명은 필수입니다.');
 
   if (editingCategoryId) {
-    // 이름이 바뀌면 이미 그 구분명을 쓰고 있는 자재들도 같이 맞춰줌
-    const before = categoryCache.find(r => r.id === editingCategoryId);
+    // 구분명이 바뀌면 items.category_fkey의 ON UPDATE CASCADE가 연결된 자재들을 자동으로 맞춰줍니다.
     const { error } = await supabaseClient.from('item_categories').update(payload).eq('id', editingCategoryId);
     if (error) throw new Error(error.message);
-    if (before && before.category_name !== payload.category_name) {
-      await supabaseClient.from('items').update({ category: payload.category_name }).eq('category', before.category_name);
-    }
   } else {
     const { error } = await supabaseClient.from('item_categories').insert(payload);
     if (error) throw new Error(error.message);
@@ -403,6 +399,7 @@ async function saveItem() {
   };
   // item_code는 자동생성
   if (!payload.item_name) throw new Error('자재명은 필수입니다.');
+  if (!payload.category)  throw new Error('자재구분은 필수입니다.');
   if (!payload.purchase_unit) throw new Error('입고 단위는 필수입니다.');
   if (!payload.use_unit)      throw new Error('사용(출고) 단위는 필수입니다.');
   if (!payload.purchase_unit_qty || payload.purchase_unit_qty < 1) throw new Error('환산수는 1 이상이어야 합니다.');
