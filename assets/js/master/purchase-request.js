@@ -648,8 +648,13 @@ async function resolveMyClinicAndDept(user) {
     myClinicId = clinic?.id || null;
   }
   if (user.team_code) {
-    var { data: dept } = await supabaseClient
-      .from('departments').select('id, dept_name').eq('dept_code', user.team_code).maybeSingle();
+    var deptQuery = supabaseClient
+      .from('departments').select('id, dept_name').eq('dept_code', user.team_code);
+    // dept_code는 의원(clinic)별로 재사용될 수 있으므로 clinic_id로 범위를 좁혀야 함
+    // (없으면 동명 부서코드가 여러 의원에 존재할 때 PostgREST가 다중 행 오류를 내고
+    //  data가 null이 되어 "소속 부서 정보가 없습니다"로 잘못 표시됨)
+    if (myClinicId) deptQuery = deptQuery.eq('clinic_id', myClinicId);
+    var { data: dept } = await deptQuery.maybeSingle();
     myDeptId   = dept?.id || null;
     myDeptName = dept?.dept_name || '';
   }
