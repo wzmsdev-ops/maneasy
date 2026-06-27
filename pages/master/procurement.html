@@ -227,20 +227,19 @@
     ══════════════════════════════════════ -->
     <div id="panel-review" class="po-main-panel active">
       <div class="po-actionbar">
-        <input type="date" id="rvDateFrom" style="height:30px;padding:0 6px;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;outline:none;width:130px;flex-shrink:0;" />
-        <span style="font-size:11px;color:#9ca3af;flex-shrink:0;">~</span>
-        <input type="date" id="rvDateTo" style="height:30px;padding:0 6px;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;outline:none;width:130px;flex-shrink:0;" />
-        <div class="pr-divider"></div>
-        <input type="text" id="rvKeyword" placeholder="요청자/부서 검색..."
-          style="flex:1;min-width:0;height:30px;padding:0 10px;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;outline:none;" />
-        <button class="btn btn-sm btn-primary" id="rvSearchBtn"><i class="ti ti-search"></i> 조회</button>
         <div class="po-status-tabs">
+          <button class="rv-status-tab active" data-status="">전체</button>
           <button class="rv-status-tab" data-status="REQUESTED">요청</button>
           <button class="rv-status-tab" data-status="PROCESSING">처리중</button>
-          <button class="rv-status-tab active" data-status="">전체</button>
         </div>
-        <div class="spacer"></div>
-        
+        <div class="pr-divider"></div>
+        <input type="date" id="rvDateFrom" />
+        <span style="font-size:11px;color:#9ca3af;flex-shrink:0;">~</span>
+        <input type="date" id="rvDateTo" />
+        <div class="pr-divider"></div>
+        <input type="text" id="rvKeyword" placeholder="요청자/부서 검색..."
+          style="flex:1;min-width:0;" />
+        <button class="btn btn-sm btn-primary" id="rvSearchBtn"><i class="ti ti-search"></i> 조회</button>
       </div>
 
       <div class="m-card">
@@ -259,13 +258,6 @@
     ══════════════════════════════════════ -->
     <div id="panel-orders" class="po-main-panel">
       <div class="po-actionbar">
-        <input type="date" id="poDateFrom" style="height:30px;padding:0 6px;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;outline:none;width:130px;flex-shrink:0;" />
-        <span style="font-size:11px;color:#9ca3af;flex-shrink:0;">~</span>
-        <input type="date" id="poDateTo" style="height:30px;padding:0 6px;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;outline:none;width:130px;flex-shrink:0;" />
-        <div class="pr-divider"></div>
-        <input type="text" id="poKeyword" placeholder="발주번호/거래처 검색..."
-          style="flex:1;min-width:0;height:30px;padding:0 10px;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;outline:none;" />
-        <button class="btn btn-sm btn-primary" id="poSearchBtn"><i class="ti ti-search"></i> 조회</button>
         <div class="po-status-tabs">
           <button class="po-status-tab active" data-status="">전체</button>
           <button class="po-status-tab" data-status="DRAFT">초안</button>
@@ -274,8 +266,15 @@
           <button class="po-status-tab" data-status="COMPLETED">완료</button>
           <button class="po-status-tab" data-status="CANCELLED">취소</button>
         </div>
-        <div class="spacer"></div>
-        
+        <div class="pr-divider"></div>
+        <input type="date" id="poDateFrom" />
+        <span style="font-size:11px;color:#9ca3af;flex-shrink:0;">~</span>
+        <input type="date" id="poDateTo" />
+        <div class="pr-divider"></div>
+        <input type="text" id="poKeyword" placeholder="발주번호/거래처 검색..."
+          style="flex:1;min-width:0;" />
+        <button class="btn btn-sm btn-primary" id="poSearchBtn"><i class="ti ti-search"></i> 조회</button>
+        <div class="pr-divider"></div>
         <button class="btn btn-sm btn-primary" id="addPoBtn"><i class="ti ti-plus"></i> 발주 등록</button>
       </div>
 
