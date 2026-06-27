@@ -117,10 +117,6 @@ function initRvListGrid() {
       cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-start' },
       cellRenderer: function(p) { return ts(p.value?.dept_name || '-'); }
     },
-    { headerName: '품목수', field: '_itemCount', width: 80,
-      cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-end' },
-      cellRenderer: function(p) { return Number(p.value || 0).toLocaleString('ko-KR'); }
-    },
     { headerName: '상태', field: 'status', width: 90,
       cellRenderer: function(p) {
         var s = document.createElement('span');
@@ -722,12 +718,27 @@ async function loadPoList(page) {
     var label = document.getElementById('poCountLabel');
     if (label) label.textContent = '총 ' + (count || 0) + '건';
 
-    updateMgGrid(_poListGrid, (data || []).map(function(r) {
-      // 저장된(보정 포함) vat_amount를 우선 사용 — 없으면 계산값으로 대체
-      r._vat   = (r.vat_amount != null && r.vat_amount !== 0) ? r.vat_amount : calcVat(r.supply_price);
-      r._total = (r.supply_price || 0) + r._vat;
-      return r;
-    }));
+    var poRows = data || [];
+    if (poRows.length) {
+      var poIds = poRows.map(function(r){ return r.id; });
+      var { data: poItemData } = await supabaseClient
+        .from('purchase_order_items')
+        .select('order_id, items(item_name)')
+        .in('order_id', poIds)
+        .order('created_at', { ascending: true });
+      var poCountMap = {}, poFirstMap = {};
+      (poItemData || []).forEach(function(it) {
+        poCountMap[it.order_id] = (poCountMap[it.order_id] || 0) + 1;
+        if (!poFirstMap[it.order_id]) poFirstMap[it.order_id] = it.items?.item_name || '';
+      });
+      poRows.forEach(function(r) {
+        r._vat        = (r.vat_amount != null && r.vat_amount !== 0) ? r.vat_amount : calcVat(r.supply_price);
+        r._total      = (r.supply_price || 0) + r._vat;
+        r._itemCount  = poCountMap[r.id] || 0;
+        r._firstItem  = poFirstMap[r.id] || '-';
+      });
+    }
+    updateMgGrid(_poListGrid, poRows);
     renderPagination();
   } catch(e) {
     alert('발주 목록 로드 실패: ' + e.message);
