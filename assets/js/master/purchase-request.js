@@ -18,6 +18,7 @@ var _prDetailGrid = null;
 var currentUser  = null;
 var myClinicId   = null;
 var myDeptId     = null;
+var myDeptName   = '';
 
 var _rowIdCounter = 0;
 var prItemRows    = [];   // 선택된 품목 로컬 상태 (rowId 기준)
@@ -107,6 +108,10 @@ async function loadPrList(page) {
   try {
     var from = (page - 1) * prState.pageSize;
     var to   = from + prState.pageSize - 1;
+    var dateFrom = val('prDateFrom');
+    var dateTo   = val('prDateTo');
+    var keyword  = val('prKeyword');
+
     var q = supabaseClient
       .from('purchase_requests')
       .select('*, departments(dept_name)', { count: 'exact' })
@@ -114,6 +119,22 @@ async function loadPrList(page) {
       .order('created_at', { ascending: false })
       .range(from, to);
     if (prState.statusFilter) q = q.eq('status', prState.statusFilter);
+    if (dateFrom) q = q.gte('request_date', dateFrom);
+    if (dateTo)   q = q.lte('request_date', dateTo);
+
+    if (keyword) {
+      // 자재명 키워드 — purchase_request_items와 조인해 매칭되는 요청만 필터
+      var { data: matched } = await supabaseClient
+        .from('purchase_request_items')
+        .select('request_id, items!inner(item_name)')
+        .ilike('items.item_name', '%' + keyword + '%');
+      var matchedIds = [...new Set((matched || []).map(function(r) { return r.request_id; }))];
+      if (matchedIds.length) {
+        q = q.in('id', matchedIds);
+      } else {
+        q = q.eq('id', '00000000-0000-0000-0000-000000000000'); // 매칭 없음 → 빈 결과
+      }
+    }
 
     var { data, error, count } = await q;
     if (error) throw new Error(error.message);
@@ -642,8 +663,9 @@ async function resolveMyClinicAndDept(user) {
   }
   if (user.team_code) {
     var { data: dept } = await supabaseClient
-      .from('departments').select('id').eq('dept_code', user.team_code).maybeSingle();
-    myDeptId = dept?.id || null;
+      .from('departments').select('id, dept_name').eq('dept_code', user.team_code).maybeSingle();
+    myDeptId   = dept?.id || null;
+    myDeptName = dept?.dept_name || '';
   }
 }
 
@@ -657,9 +679,10 @@ async function init() {
   initPrListGrid();
 
   document.getElementById('addPrBtn')?.addEventListener('click', openAddPr);
-  document.getElementById('prSearchBtn')?.addEventListener('click', searchItems);
+  document.getElementById('prSearchBtn')?.addEventListener('click', function() { loadPrList(1); });
+  document.getElementById('prKeyword')?.addEventListener('keydown', function(e) { if (e.key === 'Enter') loadPrList(1); });
   document.getElementById('pr_search_kw')?.addEventListener('keydown', function(e) {
-    if (e.key === 'Enter') { e.preventDefault(); searchItems(); }
+    if (e.key === 'Enter') { e.preventDefault(); searchPrItems(); }
   });
   document.addEventListener('click', function(e) {
     var box = document.getElementById('prSearchResults');
@@ -702,25 +725,17 @@ document.addEventListener('DOMContentLoaded', init);
 
 var _ssGrid   = null;
 var _ssItems  = [];
-var _ssDeptId = null;
 var _ssChanged = {};  // item_id → {safety_stock, reorder_qty}
 
 async function getMyDeptId() {
-  if (_ssDeptId) return _ssDeptId;
-  var { data: { session } } = await supabaseClient.auth.getSession();
-  if (!session) return null;
-
-  var { data: profile } = await supabaseClient
-    .from('user_profiles').select('team_name').eq('id', session.user.id).single();
-  if (!profile?.team_name) return null;
-
-  var { data: dept } = await supabaseClient
-    .from('departments').select('id, dept_name').eq('dept_name', profile.team_name).single();
-  _ssDeptId = dept?.id || null;
-
-  var badge = document.getElementById('ssDeptLabel');
-  if (badge && dept) badge.textContent = '(' + dept.dept_name + ')';
-  return _ssDeptId;
+  // resolveMyClinicAndDept()에서 이미 team_code ↔ dept_code 기준으로 정확히 매칭해둔 값을 재사용
+  // (init()에서 페이지 로드 시 항상 먼저 호출되므로 이 시점엔 채워져 있음)
+  if (myDeptId) {
+    var badge = document.getElementById('ssDeptLabel');
+    if (badge && myDeptName) badge.textContent = '(' + myDeptName + ')';
+    return myDeptId;
+  }
+  return null;
 }
 
 async function openSsSetting() {

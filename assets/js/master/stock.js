@@ -6,7 +6,9 @@
  *                발주 없이 직접 입고도 가능
  *   [불출]       중앙창고 → 부서로 자재 전달 (stock_dispatch)
  *   [부서별재고] 부서별 현재고 조회 (의원 통합 아님)
- *   [사용처리]   부서가 보유한 재고를 사용 처리 (부서 재고 차감)
+ *
+ * 사용처리(부서 재고 차감)는 부서 직원 본인이 처리해야 하므로 이 화면(자재담당자 전용)이 아니라
+ * 별도의 자가서비스 화면(pages/master/use-stock.html, 전체 사용자 접근)으로 분리되어 있습니다.
  *
  * 부가세: supply_price(공급가액)만 저장, VAT는 조회 시 계산
  */
@@ -16,13 +18,11 @@ var stState = {
   receipt:   { page:1, pageSize:20, totalPages:1, loading:false },
   dispatch:  { page:1, pageSize:20, totalPages:1, loading:false },
   deptstock: { page:1, pageSize:20, totalPages:1, loading:false },
-  use:       { page:1, pageSize:20, totalPages:1, loading:false },
 };
 
 var _gridReceipt   = null;
 var _gridDispatch  = null;
 var _gridDeptStock = null;
-var _gridUse       = null;
 
 var itemCache    = [];   // 자재 목록
 var deptCache    = [];   // 부서 목록
@@ -661,171 +661,6 @@ async function loadDeptStock(page) {
   }
 }
 
-/* ════════════════════════════════
-   사용처리 탭 — 부서 재고 차감
-════════════════════════════════ */
-function initUseGrid() {
-  var colDefs = [
-    { headerName: '날짜', field: 'tx_date', width: 100,
-      cellRenderer: function(p) { return fmtDate(p.value); }
-    },
-    { headerName: '부서', field: 'departments', flex: 1,
-      headerClass: 'ag-left-header',
-      cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-start' },
-      cellRenderer: function(p) { return ts(p.value?.dept_name || '-'); }
-    },
-    { headerName: '자재명', field: 'items', flex: 2,
-      headerClass: 'ag-left-header',
-      cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-start' },
-      cellRenderer: function(p) { return ts(p.value?.item_name || '-'); }
-    },
-    { headerName: '사용수량', field: 'qty', width: 100,
-      cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-end' },
-      cellRenderer: function(p) {
-        var v = Math.abs(p.value || 0);
-        return '<span style="color:#dc2626;font-weight:700;">-' + fmtN(v) + '</span> ' + ts(p.data.use_unit || '');
-      }
-    },
-    { headerName: '메모', field: 'memo', flex: 1,
-      headerClass: 'ag-left-header',
-      cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-start' },
-      cellRenderer: function(p) { return ts(p.value || '-'); }
-    },
-    { headerName: '등록일시', field: 'created_at', width: 130,
-      cellRenderer: function(p) {
-        return p.value ? new Date(p.value).toLocaleString('ko-KR',{hour12:false}).slice(0,16) : '-';
-      }
-    },
-  ];
-  _gridUse = createMgGrid('useGrid', colDefs, [], { noRowsText: '사용처리 이력이 없습니다.' });
-}
-
-async function loadUseLog(page) {
-  var st = stState.use;
-  if (st.loading) return;
-  st.loading = true;
-  page = page || st.page;
-  showGlobalLoading('사용처리 이력을 불러오는 중...');
-  try {
-    var from = (page - 1) * st.pageSize;
-    var to   = from + st.pageSize - 1;
-    var deptId   = val('useDeptFilter');
-    var dateFrom = val('useDateFrom');
-    var dateTo   = val('useDateTo');
-
-    var q = supabaseClient
-      .from('stock_transactions')
-      .select('*, items(item_name), departments(dept_name)', { count: 'exact' })
-      .eq('tx_type', 'OUT')
-      .eq('ref_type', 'use')
-      .order('tx_date', { ascending: false })
-      .order('created_at', { ascending: false })
-      .range(from, to);
-
-    if (deptId)   q = q.eq('dept_id', deptId);
-    if (dateFrom) q = q.gte('tx_date', dateFrom);
-    if (dateTo)   q = q.lte('tx_date', dateTo);
-
-    var { data, error, count } = await q;
-    if (error) throw new Error(error.message);
-
-    st.page       = page;
-    st.totalPages = Math.max(1, Math.ceil((count || 0) / st.pageSize));
-    if (!_gridUse) initUseGrid();
-    if (_gridUse) _gridUse.setGridOption('rowData', data || []);
-    renderPagination('usePagination', st, loadUseLog);
-  } catch(e) {
-    alert('사용처리 이력 로드 실패: ' + e.message);
-  } finally {
-    st.loading = false;
-    hideGlobalLoading();
-  }
-}
-
-function openAddUse() {
-  setVal('u_dept_id', '');
-  setVal('u_item_id', '');
-  setVal('u_use_date', new Date().toISOString().slice(0, 10));
-  setVal('u_qty', '1');
-  setVal('u_memo', '');
-  document.getElementById('uUseUnit').textContent    = '-';
-  document.getElementById('uCurrentQty').textContent = '-';
-  var itemSel = document.getElementById('u_item_id');
-  if (itemSel) itemSel.innerHTML = '<option value="">먼저 부서를 선택하세요</option>';
-  openModal('useModal');
-}
-
-/** 부서 선택 시 해당 부서가 보유한(재고>0) 자재만 select 옵션으로 채움 */
-async function onUseDeptChange() {
-  var deptId = val('u_dept_id');
-  var itemSel = document.getElementById('u_item_id');
-  if (!itemSel) return;
-  if (!deptId) {
-    itemSel.innerHTML = '<option value="">먼저 부서를 선택하세요</option>';
-    updateUseInfo();
-    return;
-  }
-  var { data, error } = await supabaseClient
-    .from('stock_current')
-    .select('item_id, qty, items(item_name, use_unit, unit)')
-    .eq('dept_id', deptId)
-    .gt('qty', 0);
-  if (error) { alert('부서 재고 조회 실패: ' + error.message); return; }
-
-  if (!data || !data.length) {
-    itemSel.innerHTML = '<option value="">보유 재고가 없습니다</option>';
-  } else {
-    itemSel.innerHTML = '<option value="">자재 선택</option>' +
-      data.map(function(r) {
-        return '<option value="' + r.item_id + '" data-qty="' + r.qty + '" data-unit="' + ts(r.items?.use_unit || r.items?.unit || '') + '">' +
-          ts(r.items?.item_name || '-') + ' (재고 ' + r.qty + ')</option>';
-      }).join('');
-  }
-  updateUseInfo();
-}
-
-function updateUseInfo() {
-  var sel = document.getElementById('u_item_id');
-  var opt = sel?.selectedOptions?.[0];
-  if (opt && opt.value) {
-    document.getElementById('uUseUnit').textContent    = opt.dataset.unit || '-';
-    document.getElementById('uCurrentQty').textContent = (opt.dataset.qty || 0) + ' ' + (opt.dataset.unit || '');
-  } else {
-    document.getElementById('uUseUnit').textContent    = '-';
-    document.getElementById('uCurrentQty').textContent = '-';
-  }
-}
-
-async function saveUse() {
-  var deptId = val('u_dept_id');
-  var itemId = val('u_item_id');
-  if (!deptId) throw new Error('부서를 선택해주세요.');
-  if (!itemId) throw new Error('자재를 선택해주세요.');
-
-  var sel = document.getElementById('u_item_id');
-  var opt = sel?.selectedOptions?.[0];
-  var useUnit = opt?.dataset?.unit || '';
-  var current = Number(opt?.dataset?.qty || 0);
-
-  var qty = Number(val('u_qty') || 0);
-  if (qty < 1) throw new Error('사용 수량은 1 이상이어야 합니다.');
-  if (qty > current) throw new Error('사용 수량(' + qty + ')이 해당 부서 현재고(' + current + ')를 초과합니다.');
-
-  var { error } = await supabaseClient.from('stock_transactions').insert({
-    item_id:  itemId,
-    dept_id:  deptId,
-    tx_type:  'OUT',
-    tx_date:  val('u_use_date'),
-    qty:      -qty,
-    use_unit: useUnit,
-    ref_type: 'use',
-    memo:     val('u_memo'),
-  });
-  if (error) throw new Error(error.message);
-
-  await upsertStockCurrent(itemId, -qty, deptId);
-}
-
 /* ── 자재/부서 캐시 로드 ── */
 async function loadCaches() {
   var { data: items } = await supabaseClient
@@ -849,7 +684,7 @@ async function loadCaches() {
   ['dispatchDeptFilter', 'd_dept_id', 'deptStockDeptFilter'].forEach(function(id) {
     var el = document.getElementById(id);
     if (!el) return;
-    var placeholder = id === 'd_dept_id' || id === 'u_dept_id' ? '<option value="">부서 선택</option>' : '<option value="">전체</option>';
+    var placeholder = id === 'd_dept_id' ? '<option value="">부서 선택</option>' : '<option value="">전체</option>';
     el.innerHTML = placeholder + deptOpts;
   });
 
@@ -901,7 +736,6 @@ function initSearch() {
   document.getElementById('receiptSearchBtn')?.addEventListener('click',  function() { loadReceipts(1); });
   document.getElementById('dispatchSearchBtn')?.addEventListener('click', function() { loadDispatches(1); });
   document.getElementById('deptStockSearchBtn')?.addEventListener('click', function() { loadDeptStock(1); });
-  document.getElementById('useSearchBtn')?.addEventListener('click', function() { loadUseLog(1); });
   document.getElementById('deptStockKeyword')?.addEventListener('keydown', function(e) { if (e.key==='Enter') loadDeptStock(1); });
 
   // 입고 모달
@@ -912,10 +746,6 @@ function initSearch() {
 
   // 불출 모달
   document.getElementById('d_item_id')?.addEventListener('change', updateDispatchInfo);
-
-  // 사용처리 모달
-  document.getElementById('u_dept_id')?.addEventListener('change', onUseDeptChange);
-  document.getElementById('u_item_id')?.addEventListener('change', updateUseInfo);
 }
 
 /* ── 접근 권한 (자재담당자 = manager 또는 admin) ── */
@@ -940,20 +770,16 @@ async function init() {
   initSearch();
 
   initReceiptGrid();  // receipt 탭이 기본 활성 → 즉시 초기화
-  // dispatchGrid, deptStockGrid, useGrid는 탭 전환 시 lazy 초기화
+  // dispatchGrid, deptStockGrid는 탭 전환 시 lazy 초기화
 
   document.getElementById('addReceiptBtn')?.addEventListener('click', openAddReceipt);
   document.getElementById('addDispatchBtn')?.addEventListener('click', openAddDispatch);
-  document.getElementById('addUseBtn')?.addEventListener('click', openAddUse);
 
   bindSaveBtn('receiptSaveBtn', saveReceipt, 'receiptModal', function() {
     return loadReceipts(1);
   });
   bindSaveBtn('dispatchSaveBtn', saveDispatch, 'dispatchModal', function() {
     return loadDispatches(1);
-  });
-  bindSaveBtn('useSaveBtn', saveUse, 'useModal', function() {
-    return loadUseLog(1);
   });
 
   showGlobalLoading('데이터를 불러오는 중...');

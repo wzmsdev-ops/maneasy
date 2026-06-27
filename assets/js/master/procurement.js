@@ -159,12 +159,26 @@ async function loadRvList(page) {
   try {
     var from = (page - 1) * rvState.pageSize;
     var to   = from + rvState.pageSize - 1;
+    var dateFrom = val('rvDateFrom');
+    var dateTo   = val('rvDateTo');
+    var keyword  = val('rvKeyword');
+
     var q = supabaseClient
       .from('purchase_requests')
       .select('*, departments(dept_name)', { count: 'exact' })
       .order('created_at', { ascending: false })
       .range(from, to);
     if (rvState.statusFilter) q = q.eq('status', rvState.statusFilter);
+    if (dateFrom) q = q.gte('request_date', dateFrom);
+    if (dateTo)   q = q.lte('request_date', dateTo);
+
+    if (keyword) {
+      var orParts = ['requester_name.ilike.%' + keyword + '%'];
+      var { data: deptMatches } = await supabaseClient
+        .from('departments').select('id').ilike('dept_name', '%' + keyword + '%');
+      (deptMatches || []).forEach(function(d) { orParts.push('dept_id.eq.' + d.id); });
+      q = q.or(orParts.join(','));
+    }
 
     var { data, error, count } = await q;
     if (error) throw new Error(error.message);
@@ -665,12 +679,26 @@ async function loadPoList(page) {
   try {
     var from = (page - 1) * poState.pageSize;
     var to   = from + poState.pageSize - 1;
+    var dateFrom = val('poDateFrom');
+    var dateTo   = val('poDateTo');
+    var keyword  = val('poKeyword');
+
     var q = supabaseClient
       .from('purchase_orders')
       .select('*, vendors(vendor_name)', { count: 'exact' })
       .order('created_at', { ascending: false })
       .range(from, to);
     if (poState.statusFilter) q = q.eq('status', poState.statusFilter);
+    if (dateFrom) q = q.gte('order_date', dateFrom);
+    if (dateTo)   q = q.lte('order_date', dateTo);
+
+    if (keyword) {
+      var orParts = ['order_no.ilike.%' + keyword + '%'];
+      var { data: vendorMatches } = await supabaseClient
+        .from('vendors').select('id').ilike('vendor_name', '%' + keyword + '%');
+      (vendorMatches || []).forEach(function(v) { orParts.push('vendor_id.eq.' + v.id); });
+      q = q.or(orParts.join(','));
+    }
 
     var { data, error, count } = await q;
     if (error) throw new Error(error.message);

@@ -217,8 +217,16 @@ async function saveUse() {
     });
     if (error) throw new Error(error.message);
 
-    // 현재고 업데이트 (트리거가 처리하지만 UI 즉시 반영)
-    await supabaseClient.rpc ? null : null; // 트리거에 의존
+    // 부서 현재고 차감 (item_id, dept_id 스코프)
+    var { data: row } = await supabaseClient
+      .from('stock_current').select('id, qty')
+      .eq('item_id', itemId).eq('dept_id', myDeptId).maybeSingle();
+    if (!row) throw new Error('부서 재고 정보를 찾을 수 없습니다.');
+    var { error: updErr } = await supabaseClient
+      .from('stock_current')
+      .update({ qty: row.qty - qty, last_updated_at: new Date().toISOString() })
+      .eq('id', row.id);
+    if (updErr) throw new Error(updErr.message);
 
     closeUseModal();
     await loadMyStock();
@@ -258,25 +266,16 @@ document.addEventListener('DOMContentLoaded', async function() {
 
   currentUser = await auth.getSession();
 
-  // 본인 부서 정보 확인
-  myDeptId   = currentUser?.team_code || null;   // team_code가 dept_id로 매핑되는지 확인 필요
-  myDeptName = currentUser?.team_name || '';
+  // 본인 부서 정보 확인 — team_code(user_profiles) ↔ dept_code(departments) 매칭 (org.js와 동일한 컨벤션)
+  myDeptId   = null;
+  myDeptName = '';
 
-  // user_profiles에서 dept_id 직접 조회
-  var { data: profile } = await supabaseClient
-    .from('user_profiles')
-    .select('team_name, department')
-    .eq('id', session.user.id)
-    .single();
-
-  // departments 테이블에서 dept_name으로 id 조회
-  if (profile?.team_name) {
-    myDeptName = profile.team_name;
+  if (currentUser?.team_code) {
     var { data: dept } = await supabaseClient
       .from('departments')
       .select('id, dept_name')
-      .eq('dept_name', profile.team_name)
-      .single();
+      .eq('dept_code', currentUser.team_code)
+      .maybeSingle();
     if (dept) {
       myDeptId   = dept.id;
       myDeptName = dept.dept_name;
