@@ -82,7 +82,7 @@ function initMainTabs() {
       btn.classList.add('active');
       document.getElementById('panel-' + target)?.classList.add('active');
 
-      requestAnimationFrame(function() {
+      setTimeout(function() {
         if (target === 'review') {
           if (!_rvListGrid) initRvListGrid();
           loadRvList(1);
@@ -91,7 +91,7 @@ function initMainTabs() {
           if (!_poListGrid) initPoListGrid();
           loadPoList(1);
         }
-      });
+      }, 50);
     });
   });
 }
