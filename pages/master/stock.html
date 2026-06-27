@@ -154,14 +154,13 @@
     <!-- ═══ 입고 탭 (자재담당자가 발주 품목을 중앙창고로 입고) ═══ -->
     <div id="tab-receipt" class="tab-panel active">
       <div class="m-filter-bar">
-        <span class="m-filter-label">기간</span>
-        <input type="date" id="receiptDateFrom" style="height:30px;padding:0 6px;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;outline:none;width:130px;flex-shrink:0;" />
+        <input type="date" id="receiptDateFrom" />
         <span style="font-size:11px;color:#9ca3af;flex-shrink:0;">~</span>
-        <input type="date" id="receiptDateTo" style="height:30px;padding:0 6px;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;outline:none;width:130px;flex-shrink:0;" />
+        <input type="date" id="receiptDateTo" />
         <div class="pr-divider"></div>
-        <input type="text" id="receiptKeyword" placeholder="자재명/입고번호 검색..." style="flex:1;min-width:0;height:28px;padding:0 10px;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;outline:none;" />
+        <input type="text" id="receiptKeyword" placeholder="자재명/입고번호 검색..." style="flex:1;min-width:0;" />
         <button class="btn btn-sm btn-primary" id="receiptSearchBtn"><i class="ti ti-search"></i> 조회</button>
-        <div style="flex:1;"></div>
+        <div style="width:1px;height:20px;background:#d1d5db;flex-shrink:0;margin:0 4px;"></div>
         <button class="btn btn-sm btn-primary" id="addReceiptBtn"><i class="ti ti-plus"></i> 입고 등록</button>
       </div>
       <div class="m-card">
@@ -177,14 +176,13 @@
       <div class="m-filter-bar">
         <select id="dispatchDeptFilter" style="height:28px;padding:0 8px;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;flex-shrink:0;"><option value="">전체 부서</option></select>
         <div class="pr-divider"></div>
-        <span class="m-filter-label" style="flex-shrink:0;">기간</span>
-        <input type="date" id="dispatchDateFrom" style="height:30px;padding:0 6px;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;outline:none;width:130px;flex-shrink:0;" />
+        <input type="date" id="dispatchDateFrom" />
         <span style="font-size:11px;color:#9ca3af;flex-shrink:0;">~</span>
-        <input type="date" id="dispatchDateTo" style="height:30px;padding:0 6px;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;outline:none;width:130px;flex-shrink:0;" />
+        <input type="date" id="dispatchDateTo" />
         <div class="pr-divider"></div>
-        <input type="text" id="dispatchKeyword" placeholder="자재명 검색..." style="flex:1;min-width:0;height:28px;padding:0 10px;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;outline:none;" />
+        <input type="text" id="dispatchKeyword" placeholder="자재명 검색..." style="flex:1;min-width:0;" />
         <button class="btn btn-sm btn-primary" id="dispatchSearchBtn"><i class="ti ti-search"></i> 조회</button>
-        <div style="flex:1;"></div>
+        <div style="width:1px;height:20px;background:#d1d5db;flex-shrink:0;margin:0 4px;"></div>
         <button class="btn btn-sm btn-primary" id="addDispatchBtn"><i class="ti ti-plus"></i> 불출 등록</button>
       </div>
       <div class="m-card">
@@ -200,7 +198,7 @@
       <div class="m-filter-bar">
         <select id="deptStockDeptFilter" style="height:28px;padding:0 8px;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;flex-shrink:0;"><option value="">전체 부서</option></select>
         <div class="pr-divider"></div>
-        <input type="text" id="deptStockKeyword" placeholder="자재명 검색..." style="flex:1;min-width:0;height:28px;padding:0 10px;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;outline:none;" />
+        <input type="text" id="deptStockKeyword" placeholder="자재명 검색..." style="flex:1;min-width:0;" />
         <button class="btn btn-sm btn-primary" id="deptStockSearchBtn"><i class="ti ti-search"></i> 조회</button>
       </div>
       <div class="m-card">
