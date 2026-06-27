@@ -32,6 +32,7 @@
       display:flex; align-items:center; gap:8px; padding:10px 12px;
       border-bottom:1px solid #f3f4f6; flex-shrink:0; flex-wrap:wrap;
     }
+    .us-toolbar input[type="date"] { width:130px; flex-shrink:0; }
     .us-toolbar input, .us-toolbar select {
       padding:6px 10px; border:1px solid #e5e7eb; border-radius:6px;
       font-size:12px; outline:none;
@@ -124,7 +125,7 @@
       <input type="date" id="dateTo" />
       <button class="btn btn-sm" onclick="loadUseLog(1)">조회</button>
       <div style="flex:1;"></div>
-      <button class="btn btn-primary" onclick="openUseModal()">
+      <button class="btn btn-primary" id="openUseBtn" onclick="openUseModal()">
         <i class="ti ti-plus"></i> 사용처리
       </button>
     </div>
