@@ -988,6 +988,7 @@ function addPoItemRow(preset) {
   var row = Object.assign({
     _rowId:       _rowIdCounter,
     item_id:      '',
+    item_name:    '',
     purchase_unit:'',
     use_unit:     '',
     order_qty:    1,
@@ -1137,11 +1138,23 @@ async function openEditPo(id) {
     openModal('poModal');
     setTimeout(function() {
       if (!_poItemGrid) initPoItemGrid();
+      if (!_poSearchGrid) initPoSearchGrid();
       clearPoItemGrid();
+      updatePoItemCount();
+      if (_poSearchGrid) { _poSearchGrid.setGridOption('rowData', []); _poSearchGrid.sizeColumnsToFit(); }
+      // 카테고리 옵션 채우기
+      var catSel = document.getElementById('po_item_category');
+      if (catSel && catSel.options.length <= 1) {
+        var cats = [...new Set(itemCache.map(function(i){ return i.category || ''; }))].filter(Boolean).sort();
+        catSel.innerHTML = '<option value="">전체 카테고리</option>' +
+          cats.map(function(c){ return '<option value="' + c + '">' + c + '</option>'; }).join('');
+      }
+      document.getElementById('po_item_keyword') && (document.getElementById('po_item_keyword').value = '');
       (items || []).forEach(function(r) {
         addPoItemRow({
           _existingId:   r.id,
           item_id:       r.item_id,
+          item_name:     r.items?.item_name || '',
           purchase_unit: r.purchase_unit || r.items?.purchase_unit || '',
           use_unit:      r.use_unit      || r.items?.use_unit      || '',
           order_qty:     r.order_qty,
@@ -1202,7 +1215,11 @@ async function savePo() {
   if (orderId) {
     var { error: ue } = await supabaseClient.from('purchase_orders').update(poPayload).eq('id', orderId);
     if (ue) throw new Error(ue.message);
-    await supabaseClient.from('purchase_order_items').delete().eq('order_id', orderId);
+    // FK 참조 해제 후 삭제
+    await supabaseClient.from('purchase_request_items').update({ order_item_id: null })
+      .in('order_item_id', (await supabaseClient.from('purchase_order_items').select('id').eq('order_id', orderId)).data?.map(function(r){ return r.id; }) || []);
+    var { error: de } = await supabaseClient.from('purchase_order_items').delete().eq('order_id', orderId);
+    if (de) throw new Error('품목 삭제 실패: ' + de.message);
   } else {
     var orderNo = await genDocNo('PO');
     poPayload.order_no = orderNo;
