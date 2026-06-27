@@ -136,7 +136,10 @@ window.openEditVendor = openEditVendor;
 
 async function saveVendor() {
   const payload = {
-    vendor_code: val('v_vendor_code'),
+    vendor_code: editingVendorId ? val('v_vendor_code') : await (async () => {
+      const { data } = await supabaseClient.rpc('generate_vendor_code');
+      return data || 'VEND-' + Date.now().toString().slice(-6);
+    })(),
     vendor_name: val('v_vendor_name'),
     biz_no:      val('v_biz_no'),
     ceo_name:    val('v_ceo_name'),
@@ -148,7 +151,7 @@ async function saveVendor() {
     active:      val('v_active'),
     updated_at:  new Date().toISOString(),
   };
-  if (!payload.vendor_code) throw new Error('거래처 코드는 필수입니다.');
+  // vendor_code는 자동생성
   if (!payload.vendor_name) throw new Error('거래처명은 필수입니다.');
 
   if (editingVendorId) {
