@@ -281,6 +281,8 @@ function initRvSplitGrid() {
   if (!el || typeof agGrid === 'undefined') return;
 
   _rvSplitGrid = agGrid.createGrid(el, {
+    suppressCellFocus: true,
+    suppressPropertyNamesCheck: true,
     columnDefs: [
       { headerName: '자재명', field: 'item_name', flex: 2,
         headerClass: 'ag-left-header',
@@ -845,6 +847,8 @@ function initPoSearchGrid() {
   ];
 
   _poSearchGrid = agGrid.createGrid(el, {
+    suppressCellFocus: true,
+    suppressPropertyNamesCheck: true,
     columnDefs: colDefs,
     rowData: [],
     rowHeight: 34,
@@ -986,6 +990,8 @@ function initPoItemGrid() {
   rowH = Math.max(28, rowH);
 
   _poItemGrid = agGrid.createGrid(el, {
+    suppressCellFocus: true,
+    suppressPropertyNamesCheck: true,
     columnDefs: colDefs,
     defaultColDef: {
       sortable: false, resizable: true, suppressMovable: true,
@@ -1100,6 +1106,8 @@ function initPoDetailGrid() {
   if (!el || typeof agGrid === 'undefined') return;
 
   _poDetailGrid = agGrid.createGrid(el, {
+    suppressCellFocus: true,
+    suppressPropertyNamesCheck: true,
     columnDefs: [
       { headerName: '자재명', field: 'item_name', flex: 2,
         headerClass: 'ag-left-header',
