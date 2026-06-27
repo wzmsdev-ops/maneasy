@@ -142,6 +142,13 @@
       border-radius:6px; flex-shrink:0; font-size:12px; color:#374151;
     }
     .po-total-bar strong { font-weight:700; color:#111827; font-size:13px; }
+    .po-vat-input {
+      width:90px; height:24px; padding:0 6px; border:1px solid #cbd5e1;
+      border-radius:4px; font-size:13px; font-weight:700; color:#111827;
+      text-align:right; outline:none;
+    }
+    .po-vat-input:focus { border-color:#2563eb; }
+    .po-vat-hint { font-size:10px; color:#9ca3af; margin-left:4px; }
 
     /* ── 안내 박스 ── */
     .info-box {
@@ -380,7 +387,7 @@
         <!-- 합계 -->
         <div class="po-total-bar">
           <span>공급가액 합계 <strong id="poTotalSupply">0원</strong></span>
-          <span>VAT (10%) <strong id="poTotalVat">0원</strong></span>
+          <span>VAT <input type="number" id="poTotalVat" class="po-vat-input" value="0" oninput="onPoVatInput()" /><span class="po-vat-hint">세금계산서와 다르면 직접 수정</span></span>
           <span>합계 <strong id="poTotalAmount">0원</strong></span>
         </div>
       </div>
