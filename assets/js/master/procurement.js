@@ -368,7 +368,7 @@ async function openRvDetail(id) {
           request_qty:   r.request_qty,
           use_unit:      r.use_unit || item.use_unit || '',
           purchase_unit: item.purchase_unit || '',
-          _orderQty:     Math.ceil((r.request_qty || 1) / puQty),
+          _orderQty:     r.request_qty || 1,  // purchase_unit 기준 저장이므로 환산 불필요
           unit_price:    item.standard_price || 0,
           vendor_id:     item.vendor_id || '',
         };
@@ -516,7 +516,7 @@ async function splitPrIntoOrders(pr, ev) {
           use_unit:          r.use_unit || '',
           order_qty:         r._orderQty || 1,
           unit_price:        Number(r.unit_price || 0),
-          memo:              '요청수량 ' + r.request_qty + ' ' + r.use_unit + ' 환산',
+          memo:              r.memo || '',
         }).select().single();
         if (poiErr) throw new Error(poiErr.message);
 
