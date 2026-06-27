@@ -264,6 +264,16 @@
         <label>공급가액 (자동계산)</label>
         <input type="number" id="r_supply_price" readonly style="background:#f8fafc;color:#6b7280;" />
       </div>
+      <div class="m-field-row">
+        <div class="m-field">
+          <label>부가세 (자동계산, 세금계산서와 다르면 직접 수정)</label>
+          <input type="number" id="r_vat_amount" min="0" value="0" oninput="onReceiptVatInput()" />
+        </div>
+        <div class="m-field">
+          <label>합계 (공급가액+부가세)</label>
+          <input type="number" id="r_total_price" readonly style="background:#f8fafc;color:#6b7280;font-weight:700;" />
+        </div>
+      </div>
       <div class="m-field">
         <label>발주 연결 (선택)</label>
         <select id="r_order_id">
