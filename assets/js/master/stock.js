@@ -1307,11 +1307,11 @@ async function loadCaches() {
   // 입고/불출 모달 자재 select 채우기
   var opts = '<option value="">자재 선택</option>' +
     itemCache.map(function(it) { return '<option value="' + it.id + '">' + ts(it.item_name) + '</option>'; }).join('');
-  document.getElementById('d_item_id').innerHTML = opts;
+  var _dEl = document.getElementById('d_item_id'); if (_dEl) _dEl.innerHTML = opts;
 
   // 부서 select 채우기 (필터들 + 모달)
   var deptOpts = deptCache.map(function(d) { return '<option value="' + d.id + '">' + ts(d.dept_name) + '</option>'; }).join('');
-  ['dispatchDeptFilter', 'd_dept_id', 'deptStockDeptFilter'].forEach(function(id) {
+  ['dispatchDeptFilter', 'd_dept_id', 'deptStockDeptFilter', 'dispatchDeptTarget'].forEach(function(id) {
     var el = document.getElementById(id);
     if (!el) return;
     var placeholder = id === 'd_dept_id' ? '<option value="">부서 선택</option>' : '<option value="">전체</option>';
@@ -1399,24 +1399,28 @@ async function init() {
   initTabs();
   initSearch();
 
-  initReceiptGrid();  // receipt 탭이 기본 활성 → 즉시 초기화
-  // dispatchGrid, deptStockGrid는 탭 전환 시 lazy 초기화
+  // receipt 탭 기본 활성 → 즉시 초기화
+  initReceiptPoGrid();
 
-  document.getElementById('addReceiptBtn')?.addEventListener('click', openAddReceipt);
-  document.getElementById('r_item_keyword')?.addEventListener('keydown', function(e) { if (e.key === 'Enter') searchReceiptItems(); });
-  document.getElementById('addDispatchBtn')?.addEventListener('click', openAddDispatch);
+  // 날짜 기본값 추가
+  setVal('receiptDate',  todayStr);
+  setVal('dispatchDate', todayStr);
 
-  bindSaveBtn('receiptSaveBtn', saveReceipt, 'receiptModal', function() {
-    return loadReceipts(1);
-  });
-  bindSaveBtn('dispatchSaveBtn', saveDispatch, 'dispatchModal', function() {
-    return loadDispatches(1);
-  });
+  // 입고 조회 버튼
+  document.getElementById('receiptPoSearchBtn')?.addEventListener('click', loadReceiptPoList);
+  document.getElementById('receiptPoKeyword')?.addEventListener('keydown', function(e) { if (e.key === 'Enter') loadReceiptPoList(); });
+  document.getElementById('receiptPoStatus')?.addEventListener('change', loadReceiptPoList);
+  document.getElementById('receiptSaveBtn')?.addEventListener('click', saveReceipt);
+
+  // 불출 조회 버튼
+  document.getElementById('dispatchSearchBtn')?.addEventListener('click', loadDispatchStock);
+  document.getElementById('dispatchKeyword')?.addEventListener('keydown', function(e) { if (e.key === 'Enter') loadDispatchStock(); });
+  document.getElementById('dispatchCategoryFilter')?.addEventListener('change', loadDispatchStock);
 
   showGlobalLoading('데이터를 불러오는 중...');
   try {
     await loadCaches();
-    await loadReceipts(1);
+    await loadReceiptPoList();
   } catch(e) {
     alert('초기화 실패: ' + e.message);
   } finally {
