@@ -8,8 +8,10 @@
 let currentUser = null;
 let editingVendorId = null;
 let editingItemId   = null;
+let editingCategoryId = null;
 let vendorCache = [];
 let itemCache   = [];
+let categoryCache = [];
 
 /* ── 유틸 ─────────────────────────────────── */
 function ts(v) {
@@ -39,7 +41,7 @@ function initTabs() {
       document.getElementById(`tab-${target}`)?.classList.add('active');
 
       requestAnimationFrame(() => {
-        const gridMap = { vendors: '_vendorGrid', items: '_itemGrid' };
+        const gridMap = { categories: '_categoryGrid', vendors: '_vendorGrid', items: '_itemGrid' };
         const g = window[gridMap[target]];
         if (g) g.sizeColumnsToFit();
       });
@@ -51,6 +53,127 @@ function initTabs() {
 function openModal(id) { document.getElementById(id)?.classList.add('is-open'); }
 function closeModal(id) { document.getElementById(id)?.classList.remove('is-open'); }
 window.closeModal = closeModal;
+
+/* ════════════════════════════════════════════
+   자재구분 (item_categories)
+════════════════════════════════════════════ */
+async function loadCategories() {
+  const { data, error } = await supabaseClient
+    .from('item_categories')
+    .select('*')
+    .order('sort_order', { ascending: true });
+  if (error) throw new Error(error.message);
+  return data || [];
+}
+
+function renderCategories(rows) {
+  categoryCache = rows;
+  const list  = document.getElementById('categoryList');
+  const empty = document.getElementById('categoryEmpty');
+  if (!list) return;
+
+  if (empty) empty.style.display = 'none';
+
+  if (!window._categoryGrid) {
+    window._categoryGrid =
+  createMgGrid('categoryList', [
+      { headerName: '코드',     field: 'category_code', flex: 1, minWidth: 100 },
+      { headerName: '구분명',   field: 'category_name', flex: 2, minWidth: 120 },
+      { headerName: '정렬순서', field: 'sort_order',    flex: 0, width: 80 },
+      { headerName: '상태',     field: 'active',        flex: 0, width: 70,
+        cellRenderer: p => { const s = document.createElement('span'); s.innerHTML = badgeActive(p.value); return s; } },
+      { headerName: '', flex: 0, width: 120, sortable: false,
+        cellRenderer: p => {
+          const wrap = document.createElement('div'); wrap.style.cssText = 'display:flex;gap:4px;align-items:center;';
+          const e = document.createElement('button'); e.className = 'btn btn-sm'; e.textContent = '수정'; e.onclick = () => openEditCategory(p.data.id);
+          const d = document.createElement('button'); d.className = 'btn btn-sm btn-danger'; d.textContent = '삭제'; d.onclick = () => deleteCategory(p.data.id);
+          wrap.append(e, d); return wrap;
+        }},
+    ], rows, { pageSize: 15, fit: true, noRowsText: '등록된 자재구분이 없습니다.' });
+  } else {
+    updateMgGrid(window._categoryGrid, rows);
+  }
+  populateCategorySelect(rows);
+}
+
+/** 자재 등록/수정 모달의 자재구분 select 채우기 (활성 항목만) */
+function populateCategorySelect(rows) {
+  const sel = document.getElementById('i_category');
+  if (!sel) return;
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">선택 안 함</option>' +
+    rows.filter(r => r.active === 'Y')
+        .map(r => `<option value="${ts(r.category_name)}">${ts(r.category_name)}</option>`).join('');
+  if (cur) sel.value = cur;
+}
+
+function openAddCategory() {
+  editingCategoryId = null;
+  ['cat_category_code','cat_category_name'].forEach(id => setVal(id, ''));
+  setVal('cat_sort_order', String((categoryCache.length || 0) + 1));
+  setVal('cat_active', 'Y');
+  document.getElementById('categoryModalTitle').textContent = '자재구분 추가';
+  openModal('categoryModal');
+}
+
+function openEditCategory(id) {
+  const row = categoryCache.find(r => r.id === id);
+  if (!row) return;
+  editingCategoryId = id;
+  setVal('cat_category_code', row.category_code);
+  setVal('cat_category_name', row.category_name);
+  setVal('cat_sort_order',    row.sort_order ?? 0);
+  setVal('cat_active',        row.active);
+  document.getElementById('categoryModalTitle').textContent = '자재구분 수정';
+  openModal('categoryModal');
+}
+window.openEditCategory = openEditCategory;
+
+async function saveCategory() {
+  const payload = {
+    category_code: editingCategoryId ? val('cat_category_code') : await (async () => {
+      const { data } = await supabaseClient.rpc('generate_category_code');
+      return data || 'CAT-' + Date.now().toString().slice(-6);
+    })(),
+    category_name: val('cat_category_name'),
+    sort_order:    Number(val('cat_sort_order') || 0),
+    active:        val('cat_active'),
+    updated_at:    new Date().toISOString(),
+  };
+  // category_code는 자동생성
+  if (!payload.category_name) throw new Error('구분명은 필수입니다.');
+
+  if (editingCategoryId) {
+    // 이름이 바뀌면 이미 그 구분명을 쓰고 있는 자재들도 같이 맞춰줌
+    const before = categoryCache.find(r => r.id === editingCategoryId);
+    const { error } = await supabaseClient.from('item_categories').update(payload).eq('id', editingCategoryId);
+    if (error) throw new Error(error.message);
+    if (before && before.category_name !== payload.category_name) {
+      await supabaseClient.from('items').update({ category: payload.category_name }).eq('category', before.category_name);
+    }
+  } else {
+    const { error } = await supabaseClient.from('item_categories').insert(payload);
+    if (error) throw new Error(error.message);
+  }
+}
+
+async function deleteCategory(id) {
+  const row = categoryCache.find(r => r.id === id);
+  if (!row) return;
+  const { count } = await supabaseClient
+    .from('items').select('id', { count: 'exact', head: true }).eq('category', row.category_name);
+  if (count > 0) { alert('이 구분을 사용 중인 자재가 ' + count + '건 있어 삭제할 수 없습니다.\n먼저 자재의 구분을 변경해주세요.'); return; }
+  if (!confirm('자재구분을 삭제하시겠습니까?')) return;
+  const { error } = await supabaseClient.from('item_categories').delete().eq('id', id);
+  if (error) { alert('삭제 실패: ' + error.message); return; }
+  await refreshCategories();
+}
+window.deleteCategory = deleteCategory;
+
+async function refreshCategories() {
+  const rows = await loadCategories();
+  renderCategories(rows);
+}
 
 /* ════════════════════════════════════════════
    거래처 (vendors)
@@ -80,7 +203,6 @@ function renderVendors(rows) {
       { headerName: '사업자번호', field: 'biz_no',   flex: 1, minWidth: 110, valueFormatter: p => p.value || '-' },
       { headerName: '대표자',   field: 'ceo_name',   flex: 1, minWidth: 80,  valueFormatter: p => p.value || '-' },
       { headerName: '전화',     field: 'phone',      flex: 1, minWidth: 110, valueFormatter: p => p.value || '-' },
-      { headerName: '카테고리', field: 'category',   flex: 1, minWidth: 90,  valueFormatter: p => p.value || '-' },
       { headerName: '상태',     field: 'active',     flex: 0, width: 70,
         cellRenderer: p => { const s = document.createElement('span'); s.innerHTML = badgeActive(p.value); return s; } },
       { headerName: '', flex: 0, width: 120, sortable: false,
@@ -109,7 +231,7 @@ function populateVendorSelect(vendors) {
 function openAddVendor() {
   editingVendorId = null;
   ['v_vendor_code','v_vendor_name','v_biz_no','v_ceo_name',
-   'v_phone','v_email','v_address','v_category','v_memo'].forEach(id => setVal(id, ''));
+   'v_phone','v_email','v_address','v_memo'].forEach(id => setVal(id, ''));
   setVal('v_active', 'Y');
   document.getElementById('vendorModalTitle').textContent = '거래처 추가';
   openModal('vendorModal');
@@ -126,7 +248,6 @@ function openEditVendor(id) {
   setVal('v_phone',       row.phone);
   setVal('v_email',       row.email);
   setVal('v_address',     row.address);
-  setVal('v_category',    row.category);
   setVal('v_memo',        row.memo);
   setVal('v_active',      row.active);
   document.getElementById('vendorModalTitle').textContent = '거래처 수정';
@@ -146,7 +267,6 @@ async function saveVendor() {
     phone:       val('v_phone'),
     email:       val('v_email'),
     address:     val('v_address'),
-    category:    val('v_category'),
     memo:        val('v_memo'),
     active:      val('v_active'),
     updated_at:  new Date().toISOString(),
@@ -337,14 +457,21 @@ async function init() {
 
   initTabs();
 
+  document.getElementById('addCategoryBtn')?.addEventListener('click', openAddCategory);
   document.getElementById('addVendorBtn')?.addEventListener('click', openAddVendor);
   document.getElementById('addItemBtn')?.addEventListener('click', openAddItem);
 
+  bindSaveBtn('categorySaveBtn', saveCategory, 'categoryModal', async () => {
+    await refreshCategories();
+    await refreshItems(); // 구분명이 바뀐 경우를 반영
+  });
   bindSaveBtn('vendorSaveBtn', saveVendor, 'vendorModal', refreshVendors);
   bindSaveBtn('itemSaveBtn',   saveItem,   'itemModal',   refreshItems);
 
   showGlobalLoading('데이터를 불러오는 중...');
   try {
+    const categories = await loadCategories();
+    renderCategories(categories);
     const [vendors, items] = await Promise.all([loadVendors(), loadItems()]);
     renderVendors(vendors);
     renderItems(items);
