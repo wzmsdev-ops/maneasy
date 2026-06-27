@@ -211,9 +211,6 @@
       </div>
     </div>
 
-    <!-- ═══ 사용처리 탭 (부서 재고 차감) ═══ -->
-    </div>
-
   </div>
 </div>
 
@@ -328,53 +325,6 @@
     <div class="m-modal-foot">
       <button class="btn btn-sm" onclick="closeModal('dispatchModal')">취소</button>
       <button class="btn btn-sm btn-primary" id="dispatchSaveBtn">불출 등록</button>
-    </div>
-  </div>
-</div>
-
-<!-- ══ 사용처리 등록 모달 ══ -->
-<div id="useModal" class="m-modal">
-  <div class="m-modal-backdrop" onclick="closeModal('useModal')"></div>
-  <div class="m-modal-dialog">
-    <div class="m-modal-head">
-      <span class="m-modal-title">사용처리 등록</span>
-      <button class="m-modal-close" onclick="closeModal('useModal')"><i class="ti ti-x"></i></button>
-    </div>
-    <div class="m-modal-body">
-      <div class="m-field">
-        <label>부서 <span class="m-req">*</span></label>
-        <select id="u_dept_id">
-          <option value="">부서 선택</option>
-        </select>
-      </div>
-      <div class="m-field">
-        <label>자재 <span class="m-req">*</span></label>
-        <select id="u_item_id">
-          <option value="">먼저 부서를 선택하세요</option>
-        </select>
-      </div>
-      <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:6px;padding:8px 12px;font-size:11px;color:#374151;display:flex;gap:16px;flex-wrap:wrap;">
-        <span>사용단위: <strong id="uUseUnit">-</strong></span>
-        <span>해당 부서 현재고: <strong id="uCurrentQty">-</strong></span>
-      </div>
-      <div class="m-field-row">
-        <div class="m-field">
-          <label>사용일 <span class="m-req">*</span></label>
-          <input type="date" id="u_use_date" style="height:30px;padding:0 6px;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;outline:none;width:130px;" />
-        </div>
-        <div class="m-field">
-          <label>사용수량 (사용단위) <span class="m-req">*</span></label>
-          <input type="number" id="u_qty" min="1" value="1" />
-        </div>
-      </div>
-      <div class="m-field">
-        <label>메모</label>
-        <textarea id="u_memo" placeholder="사용 사유 등"></textarea>
-      </div>
-    </div>
-    <div class="m-modal-foot">
-      <button class="btn btn-sm" onclick="closeModal('useModal')">취소</button>
-      <button class="btn btn-sm btn-primary" id="useSaveBtn">사용처리 등록</button>
     </div>
   </div>
 </div>
