@@ -243,6 +243,51 @@
     .ag-theme-alpine .ag-cell.ag-cell-focus:not(.ag-cell-inline-editing) {
       border:1px solid var(--blue) !important;
     }
+
+    /* ── 발주요청 모달 2패널 레이아웃 ── */
+    .pr-modal-toolbar {
+      display:flex; align-items:center; gap:8px;
+      padding:10px 16px; border-bottom:1px solid #e5e7eb;
+      background:#f8fafc; flex-shrink:0;
+    }
+    .pr-modal-toolbar select, .pr-modal-toolbar input[type=text] {
+      height:30px; padding:0 10px; border:1px solid #e5e7eb;
+      border-radius:6px; font-size:12px; outline:none; background:#fff;
+    }
+    .pr-modal-toolbar select { min-width:130px; }
+    .pr-modal-toolbar input[type=text] { flex:1; min-width:0; }
+    .pr-modal-toolbar select:focus, .pr-modal-toolbar input:focus { border-color:#2563eb; }
+    .pr-two-panel {
+      display:flex; flex:1; min-height:0; overflow:hidden;
+      height:calc(100vh - 210px);
+    }
+    .pr-grid { flex:1; min-height:0; height:100%; }
+    .pr-search-panel {
+      width:50%; flex-shrink:0; display:flex; flex-direction:column;
+      border-right:2px solid #e5e7eb; min-height:0;
+    }
+    .pr-search-panel-head, .pr-items-panel-head {
+      padding:8px 14px; border-bottom:1px solid #f3f4f6;
+      font-size:11px; font-weight:700; color:#6b7280;
+      background:#f8fafc; flex-shrink:0;
+      display:flex; align-items:center; gap:6px;
+    }
+    .pr-items-panel {
+      flex:1; min-width:0; display:flex; flex-direction:column; min-height:0;
+    }
+    .pr-grid {
+      flex:1; min-height:0;
+    }
+    .pr-memo-row {
+      padding:8px 14px; border-top:1px solid #e5e7eb; flex-shrink:0;
+      display:flex; align-items:center; gap:8px;
+    }
+    .pr-memo-row label { font-size:12px; font-weight:600; color:#374151; flex-shrink:0; }
+    .pr-memo-row input {
+      flex:1; height:30px; padding:0 10px; border:1px solid #e5e7eb;
+      border-radius:6px; font-size:12px; outline:none;
+    }
+    .pr-memo-row input:focus { border-color:#2563eb; }
   </style>
 </head>
 <body>
