@@ -479,7 +479,7 @@ async function savePr() {
     itemRows.push({
       item_id:     d.item_id,
       request_qty: Math.max(1, Number(d.request_qty || 1)),
-      use_unit:    d.use_unit || '',
+      use_unit:    d.purchase_unit || d.use_unit || '',  // 입고단위 기준 저장
       memo:        d.memo || '',
     });
   });
