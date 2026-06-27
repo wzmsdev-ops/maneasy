@@ -805,6 +805,17 @@ async function init() {
   var user = await guardAccess();
   if (!user) return;
 
+  // 검색 날짜 기본값 — 시작일: 일주일 전, 종료일: 오늘 (다른 화면과 동일)
+  var today = new Date();
+  var weekAgo = new Date(today);
+  weekAgo.setDate(today.getDate() - 7);
+  var todayStr   = today.toISOString().slice(0, 10);
+  var weekAgoStr = weekAgo.toISOString().slice(0, 10);
+  setVal('receiptDateFrom',  weekAgoStr);
+  setVal('receiptDateTo',    todayStr);
+  setVal('dispatchDateFrom', weekAgoStr);
+  setVal('dispatchDateTo',   todayStr);
+
   initTabs();
   initSearch();
 
