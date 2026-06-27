@@ -271,11 +271,22 @@ document.addEventListener('DOMContentLoaded', async function() {
   myDeptName = '';
 
   if (currentUser?.team_code) {
-    var { data: dept } = await supabaseClient
+    // dept_code는 의원(clinic)별로 재사용될 수 있으므로 clinic_id로 범위를 좁혀야 함
+    // (없으면 동명 부서코드가 여러 의원에 존재할 때 PostgREST가 다중 행 오류를 내고
+    //  data가 null이 되어 "소속 부서 정보가 없습니다"로 잘못 표시됨)
+    var myClinicId = null;
+    if (currentUser.clinic_code) {
+      var { data: clinic } = await supabaseClient
+        .from('clinics').select('id').eq('clinic_code', currentUser.clinic_code).maybeSingle();
+      myClinicId = clinic?.id || null;
+    }
+
+    var deptQuery = supabaseClient
       .from('departments')
       .select('id, dept_name')
-      .eq('dept_code', currentUser.team_code)
-      .maybeSingle();
+      .eq('dept_code', currentUser.team_code);
+    if (myClinicId) deptQuery = deptQuery.eq('clinic_id', myClinicId);
+    var { data: dept } = await deptQuery.maybeSingle();
     if (dept) {
       myDeptId   = dept.id;
       myDeptName = dept.dept_name;
