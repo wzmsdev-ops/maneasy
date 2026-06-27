@@ -185,7 +185,8 @@ function renderPagination() {
   var container = document.getElementById('prPagination');
   if (!container) return;
   var page = prState.page, totalPages = prState.totalPages;
-  if (totalPages <= 1) { container.innerHTML = ''; return; }
+  if (totalPages <= 1) { container.innerHTML = ''; container.style.display = 'none'; return; }
+  container.style.display = '';
   var bs = Math.floor((page-1)/10)*10+1, end = Math.min(totalPages, bs+9), pages = [];
   for (var i = bs; i <= end; i++)
     pages.push('<button class="pagination-btn' + (i===page?' is-active':'') + '" data-page="' + i + '">' + i + '</button>');
