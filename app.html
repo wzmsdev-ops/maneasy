@@ -79,6 +79,7 @@
       </div>
 
       <!-- 마스터 관리 -->
+      <div class="sb-divider sb-admin-only" id="sbDividerMaster" style="display:none;margin:6px 0;"></div>
       <button class="sb-item sb-item-parent sb-admin-only" data-group="master" id="sbGroupMaster" style="display:none;">
         <div class="sb-item-inner"><i class="ti ti-settings"></i><span>마스터 관리</span></div>
         <i class="ti ti-chevron-right sb-item-arrow"></i>
@@ -143,6 +144,71 @@ const MENU_META = {
   'master/stock':           { app: '자재관리', page: '재고 관리' },
 };
 
+/* ── Flyout 서브메뉴 ── */
+let _flyout = null;
+let _flyoutTimer = null;
+
+function initFlyout() {
+  document.querySelectorAll('.sb-item-parent').forEach(btn => {
+    btn.addEventListener('mouseenter', () => showFlyout(btn));
+    btn.addEventListener('mouseleave', () => scheduleFlyoutClose());
+  });
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.sb-flyout') && !e.target.closest('.sb-item-parent')) hideFlyout();
+  });
+}
+
+function showFlyout(btn) {
+  clearTimeout(_flyoutTimer);
+  hideFlyout(true);
+
+  const group   = btn.dataset.group;
+  const submenu = document.querySelector(`.sb-submenu[data-group="${group}"]`);
+  if (!submenu) return;
+  const items = Array.from(submenu.querySelectorAll('.sb-sub-item')).filter(el => el.style.display !== 'none');
+  if (!items.length) return;
+
+  const fly = document.createElement('div');
+  fly.className = 'sb-flyout';
+  _flyout = fly;
+
+  // 라벨
+  const lbl = document.createElement('div');
+  lbl.style.cssText = 'padding:6px 16px 4px;font-size:10px;font-weight:700;opacity:0.5;text-transform:uppercase;letter-spacing:0.07em;color:#e2e8f0;pointer-events:none;';
+  lbl.textContent = btn.querySelector('span')?.textContent || '';
+  fly.appendChild(lbl);
+
+  items.forEach(item => {
+    const fi = document.createElement('button');
+    fi.className = 'sb-sub-item' + (item.classList.contains('active') ? ' active' : '');
+    fi.innerHTML = item.innerHTML;
+    fi.onclick = () => { item.click(); hideFlyout(); };
+    fly.appendChild(fi);
+  });
+
+  fly.addEventListener('mouseenter', () => clearTimeout(_flyoutTimer));
+  fly.addEventListener('mouseleave', () => scheduleFlyoutClose());
+
+  document.body.appendChild(fly);
+
+  const rect    = btn.getBoundingClientRect();
+  const sidebar = document.querySelector('.sidebar').getBoundingClientRect();
+  fly.style.left = (sidebar.right + 4) + 'px';
+
+  const flyH = fly.offsetHeight;
+  const top  = Math.min(rect.top, window.innerHeight - flyH - 8);
+  fly.style.top = Math.max(8, top) + 'px';
+}
+
+function scheduleFlyoutClose() {
+  _flyoutTimer = setTimeout(hideFlyout, 180);
+}
+
+function hideFlyout(immediate) {
+  if (immediate) clearTimeout(_flyoutTimer);
+  if (_flyout) { _flyout.remove(); _flyout = null; }
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
   const session = await auth.requireAuth();
   if (!session) return;
@@ -163,6 +229,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // admin이면 마스터 관리 메뉴 노출
     if (user.role === 'admin') {
       document.getElementById('sbGroupMaster').style.display = '';
+      document.getElementById('sbDividerMaster').style.display = '';
       document.getElementById('sbItemMasterOrg').style.display = '';
       document.getElementById('sbItemMasterSupply').style.display = '';
     }
@@ -180,6 +247,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   const params = new URLSearchParams(location.search);
+  initFlyout();
   navigate(params.get('page') || 'equipment/dashboard', true);
 });
 
@@ -205,8 +273,16 @@ function navigate(page, tab, skipHistory, extraQuery) {
   document.getElementById('shellFrame').src =
     `${CONFIG.SITE_BASE_URL}/pages/${pagePath}.html${pageQuery ? '?' + pageQuery : ''}`;
 
-  document.querySelectorAll('.sb-item.active').forEach(el => el.classList.remove('active'));
-  document.querySelector(`.sb-item[data-page="${pagePath}"]`)?.classList.add('active');
+  document.querySelectorAll('.sb-item.active, .sb-sub-item.active').forEach(el => el.classList.remove('active'));
+  const _activeItem = document.querySelector(`.sb-sub-item[data-page="${pagePath}"]`);
+  if (_activeItem) {
+    _activeItem.classList.add('active');
+    // 부모 그룹 버튼도 active
+    const _group = _activeItem.closest('.sb-submenu')?.dataset.group;
+    if (_group) document.querySelector(`.sb-item-parent[data-group="${_group}"]`)?.classList.add('active');
+  } else {
+    document.querySelector(`.sb-item[data-page="${pagePath}"]`)?.classList.add('active');
+  }
 
   if (!skipHistory) history.pushState({ page }, '', `?page=${page}`);
   closeSidebar();
