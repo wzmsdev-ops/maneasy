@@ -58,7 +58,8 @@ function initStockGrid() {
 }
 
 async function loadMyStock() {
-  if (!myDeptId) return;
+  if (!_gridStock) initStockGrid();
+  if (!myDeptId) { if (_gridStock) _gridStock.setGridOption('rowData', []); return; }
   var { data, error } = await supabaseClient
     .from('stock_current')
     .select('item_id, qty, items(item_name, category, use_unit, unit, reorder_point)')
@@ -66,7 +67,6 @@ async function loadMyStock() {
     .order('qty', { ascending: false });
   if (error) { console.error(error); return; }
   stockCache = data || [];
-  if (!_gridStock) initStockGrid();
   if (_gridStock) _gridStock.setGridOption('rowData', stockCache);
 
   // 사용처리 모달 자재 select 업데이트
@@ -115,7 +115,7 @@ function initUseGrid() {
 }
 
 async function loadUseLog(page) {
-  if (!myDeptId) return;
+  if (!myDeptId) { if (!_gridUse) initUseGrid(); if (_gridUse) _gridUse.setGridOption('rowData', []); return; }
   page = page || usePage;
   showGlobalLoading('사용처리 이력을 불러오는 중...');
   try {
@@ -289,14 +289,26 @@ document.addEventListener('DOMContentLoaded', async function() {
       badge.style.display = '';
       document.getElementById('deptBadgeText').textContent = myDeptName;
     }
+  } else {
+    // 소속 부서 정보가 없으면 안내 배지로 표시하고 사용처리 버튼은 비활성화
+    var badge2 = document.getElementById('deptBadge');
+    if (badge2) {
+      badge2.style.display = '';
+      badge2.style.background = '#fef2f2';
+      badge2.style.color = '#b91c1c';
+      badge2.style.borderColor = '#fecaca';
+      document.getElementById('deptBadgeText').textContent = '소속 부서 정보 없음';
+    }
+    var openBtn = document.getElementById('openUseBtn');
+    if (openBtn) openBtn.disabled = true;
   }
 
-  // 기본 날짜 (이번 달)
-  var now = new Date();
-  var y   = now.getFullYear();
-  var m   = String(now.getMonth() + 1).padStart(2, '0');
-  setVal('dateFrom', y + '-' + m + '-01');
-  setVal('dateTo',   now.toISOString().slice(0, 10));
+  // 기본 날짜 — 시작일: 일주일 전, 종료일: 오늘 (다른 화면과 동일)
+  var today = new Date();
+  var weekAgo = new Date(today);
+  weekAgo.setDate(today.getDate() - 7);
+  setVal('dateFrom', weekAgo.toISOString().slice(0, 10));
+  setVal('dateTo',   today.toISOString().slice(0, 10));
 
   // 모달 외부 클릭 닫기
   document.getElementById('useModal').addEventListener('click', function(e) {
