@@ -323,27 +323,40 @@ function createMgGrid(containerId, colDefs, rows, options) {
     el.classList.add('ag-theme-alpine');
   }
 
-  // 높이 결정 — el 자체 → 가시 부모 → window.innerHeight 순으로 폴백
+  // 페이지 작성자가 마크업에 미리 인라인 height(px)를 박아둔 경우엔 그 값을 그대로 존중
+  var authorHeight = null;
+  if (el.style.height && el.style.height.endsWith('px')) {
+    var ah = parseInt(el.style.height);
+    if (ah > 40) authorHeight = ah;
+  }
+
+  // el 자신이 flex-grow로 부모를 채우도록 설계된 대상인지(.m-table-wrap류) 여부.
+  // 이 값은 레이아웃이 한 번 안정된 뒤(최초 측정 시점)에 판단하면 되고, el.style.height를
+  // 우리가 직접 건드려도 flex-grow 자체(CSS 속성)는 바뀌지 않으므로 이 판단은 항상 안정적이다.
+  var growsWithParent = parseFloat(getComputedStyle(el).flexGrow || '0') > 0;
+
+  // 높이 결정.
+  //  - flex로 늘어나는 대상: el 자신이 아니라 "el이 채워야 하는" 부모(flex 컨테이너) 체인의
+  //    실제 레이아웃 높이를 매번 다시 측정한다. (el.offsetHeight를 읽으면, 한 번 잘못된 값으로
+  //    굳어진 뒤엔 그 값만 계속 반복해서 읽게 돼서 resize/탭전환 후에도 영원히 보정되지 않는
+  //    문제가 있었음 — 그리드가 컨테이너를 다 못 채우고 높이가 작게 고정되는 버그의 원인)
+  //  - 고정 크기 박스(예: 180px 높이로 의도된 영역): el 자신의 레이아웃 높이를 그대로 쓴다.
   function resolveHeight() {
-    // 1) el에 inline style height가 있으면 파싱해서 사용 (렌더링 전에도 정확)
-    if (el.style.height && el.style.height.endsWith('px')) {
-      var h = parseInt(el.style.height);
-      if (h > 40) return h;
+    if (authorHeight) return authorHeight;
+    if (growsWithParent) {
+      var p = el.parentElement;
+      while (p) {
+        if (p.clientHeight > 40) return p.clientHeight;
+        p = p.parentElement;
+      }
+      return Math.max(300, window.innerHeight - 160);
     }
-    // 2) el offsetHeight (이미 렌더된 경우)
     if (el.offsetHeight > 40) return el.offsetHeight;
-    // 3) 부모 체인 탐색
-    var p = el.parentElement;
-    while (p) {
-      if (p.offsetHeight > 40) return p.offsetHeight;
-      p = p.parentElement;
-    }
-    // 4) window 기반 추정
-    return Math.max(300, window.innerHeight - 160);
+    return Math.max(180, window.innerHeight - 160);
   }
 
   var gridH = resolveHeight();
-  if (!el.style.height) el.style.height = gridH + 'px';
+  el.style.height = gridH + 'px';
 
   var ROW_H    = 34;
   var HEADER_H = 34;
@@ -371,15 +384,16 @@ function createMgGrid(containerId, colDefs, rows, options) {
       var _api = params.api;
       setTimeout(function() {
         if (_api) {
-          // 탭 전환 후 실제 높이로 재조정
+          // 탭 전환/모달 닫힘 등으로 레이아웃이 안정된 뒤 실제 높이로 재조정
           var h = resolveHeight();
-          if (h !== gridH) el.style.height = h + 'px';
+          if (h !== gridH) { gridH = h; el.style.height = h + 'px'; }
           _api.sizeColumnsToFit();
         }
       }, 0);
       window.addEventListener('resize', function() {
         if (_api) {
-          el.style.height = resolveHeight() + 'px';
+          gridH = resolveHeight();
+          el.style.height = gridH + 'px';
           _api.sizeColumnsToFit();
         }
       });
