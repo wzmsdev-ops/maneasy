@@ -258,21 +258,27 @@ async function openAddReceipt() {
   setVal('r_order_id', '');
   setVal('r_receipt_date', new Date().toISOString().slice(0, 10));
   setVal('r_vat_amount', '0');
+  setVal('r_item_keyword', '');
   _receiptVatTouched = false;
   if (!_gridReceiptItem) initReceiptItemGrid();
   clearReceiptItemGrid();
-  populateReceiptAddItemSelect();
+  if (!_gridReceiptSearch) initReceiptSearchGrid();
+  populateReceiptCategorySelect();
+  searchReceiptItems();
   refreshReceiptTotal();
   openModal('receiptModal');
   await loadOrderOptions(); // 방금 발주확정한 건도 새로고침 없이 곧바로 목록에 보이도록 매번 재조회
 }
 
-/** "+ 품목 추가" select 채우기 (발주 외 직접 추가용 — 전체 자재) */
-function populateReceiptAddItemSelect() {
-  var sel = document.getElementById('r_add_item_select');
+/** 좌측 자재 검색 카테고리 select 채우기 */
+function populateReceiptCategorySelect() {
+  var sel = document.getElementById('r_item_category');
   if (!sel) return;
-  sel.innerHTML = '<option value="">+ 품목 추가 (발주 외)</option>' +
-    itemCache.map(function(it) { return '<option value="' + it.id + '">' + ts(it.item_name) + '</option>'; }).join('');
+  var cur = sel.value;
+  var cats = [...new Set(itemCache.map(function(i) { return i.category || ''; }))].filter(Boolean).sort();
+  sel.innerHTML = '<option value="">전체 카테고리</option>' +
+    cats.map(function(c) { return '<option value="' + ts(c) + '">' + ts(c) + '</option>'; }).join('');
+  if (cur) sel.value = cur;
 }
 
 /** 발주 선택 시 — 그 발주의 미입고 품목들을 그리드에 한 번에 채움 */
@@ -392,29 +398,90 @@ function initReceiptItemGrid() {
     suppressScrollOnNewData: true,
     stopEditingWhenCellsLoseFocus: true,
     singleClickEdit: true,
-    overlayNoRowsTemplate: '<span style="color:#9ca3af;font-size:12px;">발주를 선택하거나 "+ 품목 추가"로 입고할 자재를 넣어주세요.</span>',
+    overlayNoRowsTemplate: '<span style="color:#9ca3af;font-size:12px;">발주를 선택하거나 왼쪽에서 검색해서 자재를 추가하세요.</span>',
     onGridReady: function(params) { params.api.sizeColumnsToFit(); },
   });
+}
 
-  document.getElementById('r_add_item_select')?.addEventListener('change', function() {
-    var itemId = this.value;
-    if (!itemId) return;
-    var item = itemCache.find(function(it) { return it.id === itemId; });
-    if (item && !isReceiptItemAdded(itemId)) {
-      addReceiptRow({
-        item_id:           item.id,
-        item_name:         item.item_name,
-        purchase_unit:     item.purchase_unit || '',
-        purchase_unit_qty: item.purchase_unit_qty || 1,
-        use_unit:          item.use_unit || item.unit || '',
-        qty:               1,
-        unit_price:        item.standard_price || 0,
-        supply_price:      item.standard_price || 0,
-        memo:              '',
-      });
-    }
-    this.value = '';
+/* ── 좌측: 자재 검색 그리드 (발주 외 직접 추가용) ── */
+var _gridReceiptSearch = null;
+
+function initReceiptSearchGrid() {
+  var el = document.getElementById('receiptSearchGrid');
+  if (!el || typeof agGrid === 'undefined') return;
+
+  _gridReceiptSearch = agGrid.createGrid(el, {
+    columnDefs: [
+      { headerName: '카테고리', field: 'category', width: 90,
+        cellStyle: { justifyContent:'center', fontSize:'10px', color:'#6b7280' }
+      },
+      { headerName: '자재명', field: 'item_name', flex: 2, minWidth: 120,
+        headerClass: 'ag-left-header',
+        cellStyle: { justifyContent:'flex-start', fontWeight:600 }
+      },
+      { headerName: '입고단위', field: 'purchase_unit', width: 75,
+        cellStyle: { justifyContent:'center', color:'#6b7280' }
+      },
+      { headerName: '단가', field: 'standard_price', width: 90,
+        cellStyle: { justifyContent:'flex-end' },
+        valueFormatter: function(p) { return p.value ? Number(p.value).toLocaleString('ko-KR') + '원' : '-'; }
+      },
+      { headerName: '', width: 56, sortable: false,
+        cellStyle: { justifyContent:'center', padding:'0 4px' },
+        cellRenderer: function(p) {
+          var btn = document.createElement('button');
+          btn.className = 'btn btn-sm btn-primary';
+          btn.style.cssText = 'padding:2px 8px;font-size:11px;';
+          var added = isReceiptItemAdded(p.data.id);
+          btn.textContent = added ? '추가됨' : '추가';
+          btn.disabled = added;
+          if (added) { btn.style.background = '#059669'; btn.style.borderColor = '#059669'; }
+          btn.onclick = function() {
+            addReceiptRow({
+              item_id:           p.data.id,
+              item_name:         p.data.item_name,
+              purchase_unit:     p.data.purchase_unit || '',
+              purchase_unit_qty: p.data.purchase_unit_qty || 1,
+              use_unit:          p.data.use_unit || p.data.unit || '',
+              qty:               1,
+              unit_price:        p.data.standard_price || 0,
+              supply_price:      p.data.standard_price || 0,
+              memo:              '',
+            });
+            btn.textContent = '추가됨';
+            btn.disabled = true;
+            btn.style.background = '#059669';
+            btn.style.borderColor = '#059669';
+          };
+          return btn;
+        }
+      },
+    ],
+    rowData: [],
+    rowHeight: 34,
+    headerHeight: 34,
+    suppressCellFocus: true,
+    defaultColDef: {
+      sortable: true, resizable: true, suppressMovable: true,
+      cellStyle: { display:'flex', alignItems:'center', justifyContent:'center' },
+    },
+    suppressHorizontalScroll: true,
+    overlayNoRowsTemplate: '<span style="color:#9ca3af;font-size:12px;">카테고리/자재명을 입력해 검색하세요.</span>',
+    onGridReady: function(params) {
+      setTimeout(function() { params.api.sizeColumnsToFit(); }, 0);
+    },
   });
+}
+
+function searchReceiptItems() {
+  var kw  = (document.getElementById('r_item_keyword')?.value || '').toLowerCase();
+  var cat = document.getElementById('r_item_category')?.value || '';
+  var filtered = itemCache.filter(function(i) {
+    var matchCat = !cat || i.category === cat;
+    var matchKw  = !kw  || i.item_name.toLowerCase().includes(kw) || (i.item_code || '').toLowerCase().includes(kw);
+    return matchCat && matchKw;
+  });
+  if (_gridReceiptSearch) _gridReceiptSearch.setGridOption('rowData', filtered);
 }
 
 function isReceiptItemAdded(itemId) {
@@ -453,6 +520,7 @@ function removeReceiptRow(rowId) {
     _gridReceiptItem.applyTransaction({ remove: [toRemove] });
     refreshReceiptTotal();
     updateReceiptItemCount();
+    if (_gridReceiptSearch) _gridReceiptSearch.refreshCells({ force: true });
   }
 }
 
@@ -978,6 +1046,7 @@ async function init() {
   // dispatchGrid, deptStockGrid는 탭 전환 시 lazy 초기화
 
   document.getElementById('addReceiptBtn')?.addEventListener('click', openAddReceipt);
+  document.getElementById('r_item_keyword')?.addEventListener('keydown', function(e) { if (e.key === 'Enter') searchReceiptItems(); });
   document.getElementById('addDispatchBtn')?.addEventListener('click', openAddDispatch);
 
   bindSaveBtn('receiptSaveBtn', saveReceipt, 'receiptModal', function() {
