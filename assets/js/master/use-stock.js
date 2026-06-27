@@ -59,6 +59,8 @@ function initStockSearchGrid() {
   if (!el || typeof agGrid === 'undefined') return;
 
   _gridStockSearch = agGrid.createGrid(el, {
+    suppressCellFocus: true,
+    suppressPropertyNamesCheck: true,
     columnDefs: [
       { headerName: '카테고리', flex: 1, minWidth: 80,
         cellStyle: { justifyContent:'center', fontSize:'10px', color:'#6b7280' },
@@ -158,6 +160,8 @@ function initUseItemGrid() {
   if (!el || typeof agGrid === 'undefined') return;
 
   _gridUseItem = agGrid.createGrid(el, {
+    suppressCellFocus: true,
+    suppressPropertyNamesCheck: true,
     columnDefs: [
       { headerName: '자재명', field: 'item_name', flex: 2,
         headerClass: 'ag-left-header',
