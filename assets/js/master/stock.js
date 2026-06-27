@@ -251,198 +251,354 @@ async function loadOrderOptions() {
   }
 }
 
+var _gridReceiptItem  = null;  // 입고 등록 모달의 품목 그리드
+var _receiptRowIdCounter = 0;
+
 async function openAddReceipt() {
   setVal('r_order_id', '');
-  setVal('r_item_id', '');
   setVal('r_receipt_date', new Date().toISOString().slice(0, 10));
-  setVal('r_receipt_qty', '1');
-  setVal('r_use_qty', '');
-  setVal('r_unit_price', '0');
-  setVal('r_supply_price', '0');
   setVal('r_vat_amount', '0');
-  setVal('r_total_price', '0');
-  setVal('r_memo', '');
-  orderItemsMap = {};
   _receiptVatTouched = false;
-  populateReceiptItemSelect(itemCache);
-  updateReceiptInfo();
+  if (!_gridReceiptItem) initReceiptItemGrid();
+  clearReceiptItemGrid();
+  populateReceiptAddItemSelect();
+  refreshReceiptTotal();
   openModal('receiptModal');
   await loadOrderOptions(); // 방금 발주확정한 건도 새로고침 없이 곧바로 목록에 보이도록 매번 재조회
 }
 
-/** 발주 선택에 따라 자재 select 옵션 갱신 */
-function populateReceiptItemSelect(list, labelFn) {
-  var sel = document.getElementById('r_item_id');
+/** "+ 품목 추가" select 채우기 (발주 외 직접 추가용 — 전체 자재) */
+function populateReceiptAddItemSelect() {
+  var sel = document.getElementById('r_add_item_select');
   if (!sel) return;
-  sel.innerHTML = '<option value="">자재 선택</option>' +
-    list.map(function(it) {
-      var label = labelFn ? labelFn(it) : it.item_name;
-      return '<option value="' + it.id + '">' + ts(label) + '</option>';
-    }).join('');
+  sel.innerHTML = '<option value="">+ 품목 추가 (발주 외)</option>' +
+    itemCache.map(function(it) { return '<option value="' + it.id + '">' + ts(it.item_name) + '</option>'; }).join('');
 }
 
+/** 발주 선택 시 — 그 발주의 미입고 품목들을 그리드에 한 번에 채움 */
 async function onReceiptOrderChange() {
   var orderId = val('r_order_id');
-  orderItemsMap = {};
-  if (!orderId) {
-    populateReceiptItemSelect(itemCache);
-    updateReceiptInfo();
-    return;
-  }
+  clearReceiptItemGrid();
+  if (!orderId) return;
+
   var { data: poItems, error } = await supabaseClient
     .from('purchase_order_items')
-    .select('id, item_id, order_qty, received_qty, unit_price, purchase_unit, use_unit, items(item_name)')
+    .select('id, item_id, order_qty, received_qty, unit_price, purchase_unit, use_unit, items(item_name, purchase_unit_qty)')
     .eq('order_id', orderId);
   if (error) { alert('발주 품목 조회 실패: ' + error.message); return; }
 
   var openItems = (poItems || []).filter(function(r) { return (r.received_qty || 0) < r.order_qty; });
-  openItems.forEach(function(r) {
-    orderItemsMap[r.item_id] = {
-      order_item_id: r.id,
-      order_qty:     r.order_qty,
-      received_qty:  r.received_qty || 0,
-      unit_price:    r.unit_price,
-      purchase_unit: r.purchase_unit,
-      use_unit:      r.use_unit,
-    };
-  });
-
-  var listForSelect = openItems.map(function(r) {
-    return { id: r.item_id, item_name: r.items?.item_name || '-', _remain: r.order_qty - (r.received_qty || 0) };
-  });
-  if (!listForSelect.length) {
-    populateReceiptItemSelect([]);
+  if (!openItems.length) {
     alert('이 발주서는 모든 품목이 입고 완료되었습니다.');
-  } else {
-    populateReceiptItemSelect(listForSelect, function(it) {
-      return it.item_name + ' (잔여 ' + it._remain + ')';
+    return;
+  }
+  openItems.forEach(function(r) {
+    var remain = r.order_qty - (r.received_qty || 0);
+    addReceiptRow({
+      item_id:           r.item_id,
+      item_name:         r.items?.item_name || '-',
+      purchase_unit:     r.purchase_unit || '',
+      purchase_unit_qty: r.items?.purchase_unit_qty || 1,
+      use_unit:          r.use_unit || '',
+      order_item_id:     r.id,
+      order_qty:         r.order_qty,
+      received_qty:      r.received_qty || 0,
+      qty:               remain,
+      unit_price:        r.unit_price || 0,
+      supply_price:      remain * (r.unit_price || 0),
+      memo:              '',
     });
-  }
-  updateReceiptInfo();
+  });
 }
 
-function updateReceiptInfo() {
-  var itemId = val('r_item_id');
-  var item   = itemCache.find(function(it) { return it.id === itemId; });
-  var ordInfo = orderItemsMap[itemId];
+/* ── 입고 품목 그리드 (발주 품목 일괄 불러오기 + 발주 외 직접 추가) ── */
+function initReceiptItemGrid() {
+  var el = document.getElementById('receiptItemGrid');
+  if (!el || typeof agGrid === 'undefined') return;
 
-  if (item) {
-    var purchaseUnit = ordInfo?.purchase_unit || item.purchase_unit;
-    var useUnit      = ordInfo?.use_unit      || item.use_unit;
-    var unitQty      = item.purchase_unit_qty || 1;
+  _gridReceiptItem = agGrid.createGrid(el, {
+    columnDefs: [
+      { headerName: '자재명', field: 'item_name', flex: 2,
+        headerClass: 'ag-left-header',
+        cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-start', fontWeight:600 },
+        cellRenderer: function(p) { return ts(p.value || '-'); }
+      },
+      { headerName: '입고단위', field: 'purchase_unit', width: 80,
+        cellStyle: { display:'flex', alignItems:'center', justifyContent:'center', background:'#f8fafc', color:'#6b7280' },
+        cellRenderer: function(p) { return ts(p.value || '-'); }
+      },
+      { headerName: '발주/잔여', width: 90,
+        cellStyle: { display:'flex', alignItems:'center', justifyContent:'center', background:'#f8fafc', color:'#6b7280' },
+        cellRenderer: function(p) {
+          if (p.data.order_qty == null) return '-';
+          var remain = p.data.order_qty - (p.data.received_qty || 0);
+          return Number(p.data.order_qty).toLocaleString('ko-KR') + ' / ' + Number(remain).toLocaleString('ko-KR');
+        }
+      },
+      { headerName: '입고수량', field: 'qty', width: 90,
+        headerClass: 'ag-right-header',
+        cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-end' },
+        editable: true,
+        cellEditor: 'agNumberCellEditor',
+        cellEditorParams: { min: 1 },
+        cellRenderer: function(p) { return Number(p.value || 1).toLocaleString('ko-KR'); },
+        onCellValueChanged: function(p) { recalcReceiptRow(p.node); }
+      },
+      { headerName: '단가 (공급가)', field: 'unit_price', width: 110,
+        headerClass: 'ag-right-header',
+        cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-end' },
+        editable: true,
+        cellEditor: 'agNumberCellEditor',
+        cellEditorParams: { min: 0 },
+        cellRenderer: function(p) { return Number(p.value || 0).toLocaleString('ko-KR') + '원'; },
+        onCellValueChanged: function(p) { recalcReceiptRow(p.node); }
+      },
+      { headerName: '공급가액', field: 'supply_price', width: 120,
+        headerClass: 'ag-right-header',
+        cellStyle: function(p) {
+          return { display:'flex', alignItems:'center', justifyContent:'flex-end',
+            background: p.data._supplyTouched ? '#fffbeb' : '#fff',
+            color: p.data._supplyTouched ? '#d97706' : '#111827' };
+        },
+        editable: true,
+        cellEditor: 'agNumberCellEditor',
+        cellEditorParams: { min: 0 },
+        cellRenderer: function(p) { return '<strong>' + Number(p.value || 0).toLocaleString('ko-KR') + '원</strong>'; },
+        onCellValueChanged: function(p) {
+          // 거래처마다 공급가 계산방식이 달라 수량×단가와 다를 수 있으므로 직접 보정 가능.
+          p.node.data._supplyTouched = true;
+          p.api.refreshCells({ rowNodes: [p.node], force: true });
+          refreshReceiptTotal();
+        }
+      },
+      { headerName: '메모', field: 'memo', flex: 1,
+        headerClass: 'ag-left-header',
+        cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-start' },
+        editable: true,
+        cellRenderer: function(p) { return ts(p.value || ''); }
+      },
+      { headerName: '', width: 44, sortable: false,
+        cellStyle: { display:'flex', alignItems:'center', justifyContent:'center', padding:'0' },
+        cellRenderer: function(p) {
+          var btn = document.createElement('button');
+          btn.className = 'tbl-btn tbl-btn--danger';
+          btn.style.cssText = 'width:28px;height:22px;padding:0;display:flex;align-items:center;justify-content:center;';
+          btn.innerHTML = '✕';
+          btn.onclick = function() { removeReceiptRow(p.node.data._rowId); };
+          return btn;
+        }
+      },
+    ],
+    defaultColDef: {
+      sortable: false, resizable: true, suppressMovable: true,
+      headerClass: 'ag-center-header',
+      cellStyle: { display:'flex', alignItems:'center', justifyContent:'center' },
+    },
+    rowData: [],
+    rowHeight: 34,
+    headerHeight: 34,
+    suppressHorizontalScroll: true,
+    suppressScrollOnNewData: true,
+    stopEditingWhenCellsLoseFocus: true,
+    singleClickEdit: true,
+    overlayNoRowsTemplate: '<span style="color:#9ca3af;font-size:12px;">발주를 선택하거나 "+ 품목 추가"로 입고할 자재를 넣어주세요.</span>',
+    onGridReady: function(params) { params.api.sizeColumnsToFit(); },
+  });
 
-    if (ordInfo) {
-      setVal('r_receipt_qty', Math.max(1, ordInfo.order_qty - ordInfo.received_qty));
-      setVal('r_unit_price',  ordInfo.unit_price || 0);
+  document.getElementById('r_add_item_select')?.addEventListener('change', function() {
+    var itemId = this.value;
+    if (!itemId) return;
+    var item = itemCache.find(function(it) { return it.id === itemId; });
+    if (item && !isReceiptItemAdded(itemId)) {
+      addReceiptRow({
+        item_id:           item.id,
+        item_name:         item.item_name,
+        purchase_unit:     item.purchase_unit || '',
+        purchase_unit_qty: item.purchase_unit_qty || 1,
+        use_unit:          item.use_unit || item.unit || '',
+        qty:               1,
+        unit_price:        item.standard_price || 0,
+        supply_price:      item.standard_price || 0,
+        memo:              '',
+      });
     }
+    this.value = '';
+  });
+}
 
-    var qty    = Number(val('r_receipt_qty') || 1);
-    var useQty = qty * unitQty;
-    var price  = Number(val('r_unit_price') || 0);
-    setVal('r_use_qty',      useQty);
-    var supply = qty * price;
-    setVal('r_supply_price', supply);
-    refreshReceiptVatTotal(supply);
+function isReceiptItemAdded(itemId) {
+  if (!_gridReceiptItem) return false;
+  var found = false;
+  _gridReceiptItem.forEachNode(function(n) { if (n.data.item_id === itemId) found = true; });
+  return found;
+}
 
-    document.getElementById('rPurchaseUnit').textContent = purchaseUnit || '-';
-    document.getElementById('rUseUnit').textContent      = useUnit      || '-';
-    document.getElementById('rUnitQty').textContent      = unitQty;
-    document.getElementById('rCurrentQty').textContent   = (centralCache[itemId] || 0) + ' ' + (useUnit || '');
-    document.getElementById('rItemInfo').style.display   = 'flex';
-  } else {
-    setVal('r_use_qty', ''); setVal('r_supply_price', '');
-    setVal('r_vat_amount', '0'); setVal('r_total_price', '0');
-    document.getElementById('rItemInfo').style.display = 'none';
+function addReceiptRow(preset) {
+  if (!_gridReceiptItem) initReceiptItemGrid();
+  _receiptRowIdCounter++;
+  var row = Object.assign({
+    _rowId:        _receiptRowIdCounter,
+    item_id:       '',
+    item_name:     '',
+    purchase_unit: '',
+    use_unit:      '',
+    qty:           1,
+    unit_price:    0,
+    supply_price:  0,
+    memo:          '',
+  }, preset || {});
+  if (_gridReceiptItem) {
+    _gridReceiptItem.applyTransaction({ add: [row] });
+    refreshReceiptTotal();
+    updateReceiptItemCount();
   }
 }
 
-/** 공급가액 기준으로 부가세(자동계산, 보정값 유지)와 합계를 갱신 */
-function refreshReceiptVatTotal(supply) {
-  var vatInput = document.getElementById('r_vat_amount');
-  if (vatInput && !_receiptVatTouched) vatInput.value = calcVat(supply);
-  var vat = Number(vatInput?.value || 0);
-  setVal('r_total_price', (supply || 0) + vat);
+function removeReceiptRow(rowId) {
+  if (!_gridReceiptItem) return;
+  var toRemove = null;
+  _gridReceiptItem.forEachNode(function(node) { if (node.data._rowId === rowId) toRemove = node.data; });
+  if (toRemove) {
+    _gridReceiptItem.applyTransaction({ remove: [toRemove] });
+    refreshReceiptTotal();
+    updateReceiptItemCount();
+  }
 }
 
-/** 부가세 입력칸을 사용자가 직접 수정했을 때 — 이후 수량/단가 변경으로 덮어쓰지 않도록 표시 */
+function clearReceiptItemGrid() {
+  if (!_gridReceiptItem) return;
+  var all = [];
+  _gridReceiptItem.forEachNode(function(n) { all.push(n.data); });
+  if (all.length) _gridReceiptItem.applyTransaction({ remove: all });
+  refreshReceiptTotal();
+  updateReceiptItemCount();
+}
+
+function updateReceiptItemCount() {
+  var cnt = 0;
+  if (_gridReceiptItem) _gridReceiptItem.forEachNode(function() { cnt++; });
+  var el = document.getElementById('receiptItemCount');
+  if (el) el.textContent = cnt ? cnt + '건' : '';
+}
+
+/** 수량/단가 변경 시 공급가액 재계산 — setDataValue 대신 직접 수정 + refreshCells를
+ *  사용해서, 공급가액 컬럼의 "직접수정 감지" onCellValueChanged를 잘못 발생시키지 않게 함
+ *  (그러면 두번째 수정부터 자동계산이 멈추는 버그가 생김 — 발주 모달에서 겪었던 것과 동일) */
+function recalcReceiptRow(node) {
+  if (node.data._supplyTouched) { refreshReceiptTotal(); return; }
+  var qty   = Number(node.data.qty        || 1);
+  var price = Number(node.data.unit_price || 0);
+  node.data.supply_price = qty * price;
+  node.api.refreshCells({ rowNodes: [node], columns: ['supply_price'], force: true });
+  refreshReceiptTotal();
+}
+
+function refreshReceiptTotal() {
+  var supplyTotal = 0;
+  if (_gridReceiptItem) {
+    _gridReceiptItem.forEachNode(function(node) { supplyTotal += Number(node.data.supply_price || 0); });
+  }
+  var vatInput = document.getElementById('r_vat_amount');
+  if (vatInput && !_receiptVatTouched) vatInput.value = calcVat(supplyTotal);
+  var vat   = Number(vatInput?.value || 0);
+  var total = supplyTotal + vat;
+  var s = document.getElementById('rTotalSupply');
+  var t = document.getElementById('rTotalAmount');
+  if (s) s.textContent = fmtN(supplyTotal) + '원';
+  if (t) t.textContent = fmtN(total) + '원';
+}
+
+/** 부가세 입력칸을 사용자가 직접 수정했을 때 — 이후 품목 변경으로 자동계산되어 덮어써지지 않도록 표시 */
 function onReceiptVatInput() {
   _receiptVatTouched = true;
-  var supply = Number(val('r_supply_price') || 0);
-  refreshReceiptVatTotal(supply);
-}
-
-function recalcReceiptInfo() {
-  var itemId = val('r_item_id');
-  var item   = itemCache.find(function(it) { return it.id === itemId; });
-  if (!item) return;
-  var unitQty = item.purchase_unit_qty || 1;
-  var qty     = Number(val('r_receipt_qty') || 1);
-  var price   = Number(val('r_unit_price') || 0);
-  setVal('r_use_qty', qty * unitQty);
-  var supply = qty * price;
-  setVal('r_supply_price', supply);
-  refreshReceiptVatTotal(supply);
+  refreshReceiptTotal();
 }
 
 async function saveReceipt() {
-  var itemId = val('r_item_id');
-  if (!itemId) throw new Error('자재를 선택해주세요.');
-  var item = itemCache.find(function(it) { return it.id === itemId; });
-  if (!item) throw new Error('자재 정보를 찾을 수 없습니다.');
+  if (!_gridReceiptItem) throw new Error('처리할 품목이 없습니다.');
+  var rows = [];
+  _gridReceiptItem.forEachNode(function(node) { rows.push(node.data); });
+  if (!rows.length) throw new Error('입고할 품목을 1개 이상 추가해주세요.');
 
-  var receiptQty = Number(val('r_receipt_qty') || 1);
-  var unitPrice  = Number(val('r_unit_price') || 0);
-  if (receiptQty < 1) throw new Error('입고 수량은 1 이상이어야 합니다.');
+  var invalid = rows.find(function(r) { return !r.qty || r.qty < 1; });
+  if (invalid) throw new Error(invalid.item_name + '의 입고수량은 1 이상이어야 합니다.');
 
   var orderId = val('r_order_id') || null;
-  var ordInfo = orderId ? orderItemsMap[itemId] : null;
-  if (orderId && ordInfo && receiptQty > (ordInfo.order_qty - ordInfo.received_qty)) {
-    if (!confirm('입고수량이 발주 잔여수량(' + (ordInfo.order_qty - ordInfo.received_qty) + ')을 초과합니다. 계속하시겠습니까?')) {
+  var overRow = rows.find(function(r) {
+    return r.order_qty != null && r.qty > (r.order_qty - (r.received_qty || 0));
+  });
+  if (overRow) {
+    var remain = overRow.order_qty - (overRow.received_qty || 0);
+    if (!confirm(overRow.item_name + '의 입고수량이 발주 잔여수량(' + remain + ')을 초과합니다. 계속하시겠습니까?')) {
       throw new Error('입고 취소됨');
     }
   }
 
-  var receiptNo = await genDocNo('RC');
-  var payload = {
-    receipt_no:        receiptNo,
-    item_id:           itemId,
-    order_id:          orderId,
-    order_item_id:     ordInfo ? ordInfo.order_item_id : null,
-    receipt_date:      val('r_receipt_date'),
-    purchase_unit:     ordInfo?.purchase_unit || item.purchase_unit,
-    purchase_unit_qty: item.purchase_unit_qty || 1,
-    receipt_qty:       receiptQty,
-    unit_price:        unitPrice,
-    vat_amount:        Number(val('r_vat_amount') || 0),
-    memo:              val('r_memo'),
-  };
+  var receiptDate  = val('r_receipt_date');
+  var vatTotal     = Number(val('r_vat_amount') || 0);
+  var supplyTotal  = rows.reduce(function(sum, r) { return sum + Number(r.supply_price || 0); }, 0);
+  var vatAssigned  = 0;
+  var touchedOrders = new Set();
 
-  var { error } = await supabaseClient.from('stock_receipts').insert(payload);
-  if (error) throw new Error(error.message);
+  for (var i = 0; i < rows.length; i++) {
+    var r = rows[i];
+    var qty   = Number(r.qty);
+    var price = Number(r.unit_price || 0);
+    var supply = Number(r.supply_price || 0);
 
-  // stock_transactions에 IN 기록 (중앙창고, dept_id=NULL)
-  var useQty = receiptQty * (item.purchase_unit_qty || 1);
-  var { error: te } = await supabaseClient.from('stock_transactions').insert({
-    item_id:  itemId,
-    dept_id:  null,
-    tx_type:  'IN',
-    tx_date:  val('r_receipt_date'),
-    qty:      useQty,
-    use_unit: ordInfo?.use_unit || item.use_unit || item.unit || '',
-    ref_type: 'receipt',
-    memo:     val('r_memo'),
-  });
-  if (te) throw new Error('이력 기록 실패: ' + te.message);
+    // 부가세를 각 행의 공급가액 비중대로 배분 (마지막 행은 나머지를 받아 합계가 정확히 맞도록)
+    var vatShare;
+    if (i === rows.length - 1) {
+      vatShare = vatTotal - vatAssigned;
+    } else {
+      vatShare = supplyTotal > 0 ? Math.round(vatTotal * (supply / supplyTotal)) : 0;
+      vatAssigned += vatShare;
+    }
 
-  // 중앙창고 재고 적립
-  await upsertStockCurrent(itemId, useQty, null);
+    var receiptNo = await genDocNo('RC');
+    var { error } = await supabaseClient.from('stock_receipts').insert({
+      receipt_no:        receiptNo,
+      item_id:           r.item_id,
+      order_id:          orderId,
+      order_item_id:     r.order_item_id || null,
+      receipt_date:      receiptDate,
+      purchase_unit:     r.purchase_unit,
+      purchase_unit_qty: r.purchase_unit_qty || 1,
+      receipt_qty:       qty,
+      unit_price:        price,
+      vat_amount:        vatShare,
+      memo:              r.memo || '',
+    });
+    if (error) throw new Error('[' + r.item_name + '] ' + error.message);
 
-  // 발주서 품목별 입고 처리 (부분입고)
-  if (ordInfo) {
-    var newReceived = ordInfo.received_qty + receiptQty;
-    await supabaseClient.from('purchase_order_items')
-      .update({ received_qty: newReceived }).eq('id', ordInfo.order_item_id);
-    await recalcOrderStatus(orderId);
+    // stock_transactions에 IN 기록 (중앙창고, dept_id=NULL)
+    var useQty = qty * (r.purchase_unit_qty || 1);
+    var { error: te } = await supabaseClient.from('stock_transactions').insert({
+      item_id:  r.item_id,
+      dept_id:  null,
+      tx_type:  'IN',
+      tx_date:  receiptDate,
+      qty:      useQty,
+      use_unit: r.use_unit || '',
+      ref_type: 'receipt',
+      memo:     r.memo || '',
+    });
+    if (te) throw new Error('[' + r.item_name + '] 이력 기록 실패: ' + te.message);
+
+    // 중앙창고 재고 적립
+    await upsertStockCurrent(r.item_id, useQty, null);
+
+    // 발주서 품목별 입고 처리 (부분입고)
+    if (r.order_item_id) {
+      var newReceived = (r.received_qty || 0) + qty;
+      await supabaseClient.from('purchase_order_items')
+        .update({ received_qty: newReceived }).eq('id', r.order_item_id);
+      if (orderId) touchedOrders.add(orderId);
+    }
+  }
+
+  for (var oid of touchedOrders) {
+    await recalcOrderStatus(oid);
   }
 }
 
@@ -779,9 +935,6 @@ function initSearch() {
 
   // 입고 모달
   document.getElementById('r_order_id')?.addEventListener('change', onReceiptOrderChange);
-  document.getElementById('r_item_id')?.addEventListener('change', updateReceiptInfo);
-  document.getElementById('r_receipt_qty')?.addEventListener('input', recalcReceiptInfo);
-  document.getElementById('r_unit_price')?.addEventListener('input', recalcReceiptInfo);
 
   // 불출 모달
   document.getElementById('d_item_id')?.addEventListener('change', updateDispatchInfo);
