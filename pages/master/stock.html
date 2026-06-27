@@ -139,7 +139,78 @@
     }
     .po-actionbar input[type=date], .m-filter-bar input[type=date] { flex-shrink: 0; }
     .po-actionbar .spacer { flex: 0; }
-    </style>
+  
+    /* ── 2단 패널 (입고/불출 탭) ── */
+    .two-panel {
+      display:flex; flex:1; min-height:0; gap:0;
+      border:1px solid #e5e7eb; border-radius:8px; overflow:hidden; background:#fff;
+    }
+    .panel-left {
+      width:42%; flex-shrink:0; display:flex; flex-direction:column;
+      border-right:2px solid #e5e7eb; min-height:0;
+    }
+    .panel-right {
+      flex:1; min-width:0; display:flex; flex-direction:column; min-height:0;
+    }
+    .panel-head {
+      display:flex; align-items:center; justify-content:space-between; gap:8px;
+      padding:8px 12px; background:#f8fafc; border-bottom:1px solid #e5e7eb;
+      flex-shrink:0; font-size:11px; font-weight:700; color:#6b7280;
+    }
+    .panel-head span { color:#374151; }
+    .panel-toolbar {
+      display:flex; align-items:center; gap:6px;
+      padding:8px 12px; border-bottom:1px solid #f3f4f6; flex-shrink:0;
+    }
+    .panel-toolbar select, .panel-toolbar input[type=text], .panel-toolbar input[type=date] {
+      height:28px; padding:0 8px; border:1px solid #e5e7eb;
+      border-radius:6px; font-size:12px; outline:none; background:#fff;
+    }
+    .panel-toolbar select:focus, .panel-toolbar input:focus { border-color:#2563eb; }
+    .panel-toolbar input[type=text] { flex:1; min-width:0; }
+    .panel-toolbar input[type=date] { width:118px; flex-shrink:0; }
+    .panel-grid { flex:1; min-height:0; }
+    .panel-empty {
+      flex:1; display:flex; align-items:center; justify-content:center;
+      flex-direction:column; gap:8px; color:#9ca3af; font-size:12px;
+    }
+    .panel-empty i { font-size:32px; color:#d1d5db; }
+    .panel-foot {
+      padding:10px 14px; border-top:1px solid #e5e7eb; flex-shrink:0;
+      display:flex; align-items:center; justify-content:space-between; gap:8px;
+      background:#f8fafc;
+    }
+    .panel-total {
+      display:flex; align-items:center; gap:14px; font-size:12px; color:#374151;
+    }
+    .panel-total strong { color:#111827; }
+    /* 불출 우측 품목 행 */
+    .dispatch-right-body {
+      flex:1; overflow-y:auto; min-height:0; padding:8px 12px;
+      display:flex; flex-direction:column; gap:6px;
+    }
+    .dispatch-right-body::-webkit-scrollbar { width:4px; }
+    .dispatch-right-body::-webkit-scrollbar-thumb { background:#d1d5db; border-radius:999px; }
+    .dispatch-item-row {
+      display:flex; align-items:center; gap:8px; padding:8px 10px;
+      background:#f8fafc; border:1px solid #e5e7eb; border-radius:6px;
+      font-size:12px;
+    }
+    .dispatch-item-name { flex:1; font-weight:600; color:#111827; }
+    .dispatch-item-stock { color:#6b7280; font-size:11px; white-space:nowrap; }
+    .dispatch-qty-input {
+      width:70px; height:28px; padding:0 8px; border:1px solid #e5e7eb;
+      border-radius:6px; font-size:12px; text-align:right; outline:none;
+    }
+    .dispatch-qty-input:focus { border-color:#2563eb; }
+    .dispatch-item-unit { color:#6b7280; font-size:11px; white-space:nowrap; }
+    .dispatch-item-remove {
+      width:24px; height:24px; border:none; background:none; cursor:pointer;
+      color:#ef4444; font-size:16px; display:flex; align-items:center; justify-content:center;
+      border-radius:4px; flex-shrink:0;
+    }
+    .dispatch-item-remove:hover { background:#fee2e2; }
+  </style>
 </head>
 <body>
 <div class="st-page">
@@ -154,43 +225,116 @@
 
     <!-- ═══ 입고 탭 (자재담당자가 발주 품목을 중앙창고로 입고) ═══ -->
     <div id="tab-receipt" class="tab-panel active">
-      <div class="m-filter-bar">
+      <!-- 상단 필터바 -->
+      <div class="m-filter-bar" style="flex-shrink:0;">
         <input type="date" id="receiptDateFrom" />
         <span style="font-size:11px;color:#9ca3af;flex-shrink:0;">~</span>
         <input type="date" id="receiptDateTo" />
         <div class="pr-divider"></div>
-        <input type="text" id="receiptKeyword" placeholder="자재명/입고번호 검색..." style="flex:1;min-width:0;" />
-        <button class="btn btn-sm btn-primary" id="receiptSearchBtn"><i class="ti ti-search"></i> 조회</button>
-        <div style="width:1px;height:20px;background:#d1d5db;flex-shrink:0;margin:0 4px;"></div>
-        <button class="btn btn-sm btn-primary" id="addReceiptBtn"><i class="ti ti-plus"></i> 입고 등록</button>
+        <input type="text" id="receiptPoKeyword" placeholder="발주번호/거래처 검색..." style="flex:1;min-width:0;" />
+        <button class="btn btn-sm btn-primary" id="receiptPoSearchBtn"><i class="ti ti-search"></i> 조회</button>
       </div>
-      <div class="m-card">
-        <div class="m-card-body">
-          <div id="receiptGrid" class="m-table-wrap"></div>
+
+      <!-- 2단 패널 -->
+      <div class="two-panel">
+        <!-- 좌: 발주서 목록 -->
+        <div class="panel-left">
+          <div class="panel-head">
+            <span><i class="ti ti-file-text" style="color:#9ca3af;"></i> 발주서 목록</span>
+            <span id="receiptPoCount" style="color:#2563eb;"></span>
+          </div>
+          <div class="panel-toolbar">
+            <select id="receiptPoStatus" style="min-width:90px;">
+              <option value="">전체</option>
+              <option value="ORDERED" selected>발주완료</option>
+              <option value="PARTIAL">부분입고</option>
+            </select>
+          </div>
+          <div id="receiptPoGrid" class="panel-grid ag-theme-alpine"></div>
         </div>
-        <div class="pagination-area" id="receiptPagination"></div>
+
+        <!-- 우: 선택된 발주서 품목 + 입고 편집 -->
+        <div class="panel-right">
+          <div class="panel-head">
+            <span><i class="ti ti-package" style="color:#9ca3af;"></i> 입고 품목 <span id="receiptSelectedPoLabel" style="color:#2563eb;font-weight:400;"></span></span>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <label style="font-size:12px;font-weight:600;color:#374151;white-space:nowrap;">입고일 <span style="color:#ef4444;">*</span></label>
+              <input type="date" id="receiptDate" style="height:28px;padding:0 8px;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;outline:none;" />
+            </div>
+          </div>
+          <div id="receiptItemGrid" class="panel-grid ag-theme-alpine" id="receiptItemGrid"></div>
+          <div class="panel-foot">
+            <div class="panel-total">
+              <span>공급가액 <strong id="rTotalSupply">0원</strong></span>
+              <span style="display:flex;align-items:center;gap:6px;">
+                부가세
+                <input type="number" id="r_vat_amount" value="0" oninput="onReceiptVatInput()"
+                  style="width:90px;height:26px;padding:0 6px;border:1px solid #cbd5e1;border-radius:4px;font-size:12px;font-weight:700;color:#111827;text-align:right;outline:none;" />
+              </span>
+              <span>합계 <strong id="rTotalAmount">0원</strong></span>
+            </div>
+            <button class="btn btn-sm btn-primary" id="receiptSaveBtn" disabled>
+              <i class="ti ti-check"></i> 입고 등록
+            </button>
+          </div>
+        </div>
       </div>
+
+      <div class="pagination-area" id="receiptPagination"></div>
     </div>
 
     <!-- ═══ 불출 탭 (중앙창고 → 부서) ═══ -->
     <div id="tab-dispatch" class="tab-panel">
-      <div class="m-filter-bar">
-        <select id="dispatchDeptFilter" style="height:28px;padding:0 8px;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;flex-shrink:0;"><option value="">전체 부서</option></select>
+      <!-- 상단 필터 + 불출일/부서 -->
+      <div class="m-filter-bar" style="flex-shrink:0;">
+        <select id="dispatchDeptTarget" style="min-width:120px;">
+          <option value="">불출 대상 부서 선택</option>
+        </select>
         <div class="pr-divider"></div>
-        <input type="date" id="dispatchDateFrom" />
-        <span style="font-size:11px;color:#9ca3af;flex-shrink:0;">~</span>
-        <input type="date" id="dispatchDateTo" />
-        <div class="pr-divider"></div>
+        <select id="dispatchCategoryFilter" style="min-width:110px;">
+          <option value="">전체 카테고리</option>
+        </select>
         <input type="text" id="dispatchKeyword" placeholder="자재명 검색..." style="flex:1;min-width:0;" />
         <button class="btn btn-sm btn-primary" id="dispatchSearchBtn"><i class="ti ti-search"></i> 조회</button>
-        <div style="width:1px;height:20px;background:#d1d5db;flex-shrink:0;margin:0 4px;"></div>
-        <button class="btn btn-sm btn-primary" id="addDispatchBtn"><i class="ti ti-plus"></i> 불출 등록</button>
+        <div class="pr-divider"></div>
+        <label style="font-size:12px;font-weight:600;color:#374151;white-space:nowrap;flex-shrink:0;">불출일 <span style="color:#ef4444;">*</span></label>
+        <input type="date" id="dispatchDate" style="flex-shrink:0;" />
       </div>
-      <div class="m-card">
-        <div class="m-card-body">
-          <div id="dispatchGrid" class="m-table-wrap"></div>
+
+      <!-- 2단 패널 -->
+      <div class="two-panel">
+        <!-- 좌: 중앙창고 현재고 -->
+        <div class="panel-left">
+          <div class="panel-head">
+            <span><i class="ti ti-building-warehouse" style="color:#9ca3af;"></i> 중앙창고 현재고</span>
+            <span id="dispatchStockCount" style="color:#2563eb;"></span>
+          </div>
+          <div id="dispatchStockGrid" class="panel-grid ag-theme-alpine"></div>
         </div>
-        <div class="pagination-area" id="dispatchPagination"></div>
+
+        <!-- 우: 선택된 품목 + 부서별 불출수량 -->
+        <div class="panel-right">
+          <div class="panel-head">
+            <span><i class="ti ti-truck-delivery" style="color:#9ca3af;"></i> 불출 품목 <span id="dispatchItemCount" style="color:#2563eb;font-weight:400;"></span></span>
+            <button class="btn btn-sm" onclick="clearDispatchItems()" style="font-size:11px;">
+              <i class="ti ti-x"></i> 초기화
+            </button>
+          </div>
+          <div id="dispatchRightBody" class="dispatch-right-body">
+            <div class="panel-empty">
+              <i class="ti ti-arrow-left"></i>
+              <span>왼쪽에서 자재를 선택하세요</span>
+            </div>
+          </div>
+          <div class="panel-foot">
+            <div class="panel-total">
+              <span id="dispatchSummary" style="color:#6b7280;font-size:11px;">선택된 품목이 없습니다</span>
+            </div>
+            <button class="btn btn-sm btn-primary" id="dispatchSaveBtn" disabled onclick="saveDispatch()">
+              <i class="ti ti-truck-delivery"></i> 일괄 불출
+            </button>
+          </div>
+        </div>
       </div>
     </div>
 
