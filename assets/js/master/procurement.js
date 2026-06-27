@@ -969,8 +969,8 @@ function initPoItemGrid() {
 function recalcFromQtyPrice(node) {
   var qty   = Number(node.data.order_qty  || 1);
   var price = Number(node.data.unit_price || 0);
-  node.data.supply_price = qty * price;
-  node.api.refreshCells({ rowNodes: [node], columns: ['supply_price'], force: true });
+  var sp    = qty * price;
+  node.setDataValue('supply_price', sp);
   refreshPoTotal();
 }
 
@@ -979,8 +979,8 @@ function recalcFromQtyPrice(node) {
 function recalcFromSupply(node) {
   var qty = Number(node.data.order_qty || 1);
   if (qty > 0) {
-    node.data.unit_price = Math.round(Number(node.data.supply_price || 0) / qty);
-    node.api.refreshCells({ rowNodes: [node], columns: ['unit_price'], force: true });
+    var up = Math.round(Number(node.data.supply_price || 0) / qty);
+    node.setDataValue('unit_price', up);
   }
   refreshPoTotal();
 }
