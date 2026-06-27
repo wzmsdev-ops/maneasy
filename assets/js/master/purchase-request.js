@@ -211,7 +211,8 @@ function initPrSearchGrid() {
   if (!el || typeof agGrid === 'undefined') return;
 
   // 높이 계산 — 모달 내부
-  el.style.height = Math.max(200, window.innerHeight * 0.55) + 'px';
+  // pr-two-panel CSS height:calc(100vh-210px) — JS 강제 설정 불필요
+  if (!el.style.height) el.style.height = Math.max(200, window.innerHeight - 210) + 'px';
 
   var colDefs = [
     { headerName: '카테고리', field: 'category', width: 90,
@@ -303,7 +304,7 @@ function initPrItemGrid() {
   var el = document.getElementById('prItemGrid');
   if (!el || typeof agGrid === 'undefined') return;
 
-  el.style.height = Math.max(200, window.innerHeight * 0.55) + 'px';
+  if (!el.style.height) el.style.height = Math.max(200, window.innerHeight - 210) + 'px';
 
   var colDefs = [
     { headerName: '자재명', field: 'item_name', flex: 2, minWidth: 120,
