@@ -325,15 +325,20 @@ function createMgGrid(containerId, colDefs, rows, options) {
 
   // 높이 결정 — el 자체 → 가시 부모 → window.innerHeight 순으로 폴백
   function resolveHeight() {
-    // 1) el 자신의 높이 (CSS calc로 이미 설정된 경우)
+    // 1) el에 inline style height가 있으면 파싱해서 사용 (렌더링 전에도 정확)
+    if (el.style.height && el.style.height.endsWith('px')) {
+      var h = parseInt(el.style.height);
+      if (h > 40) return h;
+    }
+    // 2) el offsetHeight (이미 렌더된 경우)
     if (el.offsetHeight > 40) return el.offsetHeight;
-    // 2) 직접 부모 체인에서 실제 높이 탐색
+    // 3) 부모 체인 탐색
     var p = el.parentElement;
     while (p) {
       if (p.offsetHeight > 40) return p.offsetHeight;
       p = p.parentElement;
     }
-    // 3) window 기반 추정
+    // 4) window 기반 추정
     return Math.max(300, window.innerHeight - 160);
   }
 
