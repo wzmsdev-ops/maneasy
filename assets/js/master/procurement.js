@@ -329,7 +329,7 @@ function initRvSplitGrid() {
     stopEditingWhenCellsLoseFocus: true,
     singleClickEdit: true,
     overlayNoRowsTemplate: '<span style="color:#9ca3af;font-size:12px;">품목이 없습니다.</span>',
-    onGridReady: function(params) { params.api.sizeColumnsToFit(); },
+    onGridReady: function(params) { if (el.offsetWidth > 0) params.api.sizeColumnsToFit(); },
   });
 }
 
@@ -857,7 +857,7 @@ function initPoSearchGrid() {
     suppressHorizontalScroll: true,
     overlayNoRowsTemplate: '<span style="color:#9ca3af;font-size:12px;">카테고리/자재명을 입력해 검색하세요.</span>',
     onGridReady: function(params) {
-      setTimeout(function() { params.api.sizeColumnsToFit(); }, 0);
+      setTimeout(function() { if (el.offsetWidth > 0) params.api.sizeColumnsToFit(); }, 0);
     },
   });
 }
@@ -1000,7 +1000,7 @@ function initPoItemGrid() {
     stopEditingWhenCellsLoseFocus: true,
     singleClickEdit: true,
     overlayNoRowsTemplate: '<span style="color:#9ca3af;font-size:12px;">품목을 추가하세요. 자재명·수량·단가를 클릭해 직접 편집하세요.</span>',
-    onGridReady: function(params) { params.api.sizeColumnsToFit(); },
+    onGridReady: function(params) { if (el.offsetWidth > 0) params.api.sizeColumnsToFit(); },
     onCellValueChanged: function() { refreshPoTotal(); },
   });
 }
@@ -1146,7 +1146,7 @@ function initPoDetailGrid() {
     suppressHorizontalScroll: true,
     suppressScrollOnNewData: true,
     overlayNoRowsTemplate: '<span style="color:#9ca3af;font-size:12px;">품목이 없습니다.</span>',
-    onGridReady: function(params) { params.api.sizeColumnsToFit(); },
+    onGridReady: function(params) { if (el.offsetWidth > 0) params.api.sizeColumnsToFit(); },
   });
 }
 
