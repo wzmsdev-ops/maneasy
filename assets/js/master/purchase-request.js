@@ -420,14 +420,13 @@ function clearPrItemGrid() {
 ══════════════════════════════════════════ */
 function openAddPr() { openAddPrModal(null); }
 
-function openAddPrModal(alerts) {
+async function openAddPrModal(alerts) {
   setVal('pr_search_kw', '');
   setVal('pr_memo', '');
   openModal('prModal');
+  // 품목 캐시 먼저 로드 (await — 카테고리 select 채워진 뒤 그리드 초기화)
+  await loadItemCache();
   setTimeout(function() {
-    // 품목 캐시 로드 + 카테고리 채우기
-    loadItemCache();
-
     // 검색 그리드 초기화
     if (!_prSearchGrid) initPrSearchGrid();
     else if (_prSearchGrid) { _prSearchGrid.setGridOption('rowData', []); }
@@ -785,6 +784,15 @@ async function openSsSetting() {
     } else {
       _ssGrid.setGridOption('rowData', _ssItems);
     }
+    // 모달 렌더 후 그리드 높이 재조정
+    setTimeout(function() {
+      var el2 = document.getElementById('ssGrid');
+      if (el2 && _ssGrid) {
+        var wrap = el2.closest('.ss-grid-wrap');
+        var wh = wrap ? wrap.clientHeight : 0;
+        if (wh > 40) { el2.style.height = wh + 'px'; _ssGrid.sizeColumnsToFit(); }
+      }
+    }, 100);
 
     updateSsFootInfo();
     document.getElementById('ssModal').classList.add('is-open');
@@ -865,7 +873,12 @@ function _initSsGrid() {
   ];
 
   var el2 = document.getElementById('ssGrid');
-  if (el2 && !el2.style.height) el2.style.height = (window.innerHeight * 0.65) + 'px';
+  if (el2) {
+    var wrap = el2.closest('.ss-grid-wrap');
+    var wh = wrap ? wrap.clientHeight : 0;
+    if (!wh) wh = Math.max(300, window.innerHeight - 250);
+    el2.style.height = wh + 'px';
+  }
 
   _ssGrid = agGrid.createGrid(el, {
     columnDefs: colDefs,
