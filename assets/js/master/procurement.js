@@ -898,7 +898,7 @@ function initPoItemGrid() {
       cellEditor: 'agNumberCellEditor',
       cellEditorParams: { min: 1 },
       cellRenderer: function(p) { return Number(p.value || 1).toLocaleString('ko-KR'); },
-      onCellValueChanged: function(p) { recalcRow(p.node); }
+      onCellValueChanged: function(p) { recalcFromQtyPrice(p.node); }
     },
     { headerName: '단가 (공급가)', field: 'unit_price', width: 120,
       headerClass: 'ag-right-header',
@@ -907,28 +907,18 @@ function initPoItemGrid() {
       cellEditor: 'agNumberCellEditor',
       cellEditorParams: { min: 0 },
       cellRenderer: function(p) { return Number(p.value || 0).toLocaleString('ko-KR') + '원'; },
-      onCellValueChanged: function(p) { recalcRow(p.node); }
+      onCellValueChanged: function(p) { recalcFromQtyPrice(p.node); }
     },
     { headerName: '공급가액', field: 'supply_price', width: 120,
       headerClass: 'ag-right-header',
-      cellStyle: function(p) {
-        return { display:'flex', alignItems:'center', justifyContent:'flex-end',
-          background: p.data._supplyTouched ? '#fffbeb' : '#fff',
-          color: p.data._supplyTouched ? '#d97706' : '#111827' };
-      },
+      cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-end' },
       editable: true,
       cellEditor: 'agNumberCellEditor',
       cellEditorParams: { min: 0 },
       cellRenderer: function(p) {
         return '<strong>' + Number(p.value || 0).toLocaleString('ko-KR') + '원</strong>';
       },
-      onCellValueChanged: function(p) {
-        // 거래처마다 공급가 계산방식이 달라 수량×단가와 다를 수 있으므로 직접 보정 가능.
-        // 보정한 행은 표시해둬서, 이후 수량/단가를 바꿔도 자동계산이 이 보정값을 덮어쓰지 않게 함.
-        p.node.data._supplyTouched = true;
-        p.api.refreshCells({ rowNodes: [p.node], force: true });
-        refreshPoTotal();
-      }
+      onCellValueChanged: function(p) { recalcFromSupply(p.node); }
     },
     { headerName: '메모', field: 'memo', flex: 1,
       headerClass: 'ag-left-header',
@@ -975,15 +965,23 @@ function initPoItemGrid() {
   });
 }
 
-function recalcRow(node) {
-  if (node.data._supplyTouched) { refreshPoTotal(); return; } // 공급가액을 직접 보정한 행은 자동계산 안 함
+/** 수량 또는 단가를 고쳤을 때 — 공급가액 = 수량 × 단가로 다시 계산 */
+function recalcFromQtyPrice(node) {
   var qty   = Number(node.data.order_qty  || 1);
   var price = Number(node.data.unit_price || 0);
-  // setDataValue를 쓰면 supply_price 컬럼의 onCellValueChanged(직접수정 감지용)가
-  // 같이 발생해서 _supplyTouched가 잘못 true로 박혀버림(두번째 수정부터 자동계산 안 되는 버그의 원인).
-  // 데이터를 직접 바꾸고 화면만 갱신해서 그 핸들러를 건드리지 않게 함.
   node.data.supply_price = qty * price;
   node.api.refreshCells({ rowNodes: [node], columns: ['supply_price'], force: true });
+  refreshPoTotal();
+}
+
+/** 공급가액을 직접 고쳤을 때 — 거래처 세금계산서 기준 공급가에 맞춰 단가를 거꾸로 재계산
+ *  (수량은 실제 주문/입고 단위라 그대로 두고, 단가 = 공급가액 ÷ 수량) */
+function recalcFromSupply(node) {
+  var qty = Number(node.data.order_qty || 1);
+  if (qty > 0) {
+    node.data.unit_price = Math.round(Number(node.data.supply_price || 0) / qty);
+    node.api.refreshCells({ rowNodes: [node], columns: ['unit_price'], force: true });
+  }
   refreshPoTotal();
 }
 
