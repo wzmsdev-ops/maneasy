@@ -126,14 +126,29 @@
 <div class="master-page">
 
   <div class="master-tabs">
-    <button class="tab-btn active" data-tab="vendors">거래처</button>
-    <button class="tab-btn" data-tab="items">자재</button>
+    <button class="tab-btn active" data-tab="categories">자재구분</button>
+    <button class="tab-btn" data-tab="vendors">거래처</button>
+    <button class="tab-btn" data-tab="items">자재코드</button>
   </div>
 
   <div class="master-content">
 
+    <!-- ═══ 자재구분 탭 ═══ -->
+    <div id="tab-categories" class="tab-panel active">
+      <div class="m-card">
+        <div class="m-card-head">
+          <span class="m-card-title">자재구분 목록</span>
+          <button class="btn btn-sm btn-primary" id="addCategoryBtn"><i class="ti ti-plus"></i> 추가</button>
+        </div>
+        <div class="m-card-body">
+          <div id="categoryEmpty" class="m-empty" style="display:none;">등록된 자재구분이 없습니다.</div>
+          <div id="categoryList" class="m-table-wrap"></div>
+        </div>
+      </div>
+    </div>
+
     <!-- ═══ 거래처 탭 ═══ -->
-    <div id="tab-vendors" class="tab-panel active">
+    <div id="tab-vendors" class="tab-panel">
       <div class="m-card">
         <div class="m-card-head">
           <span class="m-card-title">거래처 목록</span>
@@ -146,7 +161,7 @@
       </div>
     </div>
 
-    <!-- ═══ 자재 탭 ═══ -->
+    <!-- ═══ 자재코드 탭 ═══ -->
     <div id="tab-items" class="tab-panel">
       <div class="m-card">
         <div class="m-card-head">
@@ -160,6 +175,46 @@
       </div>
     </div>
 
+  </div>
+</div>
+
+<!-- ── 자재구분 모달 ── -->
+<div id="categoryModal" class="m-modal">
+  <div class="m-modal-backdrop" onclick="closeModal('categoryModal')"></div>
+  <div class="m-modal-dialog">
+    <div class="m-modal-head">
+      <span class="m-modal-title" id="categoryModalTitle">자재구분 추가</span>
+      <button class="m-modal-close" onclick="closeModal('categoryModal')"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="m-modal-body">
+      <div class="m-field-row">
+        <div class="m-field">
+          <label>구분 코드</label>
+          <input type="text" id="cat_category_code" placeholder="자동생성" readonly style="background:#f9fafb;color:#6b7280;cursor:default;" />
+        </div>
+        <div class="m-field">
+          <label>구분명 <span class="m-req">*</span></label>
+          <input type="text" id="cat_category_name" placeholder="예: 소모품" />
+        </div>
+      </div>
+      <div class="m-field-row">
+        <div class="m-field">
+          <label>정렬순서</label>
+          <input type="number" id="cat_sort_order" value="0" />
+        </div>
+        <div class="m-field">
+          <label>상태</label>
+          <select id="cat_active">
+            <option value="Y">활성</option>
+            <option value="N">비활성</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="m-modal-foot">
+      <button class="btn btn-sm" onclick="closeModal('categoryModal')">취소</button>
+      <button class="btn btn-sm btn-primary" id="categorySaveBtn">저장</button>
+    </div>
   </div>
 </div>
 
@@ -206,18 +261,12 @@
         <label>주소</label>
         <input type="text" id="v_address" placeholder="주소" />
       </div>
-      <div class="m-field-row">
-        <div class="m-field">
-          <label>카테고리</label>
-          <input type="text" id="v_category" placeholder="의료기기, 소모품 등" />
-        </div>
-        <div class="m-field">
-          <label>상태</label>
-          <select id="v_active">
-            <option value="Y">활성</option>
-            <option value="N">비활성</option>
-          </select>
-        </div>
+      <div class="m-field">
+        <label>상태</label>
+        <select id="v_active">
+          <option value="Y">활성</option>
+          <option value="N">비활성</option>
+        </select>
       </div>
       <div class="m-field">
         <label>메모</label>
@@ -252,8 +301,10 @@
       </div>
       <div class="m-field-row">
         <div class="m-field">
-          <label>카테고리</label>
-          <input type="text" id="i_category" placeholder="소모품, 부품 등" />
+          <label>자재구분</label>
+          <select id="i_category">
+            <option value="">선택 안 함</option>
+          </select>
         </div>
         <div class="m-field">
           <label>규격/사양</label>
