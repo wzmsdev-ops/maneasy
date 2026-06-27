@@ -182,87 +182,161 @@ function initStatusTabs() {
 }
 
 /* ══════════════════════════════════════════
-   2. 자재 검색
+   2. 자재 검색 그리드 (좌 패널 — ag-grid)
 ══════════════════════════════════════════ */
-async function searchItems() {
-  var kw = val('pr_search_kw');
-  var resultsBox = document.getElementById('prSearchResults');
-  if (!kw) { resultsBox.classList.remove('is-open'); return; }
+var _prSearchGrid = null;
+var _allItems     = [];   // 전체 품목 캐시
 
-  var { data, error } = await supabaseClient
+async function loadItemCache() {
+  if (_allItems.length) return;
+  var { data } = await supabaseClient
     .from('items')
-    .select('id, item_name, category, spec, use_unit, purchase_unit, purchase_unit_qty, standard_price')
+    .select('id, item_code, item_name, category, use_unit, purchase_unit, standard_price')
     .eq('active', 'Y')
-    .ilike('item_name', '%' + kw + '%')
-    .order('item_name')
-    .limit(20);
+    .order('category').order('item_name');
+  _allItems = data || [];
 
-  if (error) { alert('자재 검색 실패: ' + error.message); return; }
-
-  if (!data || !data.length) {
-    resultsBox.innerHTML = '<div class="pr-search-empty">검색 결과가 없습니다.</div>';
-    resultsBox.classList.add('is-open');
-    return;
+  // 카테고리 필터 채우기
+  var sel = document.getElementById('pr_category');
+  if (sel) {
+    var cats = [...new Set(_allItems.map(function(i){ return i.category || ''; }))].filter(Boolean).sort();
+    sel.innerHTML = '<option value="">전체 카테고리</option>' +
+      cats.map(function(c){ return '<option value="' + c + '">' + c + '</option>'; }).join('');
   }
+}
 
-  resultsBox.innerHTML = data.map(function(it) {
-    return '<div class="pr-search-item" data-item-id="' + it.id + '">' +
-      '<div><div class="pr-search-item-name">' + ts(it.item_name) + '</div>' +
-      '<div class="pr-search-item-meta">' + ts(it.category || '-') + (it.spec ? ' · ' + ts(it.spec) : '') + '</div></div>' +
-      '<div class="pr-search-item-meta">단위: ' + ts(it.use_unit || '-') + '</div>' +
-      '</div>';
-  }).join('');
-  resultsBox.classList.add('is-open');
+function initPrSearchGrid() {
+  var el = document.getElementById('prSearchGrid');
+  if (!el || typeof agGrid === 'undefined') return;
 
-  Array.prototype.forEach.call(resultsBox.querySelectorAll('.pr-search-item'), function(el) {
-    el.addEventListener('click', function() {
-      var item = data.find(function(it) { return it.id === el.dataset.itemId; });
-      if (item) addPrItemRow(item);
-      resultsBox.classList.remove('is-open');
-      setVal('pr_search_kw', '');
-    });
+  // 높이 계산 — 모달 내부
+  el.style.height = Math.max(200, window.innerHeight * 0.55) + 'px';
+
+  var colDefs = [
+    { headerName: '카테고리', field: 'category', width: 90,
+      cellStyle: { justifyContent:'center', fontSize:'10px', color:'#6b7280' }
+    },
+    { headerName: '자재명', field: 'item_name', flex: 2, minWidth: 120,
+      headerClass: 'ag-left-header',
+      cellStyle: { justifyContent:'flex-start', fontWeight:600 }
+    },
+    { headerName: '단위', field: 'purchase_unit', width: 60,
+      cellStyle: { justifyContent:'center', color:'#6b7280' }
+    },
+    { headerName: '단가', field: 'standard_price', width: 90,
+      cellStyle: { justifyContent:'flex-end' },
+      valueFormatter: function(p) {
+        return p.value ? Number(p.value).toLocaleString('ko-KR') + '원' : '-';
+      }
+    },
+    { headerName: '', width: 60, sortable: false,
+      cellStyle: { justifyContent:'center', padding:'0 4px' },
+      cellRenderer: function(p) {
+        var btn = document.createElement('button');
+        btn.className = 'btn btn-sm btn-primary';
+        btn.style.cssText = 'padding:2px 10px;font-size:11px;';
+        // 이미 추가됐는지 확인
+        var added = isPrItemAdded(p.data.id);
+        btn.textContent = added ? '추가됨' : '추가';
+        if (added) { btn.style.background = '#059669'; btn.style.borderColor = '#059669'; }
+        btn.onclick = function() {
+          addPrItemRow(p.data);
+          // 버튼 상태 갱신
+          btn.textContent = '추가됨';
+          btn.style.background = '#059669';
+          btn.style.borderColor = '#059669';
+          updatePrItemCount();
+        };
+        return btn;
+      }
+    },
+  ];
+
+  _prSearchGrid = agGrid.createGrid(el, {
+    columnDefs: colDefs,
+    rowData: [],
+    rowHeight: 34,
+    headerHeight: 34,
+    defaultColDef: {
+      sortable: true, resizable: true, suppressMovable: true,
+      cellStyle: { display:'flex', alignItems:'center', justifyContent:'center' },
+    },
+    suppressHorizontalScroll: true,
+    overlayNoRowsTemplate: '<span style="color:#9ca3af;font-size:12px;">조회 조건을 입력해 검색하세요.</span>',
+    onGridReady: function(params) {
+      setTimeout(function() { params.api.sizeColumnsToFit(); }, 0);
+    },
   });
 }
 
+function searchPrItems() {
+  var kw  = (val('pr_search_kw')  || '').toLowerCase();
+  var cat = (document.getElementById('pr_category')?.value || '');
+  var filtered = _allItems.filter(function(i) {
+    var matchCat = !cat || i.category === cat;
+    var matchKw  = !kw  || i.item_name.toLowerCase().includes(kw)
+                         || (i.item_code || '').toLowerCase().includes(kw);
+    return matchCat && matchKw;
+  });
+
+  if (_prSearchGrid) _prSearchGrid.setGridOption('rowData', filtered);
+
+  var cnt = document.getElementById('prSearchCount');
+  if (cnt) cnt.textContent = filtered.length ? filtered.length + '건' : '';
+}
+
+function isPrItemAdded(itemId) {
+  if (!_prItemGrid) return false;
+  var found = false;
+  _prItemGrid.forEachNode(function(n) { if (n.data.item_id === itemId) found = true; });
+  return found;
+}
+
 /* ══════════════════════════════════════════
-   3. 요청 품목 그리드 (선택된 품목, 수량 편집 가능)
+   3. 요청 품목 그리드 (우 패널 — 수량 인라인 편집)
+══════════════════════════════════════════ */
+/* ══════════════════════════════════════════
+   3. 요청 품목  그리드 (선택된 품목, 수량 편집 가능)
 ══════════════════════════════════════════ */
 function initPrItemGrid() {
   var el = document.getElementById('prItemGrid');
   if (!el || typeof agGrid === 'undefined') return;
 
+  el.style.height = Math.max(200, window.innerHeight * 0.55) + 'px';
+
   var colDefs = [
-    { headerName: '자재명', field: 'item_name', flex: 2,
+    { headerName: '자재명', field: 'item_name', flex: 2, minWidth: 120,
       headerClass: 'ag-left-header',
-      cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-start' },
-      cellRenderer: function(p) { return ts(p.value || '-'); }
+      cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-start', fontWeight:600 }
     },
-    { headerName: '사용단위', field: 'use_unit', width: 90,
-      cellStyle: { display:'flex', alignItems:'center', justifyContent:'center', background:'#f8fafc', color:'#6b7280' },
-      cellRenderer: function(p) { return ts(p.value || '-'); }
+    { headerName: '입고단위', field: 'purchase_unit', width: 80,
+      cellStyle: { display:'flex', alignItems:'center', justifyContent:'center', color:'#6b7280' }
     },
-    { headerName: '요청수량', field: 'request_qty', width: 100,
-      headerClass: 'ag-right-header',
+    { headerName: '요청수량', field: 'request_qty', width: 90,
       cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-end' },
-      editable: true,
+      editable: true, singleClickEdit: true,
       cellEditor: 'agNumberCellEditor',
       cellEditorParams: { min: 1 },
-      cellRenderer: function(p) { return Number(p.value || 1).toLocaleString('ko-KR'); }
+      valueFormatter: function(p) { return Number(p.value || 1).toLocaleString('ko-KR'); }
     },
     { headerName: '메모', field: 'memo', flex: 1,
       headerClass: 'ag-left-header',
       cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-start' },
-      editable: true,
-      cellRenderer: function(p) { return ts(p.value || ''); }
+      editable: true, singleClickEdit: true
     },
     { headerName: '', width: 44, sortable: false,
       cellStyle: { display:'flex', alignItems:'center', justifyContent:'center', padding:'0' },
       cellRenderer: function(p) {
         var btn = document.createElement('button');
-        btn.className = 'tbl-btn tbl-btn--danger';
-        btn.style.cssText = 'width:28px;height:22px;padding:0;display:flex;align-items:center;justify-content:center;';
+        btn.className = 'btn btn-sm';
+        btn.style.cssText = 'width:28px;height:24px;padding:0;color:#dc2626;border-color:#fecaca;font-size:14px;';
         btn.innerHTML = '✕';
-        btn.onclick = function() { removePrItemRow(p.data._rowId); };
+        btn.onclick = function() {
+          removePrItemRow(p.data._rowId);
+          // 검색 그리드의 추가됨 버튼 상태 갱신
+          if (_prSearchGrid) _prSearchGrid.refreshCells({ force: true });
+          updatePrItemCount();
+        };
         return btn;
       }
     },
@@ -272,7 +346,6 @@ function initPrItemGrid() {
     columnDefs: colDefs,
     defaultColDef: {
       sortable: false, resizable: true, suppressMovable: true,
-      headerClass: 'ag-center-header',
       cellStyle: { display:'flex', alignItems:'center', justifyContent:'center' },
     },
     rowData: [],
@@ -281,10 +354,18 @@ function initPrItemGrid() {
     suppressHorizontalScroll: true,
     suppressScrollOnNewData: true,
     stopEditingWhenCellsLoseFocus: true,
-    singleClickEdit: true,
-    overlayNoRowsTemplate: '<span style="color:#9ca3af;font-size:12px;">자재를 검색해 추가하세요.</span>',
-    onGridReady: function(params) { params.api.sizeColumnsToFit(); },
+    overlayNoRowsTemplate: '<span style="color:#9ca3af;font-size:12px;">왼쪽에서 자재를 검색해 추가하세요.</span>',
+    onGridReady: function(params) {
+      setTimeout(function() { params.api.sizeColumnsToFit(); }, 0);
+    },
   });
+}
+
+function updatePrItemCount() {
+  var cnt = 0;
+  if (_prItemGrid) _prItemGrid.forEachNode(function() { cnt++; });
+  var el = document.getElementById('prItemCount');
+  if (el) el.textContent = cnt ? cnt + '건' : '';
 }
 
 function addPrItemRow(item) {
@@ -302,14 +383,18 @@ function addPrItemRow(item) {
 
   _rowIdCounter++;
   var row = {
-    _rowId:      _rowIdCounter,
-    item_id:     item.id,
-    item_name:   item.item_name,
-    use_unit:    item.use_unit || '',
-    request_qty: 1,
-    memo:        '',
+    _rowId:        _rowIdCounter,
+    item_id:       item.id,
+    item_name:     item.item_name,
+    purchase_unit: item.purchase_unit || item.use_unit || '',
+    use_unit:      item.use_unit || '',
+    request_qty:   1,
+    memo:          '',
   };
-  if (_prItemGrid) _prItemGrid.applyTransaction({ add: [row] });
+  if (_prItemGrid) {
+    _prItemGrid.applyTransaction({ add: [row] });
+    updatePrItemCount();
+  }
 }
 
 function removePrItemRow(rowId) {
@@ -336,29 +421,42 @@ function openAddPr() { openAddPrModal(null); }
 function openAddPrModal(alerts) {
   setVal('pr_search_kw', '');
   setVal('pr_memo', '');
-  document.getElementById('prSearchResults')?.classList.remove('is-open');
   openModal('prModal');
   setTimeout(function() {
+    // 품목 캐시 로드 + 카테고리 채우기
+    loadItemCache();
+
+    // 검색 그리드 초기화
+    if (!_prSearchGrid) initPrSearchGrid();
+    else if (_prSearchGrid) { _prSearchGrid.setGridOption('rowData', []); }
+
+    // 요청 품목 그리드 초기화
     if (!_prItemGrid) initPrItemGrid();
     clearPrItemGrid();
-    if (_prItemGrid) _prItemGrid.sizeColumnsToFit();
+    updatePrItemCount();
+    if (_prItemGrid) setTimeout(function(){ _prItemGrid.sizeColumnsToFit(); }, 50);
+    if (_prSearchGrid) setTimeout(function(){ _prSearchGrid.sizeColumnsToFit(); }, 50);
 
     // 안전재고 자동채우기
     if (alerts && alerts.length) {
       var rows = alerts.map(function(a) {
         var needQty = a.reorder_qty > 0 ? a.reorder_qty : Math.abs(a.shortage || 1);
         return {
-          item_id:     a.item_id,
-          item_code:   a.item_code,
-          item_name:   a.item_name,
-          request_qty: needQty,
-          use_unit:    a.use_unit || '',
-          memo:        '안전재고 기준 자동요청 (현재고:' + a.current_qty + ')',
+          _rowId:        ++_rowIdCounter,
+          item_id:       a.item_id,
+          item_name:     a.item_name,
+          purchase_unit: a.use_unit || '',
+          use_unit:      a.use_unit || '',
+          request_qty:   needQty,
+          memo:          '안전재고 기준 자동요청 (현재고:' + a.current_qty + ')',
         };
       });
-      if (_prItemGrid) _prItemGrid.setGridOption('rowData', rows);
+      if (_prItemGrid) {
+        _prItemGrid.setGridOption('rowData', rows);
+        updatePrItemCount();
+      }
     }
-  }, 50);
+  }, 80);
 }
 
 async function savePr() {
