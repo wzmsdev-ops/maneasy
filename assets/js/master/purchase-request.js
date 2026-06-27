@@ -293,7 +293,7 @@ function initPrSearchGrid() {
     suppressHorizontalScroll: true,
     overlayNoRowsTemplate: '<span style="color:#9ca3af;font-size:12px;">조회 조건을 입력해 검색하세요.</span>',
     onGridReady: function(params) {
-      setTimeout(function() { params.api.sizeColumnsToFit(); }, 0);
+      setTimeout(function() { if (el.offsetWidth > 0) params.api.sizeColumnsToFit(); }, 0);
     },
   });
 }
@@ -383,7 +383,7 @@ function initPrItemGrid() {
     stopEditingWhenCellsLoseFocus: true,
     overlayNoRowsTemplate: '<span style="color:#9ca3af;font-size:12px;">왼쪽에서 자재를 검색해 추가하세요.</span>',
     onGridReady: function(params) {
-      setTimeout(function() { params.api.sizeColumnsToFit(); }, 0);
+      setTimeout(function() { if (el.offsetWidth > 0) params.api.sizeColumnsToFit(); }, 0);
     },
   });
 }
@@ -562,7 +562,7 @@ function initPrDetailGrid() {
     suppressHorizontalScroll: true,
     suppressScrollOnNewData: true,
     overlayNoRowsTemplate: '<span style="color:#9ca3af;font-size:12px;">품목이 없습니다.</span>',
-    onGridReady: function(params) { params.api.sizeColumnsToFit(); },
+    onGridReady: function(params) { if (el.offsetWidth > 0) params.api.sizeColumnsToFit(); },
   });
 }
 
@@ -936,8 +936,8 @@ function _initSsGrid() {
       updateSsFootInfo();
     },
     onGridReady: function(params) {
-      setTimeout(function() { params.api.sizeColumnsToFit(); }, 0);
-      window.addEventListener('resize', function() { params.api.sizeColumnsToFit(); });
+      setTimeout(function() { if (el.offsetWidth > 0) params.api.sizeColumnsToFit(); }, 0);
+      window.addEventListener('resize', function() { if (el.offsetWidth > 0) params.api.sizeColumnsToFit(); });
     },
     overlayNoRowsTemplate: '<span style="color:#9ca3af;font-size:12px;">조회된 자재가 없습니다.</span>',
   });
