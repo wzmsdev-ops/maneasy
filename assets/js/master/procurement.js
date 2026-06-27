@@ -352,7 +352,12 @@ async function openRvDetail(id) {
     foot.innerHTML = '<button class="btn btn-sm" onclick="closeModal(\'rvDetailModal\')">닫기</button>';
 
     if (pr.status === 'REQUESTED') {
-      // ── 거래처 분리 편집 화면 ──
+      // ── 거래처 분리 편집 화면: 그리드가 있으므로 고정 높이 ──
+      var rvDialog = document.querySelector('#rvDetailModal .m-modal-dialog');
+      if (rvDialog) {
+        rvDialog.classList.remove('m-modal-dialog--detail');
+        rvDialog.classList.add('m-modal-dialog--wide');
+      }
       splitSection.style.display  = 'flex';
       linkedSection.style.display = 'none';
 
