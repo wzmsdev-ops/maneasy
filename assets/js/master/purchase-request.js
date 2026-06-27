@@ -190,13 +190,7 @@ function initStatusTabs() {
       document.querySelectorAll('.pr-status-tab').forEach(function(b) { b.classList.remove('active'); });
       btn.classList.add('active');
       prState.statusFilter = btn.dataset.status || '';
-      // 기본 날짜 — 오늘부터 이전 7일
-  var today = new Date();
-  var weekAgo = new Date(today);
-  weekAgo.setDate(today.getDate() - 7);
-  setVal('prDateFrom', weekAgo.toISOString().slice(0, 10));
-  setVal('prDateTo',   today.toISOString().slice(0, 10));
-  loadPrList(1);
+      loadPrList(1);
     });
   });
 }
@@ -666,6 +660,13 @@ async function init() {
   var session = await auth.requireAuth();
   if (!session) return;
   currentUser = await auth.getSession();
+
+  // 검색 날짜 기본값 — 시작일: 일주일 전, 종료일: 오늘
+  var today = new Date();
+  var weekAgo = new Date(today);
+  weekAgo.setDate(today.getDate() - 7);
+  setVal('prDateFrom', weekAgo.toISOString().slice(0, 10));
+  setVal('prDateTo',   today.toISOString().slice(0, 10));
 
   initStatusTabs();
   initPrListGrid();
