@@ -282,6 +282,8 @@ function initPrSearchGrid() {
   ];
 
   _prSearchGrid = agGrid.createGrid(el, {
+    suppressCellFocus: true,
+    suppressPropertyNamesCheck: true,
     columnDefs: colDefs,
     rowData: [],
     rowHeight: 34,
@@ -370,6 +372,8 @@ function initPrItemGrid() {
   ];
 
   _prItemGrid = agGrid.createGrid(el, {
+    suppressCellFocus: true,
+    suppressPropertyNamesCheck: true,
     columnDefs: colDefs,
     defaultColDef: {
       sortable: false, resizable: true, suppressMovable: true,
@@ -528,6 +532,8 @@ function initPrDetailGrid() {
   if (!el || typeof agGrid === 'undefined') return;
 
   _prDetailGrid = agGrid.createGrid(el, {
+    suppressCellFocus: true,
+    suppressPropertyNamesCheck: true,
     columnDefs: [
       { headerName: '자재명', field: 'item_name', flex: 2,
         headerClass: 'ag-left-header',
@@ -912,6 +918,8 @@ function _initSsGrid() {
   }
 
   _ssGrid = agGrid.createGrid(el, {
+    suppressCellFocus: true,
+    suppressPropertyNamesCheck: true,
     columnDefs: colDefs,
     rowData: _ssItems,
     rowHeight: 34,
