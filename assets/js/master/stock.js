@@ -70,6 +70,7 @@ function initTabs() {
               setTimeout(function() {
                 if (!_gridDispatchPo) initDispatchPoGrid();
                 if (!_gridDispatchItem) initDispatchItemGrid();
+                if (!_gridDispatchHistory) initDispatchHistoryGrid();
                 setTimeout(loadDispatchPoList, 50);
               }, 80);
             }
@@ -985,13 +986,17 @@ async function loadDispatchPoList() {
   var status=document.getElementById('dispatchPoStatus')?.value||'';
   var dFrom=document.getElementById('dispatchDateFrom')?.value||'';
   var dTo=document.getElementById('dispatchDateTo')?.value||'';
+  // '불출완료'는 실제 status 컬럼 값이 아니라(이미 'COMPLETED'에 입고완료/불출완료가 같이 섞여있음),
+  // 모든 품목이 다 불출됐는지로 판단하는 가상 필터라 쿼리에는 COMPLETED로 보냄
+  var isDispatchedFilter = status === 'DISPATCHED';
+  var statusQuery = isDispatchedFilter ? 'COMPLETED' : status;
   _selectedDispatchPoIds.clear();
   updateBulkDispatchBtn();
   showGlobalLoading('발주서 목록을 불러오는 중...');
   try {
     var q=supabaseClient.from('purchase_orders')
       .select('id,order_no,order_date,status,request_id,vendors(vendor_name),purchase_requests(dept_id,departments(dept_name))')
-      .in('status',status?[status]:['COMPLETED','PARTIAL'])
+      .in('status',statusQuery?[statusQuery]:['COMPLETED','PARTIAL'])
       .order('order_date',{ascending:false});
     if(dFrom) q=q.gte('order_date',dFrom);
     if(dTo) q=q.lte('order_date',dTo);
@@ -1009,7 +1014,8 @@ async function loadDispatchPoList() {
     });
 
     // 발주 상태(입고완료/부분입고)만 보고 가져온 목록이라, 실제로 불출할 품목이 남아있는지는
-    // 별도로 확인해야 함 — 모든 품목이 이미 다 불출된 발주서는 목록에서 빼줌
+    // 별도로 확인해야 함 — '불출완료' 필터가 아니면 모든 품목이 이미 다 불출된 발주서는 목록에서 빼고,
+    // '불출완료' 필터면 반대로 그것들만 보여줌
     if (rows.length) {
       var orderIds = rows.map(function(r) { return r.id; });
       var { data: poItems } = await supabaseClient
@@ -1019,7 +1025,7 @@ async function loadDispatchPoList() {
       (poItems || []).forEach(function(it) {
         if ((it.dispatched_qty || 0) < it.order_qty) hasRemaining[it.order_id] = true;
       });
-      rows = rows.filter(function(r) { return hasRemaining[r.id]; });
+      rows = rows.filter(function(r) { return isDispatchedFilter ? !hasRemaining[r.id] : hasRemaining[r.id]; });
     }
 
     if(!_gridDispatchPo) initDispatchPoGrid();
@@ -1103,6 +1109,7 @@ async function selectDispatchPo(po) {
   refitGridColumns(_gridDispatchItem);
   var cnt=document.getElementById('dispatchItemCount'); if(cnt) cnt.textContent=openItems.length?openItems.length+'건':'';
   var btn=document.getElementById('dispatchSaveBtn'); if(btn) btn.disabled=!openItems.length;
+  loadDispatchHistory(po.id);
   updateDispatchSummary();
 }
 
@@ -1113,6 +1120,114 @@ function updateDispatchSummary() {
   if(sum) sum.textContent=items>0?items+'개 품목, 총 '+total+'개 불출 예정':'불출 수량을 입력하세요';
   var btn=document.getElementById('dispatchSaveBtn'); if(btn) btn.disabled=items===0;
 }
+
+/* ── 불출 이력 (취소 가능) ── */
+var _gridDispatchHistory = null;
+
+function initDispatchHistoryGrid() {
+  var el = document.getElementById('dispatchHistoryGrid');
+  if (!el || typeof agGrid === 'undefined') return;
+  _gridDispatchHistory = agGrid.createGrid(el, {
+    suppressCellFocus: true, suppressPropertyNamesCheck: true,
+    columnDefs: [
+      { headerName: '자재명', field: 'item_name', flex: 1, minWidth: 100, headerClass:'ag-left-header',
+        cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-start' }
+      },
+      { headerName: '부서', field: 'dept_name', width: 80 },
+      { headerName: '불출일', field: 'dispatch_date', width: 90,
+        cellRenderer: function(p) { return fmtDate(p.value); }
+      },
+      { headerName: '수량', field: 'dispatch_qty', width: 80,
+        cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-end' },
+        cellRenderer: function(p) { return fmtN(p.value) + ' ' + ts(p.data.use_unit||''); }
+      },
+      { headerName: '', width: 56, sortable: false,
+        cellRenderer: function(p) {
+          var btn = document.createElement('button');
+          btn.className = 'tbl-btn tbl-btn--danger';
+          btn.style.cssText = 'padding:2px 8px;font-size:11px;';
+          btn.textContent = '취소';
+          btn.onclick = function() { cancelDispatch(p.data.id); };
+          return btn;
+        }
+      },
+    ],
+    rowData: [], rowHeight: 30, headerHeight: 30, suppressHorizontalScroll: true,
+    defaultColDef: { sortable:false, resizable:true, suppressMovable:true,
+      cellStyle:{ display:'flex', alignItems:'center', justifyContent:'center' } },
+    overlayNoRowsTemplate: '<span style="color:#9ca3af;font-size:11px;">불출 이력이 없습니다.</span>',
+    onGridReady: function(params) { setTimeout(function(){ params.api.sizeColumnsToFit(); }, 0); },
+  });
+}
+
+async function loadDispatchHistory(orderId) {
+  if (!_gridDispatchHistory) initDispatchHistoryGrid();
+  var { data, error } = await supabaseClient
+    .from('stock_dispatch')
+    .select('id, dispatch_qty, dispatch_date, use_unit, items(item_name), departments(dept_name)')
+    .eq('order_id', orderId)
+    .order('dispatch_date', { ascending: false });
+  if (error) { console.error(error); return; }
+  var rows = (data || []).map(function(r) {
+    return { id: r.id, item_name: r.items?.item_name || '-', dept_name: r.departments?.dept_name || '-',
+      dispatch_date: r.dispatch_date, dispatch_qty: r.dispatch_qty, use_unit: r.use_unit };
+  });
+  if (_gridDispatchHistory) { _gridDispatchHistory.setGridOption('rowData', rows); refitGridColumns(_gridDispatchHistory); }
+  var cnt = document.getElementById('dispatchHistoryCount'); if (cnt) cnt.textContent = rows.length ? rows.length + '건' : '';
+}
+
+/** 불출 1건 취소 — 재고를 부서에서 다시 중앙창고로 되돌리고, 발주서의 불출수량/상태도 같이 되돌림 */
+async function cancelDispatch(dispatchId) {
+  if (!confirm('이 불출 건을 취소하시겠습니까? 해당 수량만큼 부서 재고가 줄고 중앙창고로 다시 돌아갑니다.')) return;
+  showGlobalLoading('불출 취소 중...');
+  try {
+    var { data: d, error: de } = await supabaseClient
+      .from('stock_dispatch').select('*').eq('id', dispatchId).single();
+    if (de) throw new Error(de.message);
+
+    var session = await supabaseClient.auth.getSession();
+    var userId  = session.data?.session?.user?.id || null;
+
+    // 재고 원복 — 부서 → 중앙창고로 되돌리는 역방향 거래 기록 (기존 이력은 그대로 두고, 취소 이력을 새로 남김)
+    var { error: te } = await supabaseClient.from('stock_transactions').insert([
+      { item_id: d.item_id, dept_id: d.dept_id, tx_type:'OUT', tx_date: new Date().toISOString().slice(0,10), qty: -d.dispatch_qty, use_unit: d.use_unit, ref_type:'dispatch_cancel', ref_id: d.id, created_by: userId },
+      { item_id: d.item_id, dept_id: null,      tx_type:'IN',  tx_date: new Date().toISOString().slice(0,10), qty:  d.dispatch_qty, use_unit: d.use_unit, ref_type:'dispatch_cancel', ref_id: d.id, created_by: userId },
+    ]);
+    if (te) throw new Error('재고 원복 실패: ' + te.message);
+    await upsertStockCurrent(d.item_id, -d.dispatch_qty, d.dept_id);
+    await upsertStockCurrent(d.item_id,  d.dispatch_qty, null);
+
+    // 발주서 품목의 불출수량 되돌리고, 발주서 상태도 다시 PARTIAL/COMPLETED(입고완료)로 조정
+    if (d.order_item_id) {
+      var { data: poi } = await supabaseClient.from('purchase_order_items').select('dispatched_qty').eq('id', d.order_item_id).single();
+      var newDispatched = Math.max(0, (poi?.dispatched_qty || 0) - d.dispatch_qty);
+      await supabaseClient.from('purchase_order_items').update({ dispatched_qty: newDispatched }).eq('id', d.order_item_id);
+    }
+    if (d.order_id) {
+      var { data: allItems } = await supabaseClient.from('purchase_order_items').select('order_qty,dispatched_qty').eq('order_id', d.order_id);
+      var anyDispatched = (allItems || []).some(function(it) { return (it.dispatched_qty || 0) > 0; });
+      await supabaseClient.from('purchase_orders').update({ status: anyDispatched ? 'PARTIAL' : 'COMPLETED' }).eq('id', d.order_id);
+    }
+
+    // stock_dispatch 기록 자체는 삭제 — 더 이상 유효한 불출이 아님 (재고 이동 이력은 stock_transactions에 그대로 남음)
+    await supabaseClient.from('stock_dispatch').delete().eq('id', dispatchId);
+
+    alert('불출이 취소됐습니다.');
+    if (d.order_id) {
+      var po = { id: d.order_id, order_no:'', _vendorName:'', _deptName:'-' };
+      var node = null;
+      if (_gridDispatchPo) _gridDispatchPo.forEachNode(function(n) { if (n.data.id === d.order_id) node = n; });
+      if (node) await selectDispatchPo(node.data);
+      else await loadDispatchHistory(d.order_id);
+    }
+    loadDispatchPoList();
+  } catch(e) {
+    alert('불출 취소 실패: ' + e.message);
+  } finally {
+    hideGlobalLoading();
+  }
+}
+window.cancelDispatch = cancelDispatch;
 
 /** 불출 발주서 체크박스 선택/해제 */
 function toggleDispatchPoSelection(id, checked) {
@@ -1172,6 +1287,7 @@ async function bulkDispatchSelectedPo() {
           var dispatchNo = await genDocNo('SD');
           var { data: newDispatch, error: de } = await supabaseClient.from('stock_dispatch').insert({
             dispatch_no: dispatchNo, item_id: r.item_id, dept_id: deptId,
+            order_id: orderId, order_item_id: r.id,
             dispatch_date: dispatchDate, dispatch_qty: qty, use_unit: r.use_unit, created_by: userId,
           }).select('id').single();
           if (de) throw new Error(de.message);
@@ -1237,6 +1353,7 @@ async function saveDispatch() {
       var dispatchNo=await genDocNo('SD');
       var {data:newDispatch,error:de}=await supabaseClient.from('stock_dispatch').insert({
         dispatch_no:dispatchNo,item_id:r.item_id,dept_id:deptId,
+        order_id:_selectedDispatchPoId,order_item_id:r._poiId,
         dispatch_date:dispatchDate,dispatch_qty:qty,use_unit:r.use_unit,created_by:userId,
       }).select('id').single();
       if(de) throw new Error('불출 기록 실패: '+de.message);
@@ -1254,11 +1371,13 @@ async function saveDispatch() {
     var anyDone=(allItems||[]).some(function(i){return (i.dispatched_qty||0)>0;});
     await supabaseClient.from('purchase_orders').update({status:allDone?'COMPLETED':(anyDone?'PARTIAL':'ORDERED')}).eq('id',_selectedDispatchPoId);
     alert('불출 완료! ('+deptName+'에 '+rows.length+'개 품목)');
+    var doneOrderId = _selectedDispatchPoId;
     _selectedDispatchPoId=null;
     if(_gridDispatchItem) _gridDispatchItem.setGridOption('rowData',[]);
     var lbl=document.getElementById('dispatchSelectedPoLabel'); if(lbl) lbl.textContent='';
     var sum=document.getElementById('dispatchSummary'); if(sum) sum.textContent='← 왼쪽에서 발주서를 선택하세요';
     if(saveBtn) saveBtn.disabled=true;
+    loadDispatchHistory(doneOrderId);
     loadDispatchPoList();
   } catch(e){alert('불출 실패: '+e.message);
   } finally{hideGlobalLoading();if(saveBtn) saveBtn.disabled=false;}
