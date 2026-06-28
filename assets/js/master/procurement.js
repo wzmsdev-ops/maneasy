@@ -817,7 +817,10 @@ function initPoSearchGrid() {
       headerClass: 'ag-left-header',
       cellStyle: { justifyContent:'flex-start', fontWeight:600 }
     },
-    { headerName: '입고단위', field: 'purchase_unit', width: 75,
+    { headerName: '입고단위', field: 'purchase_unit', width: 85,
+      cellStyle: { justifyContent:'center', color:'#6b7280' }
+    },
+    { headerName: '사용단위', field: 'use_unit', width: 85,
       cellStyle: { justifyContent:'center', color:'#6b7280' }
     },
     { headerName: '단가', field: 'standard_price', width: 90,
