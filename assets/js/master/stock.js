@@ -505,6 +505,7 @@ function onReceiptVatInput() {
 
 /* ── 재고 이동 ── */
 var _gridTransferInfo = null;
+var _selectedTransferItem = null;
 
 function initTransferInfoGrid() {
   var el = document.getElementById('transferInfoGrid');
