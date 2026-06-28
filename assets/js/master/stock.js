@@ -173,10 +173,15 @@ function initReceiptPoGrid() {
       cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-start' },
       cellRenderer: function(p) { return '<code style="font-size:11px;">' + ts(p.value||'-') + '</code>'; }
     },
-    { headerName: '거래처', field: 'vendors', flex: 1,
+    { headerName: '거래처', field: 'vendors', width: 130,
       headerClass: 'ag-left-header',
       cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-start', fontWeight:600 },
       cellRenderer: function(p) { return ts(p.value?.vendor_name || '-'); }
+    },
+    { headerName: '요청부서', field: '_deptNames', flex: 1, minWidth: 100,
+      headerClass: 'ag-left-header',
+      cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-start', color:'#6b7280' },
+      cellRenderer: function(p) { return ts(p.value || '-'); }
     },
     { headerName: '발주일', field: 'order_date', width: 95,
       cellRenderer: function(p) { return fmtDate(p.value); }
@@ -220,7 +225,7 @@ async function loadReceiptPoList() {
   showGlobalLoading('발주서 목록을 불러오는 중...');
   try {
     var q = supabaseClient.from('purchase_orders')
-      .select('id, order_no, order_date, status, vendors(vendor_name)')
+      .select('id, order_no, order_date, status, vendors(vendor_name), purchase_order_items(purchase_request_items(purchase_requests(departments(dept_name))))')
       .order('order_date', { ascending: false });
 
     if (status) q = q.eq('status', status);
@@ -235,6 +240,15 @@ async function loadReceiptPoList() {
       if (!keyword) return true;
       return r.order_no.toLowerCase().includes(keyword.toLowerCase()) ||
              (r.vendors?.vendor_name || '').toLowerCase().includes(keyword.toLowerCase());
+    }).map(function(r) {
+      // 요청부서 추출 (중복 제거)
+      var deptSet = {};
+      (r.purchase_order_items || []).forEach(function(poi) {
+        var deptName = poi.purchase_request_items?.purchase_requests?.departments?.dept_name;
+        if (deptName) deptSet[deptName] = true;
+      });
+      r._deptNames = Object.keys(deptSet).join(', ') || '-';
+      return r;
     });
 
     if (!_gridReceiptPo) initReceiptPoGrid();
@@ -906,6 +920,7 @@ async function syncLinkedRequestStatuses(orderId) {
 ══════════════════════════════════════════ */
 var _gridDispatchItem = null;
 var _dispatchRowId    = 0;
+var _deptOptions      = [];  // [{id, name}] 불출부서 선택용
 
 function initDispatchItemGrid() {
   var el = document.getElementById('dispatchItemGrid');
@@ -917,7 +932,24 @@ function initDispatchItemGrid() {
       headerClass: 'ag-left-header',
       cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-start', fontWeight:600 }
     },
-    { headerName: '단위', field: 'use_unit', width: 65,
+    { headerName: '불출부서', field: 'dept_name', width: 110,
+      headerClass: 'ag-left-header',
+      editable: true, singleClickEdit: true,
+      cellEditor: 'agSelectCellEditor',
+      cellEditorParams: function() {
+        return { values: _deptOptions.map(function(d){ return d.name; }) };
+      },
+      cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-start', color:'#2563eb' },
+      cellRenderer: function(p) {
+        return p.value ? '<span style="color:#2563eb;">' + p.value + '</span>'
+                       : '<span style="color:#d1d5db;">부서 선택</span>';
+      },
+      onCellValueChanged: function(p) {
+        var dept = _deptOptions.find(function(d){ return d.name === p.newValue; });
+        if (dept) p.node.setDataValue('dept_id', dept.id);
+      }
+    },
+    { headerName: '단위', field: 'use_unit', width: 60,
       cellStyle: { display:'flex', alignItems:'center', justifyContent:'center', color:'#6b7280' }
     },
     { headerName: '재고', field: 'current_qty', width: 90,
@@ -949,7 +981,7 @@ function initDispatchItemGrid() {
       cellStyle: { display:'flex', alignItems:'center', justifyContent:'center', padding:'0' },
       cellRenderer: function(p) {
         var btn = document.createElement('button');
-        btn.style.cssText = 'width:26px;height:22px;border:none;background:none;color:#ef4444;font-size:16px;cursor:pointer;';
+        btn.style.cssText = 'width:26px;height:26px;border:none;background:none;color:#ef4444;font-size:16px;cursor:pointer;line-height:1;display:flex;align-items:center;justify-content:center;';
         btn.textContent = '×';
         btn.onclick = function() {
           removeDispatchItemRow(p.data._rowId);
@@ -960,7 +992,6 @@ function initDispatchItemGrid() {
   ];
 
   _gridDispatchItem = agGrid.createGrid(el, {
-    suppressCellFocus: true,
     suppressPropertyNamesCheck: true,
     columnDefs: colDefs,
     rowData: [],
@@ -968,6 +999,7 @@ function initDispatchItemGrid() {
     headerHeight: 34,
     suppressHorizontalScroll: true,
     stopEditingWhenCellsLoseFocus: true,
+    singleClickEdit: true,
     defaultColDef: {
       sortable: false, resizable: true, suppressMovable: true,
       cellStyle: { display:'flex', alignItems:'center', justifyContent:'center' },
@@ -996,6 +1028,8 @@ function addDispatchItemRow(stockRow) {
     purchase_unit_qty: stockRow.purchase_unit_qty || 1,
     current_qty:       stockRow.qty,
     qty:               1,
+    dept_id:           stockRow.dept_id   || '',
+    dept_name:         stockRow.dept_name || '',
   }]});
   updateDispatchSummary();
 }
@@ -1227,12 +1261,14 @@ async function saveDispatch() {
 
       // stock_dispatch 기록
       var dispatchNo = await genDocNo('SD');
+      var itemDeptId = item.dept_id || deptId;
+      if (!itemDeptId) throw new Error(item.item_name + '의 불출 부서를 선택해주세요.');
       var { data: newDispatch, error: de } = await supabaseClient.from('stock_dispatch').insert({
         dispatch_no:   dispatchNo,
         item_id:       item.item_id,
-        dept_id:       deptId,
+        dept_id:       itemDeptId,
         dispatch_date: dispatchDate,
-        qty:           item.qty,
+        dispatch_qty:  item.qty,
         use_unit:      item.use_unit,
         created_by:    userId,
       }).select().single();
@@ -1240,8 +1276,8 @@ async function saveDispatch() {
 
       // stock_transactions (중앙창고 OUT + 부서 IN)
       var txs = [
-        { item_id: item.item_id, dept_id: null,   tx_type:'OUT', tx_date: dispatchDate, qty: -item.qty, use_unit: item.use_unit, ref_type:'dispatch', ref_id: newDispatch.id, created_by: userId },
-        { item_id: item.item_id, dept_id: deptId, tx_type:'IN',  tx_date: dispatchDate, qty:  item.qty, use_unit: item.use_unit, ref_type:'dispatch', ref_id: newDispatch.id, created_by: userId },
+        { item_id: item.item_id, dept_id: null,       tx_type:'OUT', tx_date: dispatchDate, qty: -item.qty, use_unit: item.use_unit, ref_type:'dispatch', ref_id: newDispatch.id, created_by: userId },
+        { item_id: item.item_id, dept_id: itemDeptId, tx_type:'IN',  tx_date: dispatchDate, qty:  item.qty, use_unit: item.use_unit, ref_type:'dispatch', ref_id: newDispatch.id, created_by: userId },
       ];
       var { error: te } = await supabaseClient.from('stock_transactions').insert(txs);
       if (te) throw new Error('재고 이동 실패: ' + te.message);
@@ -1489,6 +1525,7 @@ async function loadCaches() {
 
   // 부서 select 채우기 (필터들 + 모달)
   var deptOpts = deptCache.map(function(d) { return '<option value="' + d.id + '">' + ts(d.dept_name) + '</option>'; }).join('');
+  _deptOptions = (depts || []).map(function(d){ return { id: d.id, name: d.dept_name }; });
   ['dispatchDeptFilter', 'd_dept_id', 'deptStockDeptFilter', 'dispatchDeptTarget'].forEach(function(id) {
     var el = document.getElementById(id);
     if (!el) return;
