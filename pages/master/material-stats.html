@@ -26,272 +26,186 @@
     });
   </script>
   <style>
-    html, body { height: 100%; margin: 0; }
-    body { background: #f0f2f5; }
+    html, body { height:100%; margin:0; background:#f0f2f5; }
 
-    /* 로딩 중 숨김 */
-    .ms-filter-bar, .ms-tabs, .ms-content { visibility: hidden; }
-    body.page-ready .ms-filter-bar,
-    body.page-ready .ms-tabs,
-    body.page-ready .ms-content { visibility: visible; }
-
-    /* ── 전체 페이지 ── */
     .ms-page {
-      display: flex;
-      flex-direction: column;
-      height: 100vh;
-      overflow: hidden;
-      padding: 4px 12px 14px;
-      gap: 4px;
-      box-sizing: border-box;
-    }
-    .ms-page > :empty { display: none; }
-
-    /* ── 필터 바 ── */
-    .ms-filter-bar {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      background: #fff;
-      border: 1px solid #e5e7eb;
-      border-radius: 8px;
-      padding: 7px 12px;
-      flex-shrink: 0;
-      height: 40px;
-      box-sizing: border-box;
-    }
-    .ms-filter-form {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      flex: 1;
-      min-width: 0;
-    }
-    .ms-filter-keyword {
-      position: relative;
-      flex: 1.5;
-      min-width: 0;
-    }
-    .ms-filter-icon {
-      position: absolute;
-      left: 9px; top: 50%;
-      transform: translateY(-50%);
-      font-size: 13px;
-      color: #9ca3af;
-      pointer-events: none;
-    }
-    .ms-filter-input {
-      width: 100% !important;
-      height: 30px !important;
-      padding: 0 10px 0 30px !important;
-      border: 1px solid #e5e7eb;
-      border-radius: 6px;
-      background: #f9fafb;
-      font-size: 12px !important;
-      color: #111827;
-      outline: none;
-      box-sizing: border-box !important;
-    }
-    .ms-filter-input:focus { border-color: #2563eb; background: #fff; }
-    .ms-filter-input::placeholder { color: #9ca3af; }
-    .ms-filter-select {
-      height: 30px;
-      padding: 0 22px 0 8px;
-      border: 1px solid #e5e7eb;
-      border-radius: 6px;
-      background: #f9fafb url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23adb5bd' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 7px center;
-      font-size: 12px;
-      color: #374151;
-      outline: none;
-      cursor: pointer;
-      flex: 1;
-      min-width: 80px;
-      max-width: 120px;
-      appearance: none;
-      -webkit-appearance: none;
-    }
-    .ms-filter-select:focus { border-color: #2563eb; background-color: #fff; }
-    .ms-filter-date {
-      height: 30px;
-      padding: 0 8px;
-      border: 1px solid #e5e7eb;
-      border-radius: 6px;
-      background: #f9fafb;
-      font-size: 12px;
-      color: #374151;
-      outline: none;
-      min-width: 108px;
-      max-width: 120px;
-      box-sizing: border-box;
-    }
-    .ms-filter-date:focus { border-color: #2563eb; background: #fff; }
-    .ms-filter-sep { font-size: 11px; color: #9ca3af; flex-shrink: 0; }
-    .ms-filter-btn {
-      height: 30px;
-      padding: 0 12px;
-      font-size: 12px;
-      border-radius: 6px;
-      white-space: nowrap;
-      flex-shrink: 0;
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
+      display:flex; flex-direction:column; height:100vh;
+      padding:10px 16px; gap:8px; box-sizing:border-box; overflow:hidden;
     }
 
-    /* ── 탭 ── */
-    .ms-tabs {
-      display: flex;
-      align-items: flex-end;
-      gap: 2px;
-      flex-shrink: 0;
-      height: 34px;
-      padding: 0 2px;
-      box-sizing: border-box;
+    /* ── 메인 탭 ── */
+    .po-main-tabs {
+      display:flex; gap:2px; background:#e5e7eb;
+      border-radius:8px; padding:3px; flex-shrink:0;
     }
-    .ms-tab {
-      height: 30px;
-      padding: 0 16px;
-      border: 1px solid #e5e7eb;
-      border-bottom: none;
-      border-radius: 6px 6px 0 0;
-      background: #f0f2f5;
-      font-size: 12px;
-      font-weight: 500;
-      color: #6b7280;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      transition: background 0.15s, color 0.15s;
-      white-space: nowrap;
+    .po-main-tabs .tab-btn {
+      flex:1; height:32px; border:none; background:transparent;
+      border-radius:6px; font-size:12px; font-weight:600; color:#6b7280; cursor:pointer;
+      transition:background 0.15s, color 0.15s;
     }
-    .ms-tab:hover { background: #e9ebef; color: #374151; }
-    .ms-tab.is-active {
-      background: #fff;
-      color: #111827;
-      font-weight: 700;
-      border-color: #e5e7eb;
-      position: relative;
-      z-index: 1;
-    }
-    .ms-tab i { font-size: 13px; }
+    .po-main-tabs .tab-btn:hover { background:rgba(255,255,255,0.6); color:#374151; }
+    .po-main-tabs .tab-btn.active { background:#fff; color:#111827; box-shadow:0 1px 3px rgba(0,0,0,0.08); }
 
-    /* ── 콘텐츠 영역 ── */
-    .ms-content {
-      flex: 1;
-      min-height: 0;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-      border: 1px solid #e5e7eb;
-      border-radius: 0 8px 8px 8px;
-      background: #fff;
-    }
-    .ms-tab-panel {
-      display: none;
-      flex: 1;
-      min-height: 0;
-      flex-direction: column;
-    }
-    .ms-tab-panel.is-active { display: flex; }
+    .po-main-content { flex:1; min-height:0; position:relative; }
+    .po-main-panel { display:none; position:absolute; inset:0; flex-direction:column; gap:8px; }
+    .po-main-panel.active { display:flex; }
 
-    /* ── 그리드 ── */
-    .ms-grid { flex: 1; min-height: 0; width: 100%; }
-    .ag-theme-alpine .ag-root-wrapper { border-radius: 0; border: none; }
-    .ag-theme-alpine .ag-body-viewport { height: calc(100% + 1px) !important; }
+    /* ── 액션바 (검색바) ── */
+    .po-actionbar {
+      display:flex; align-items:center; gap:8px;
+      background:#fff; border:1px solid #e5e7eb; border-radius:8px;
+      padding:7px 12px; flex-shrink:0; height:44px; box-sizing:border-box;
+    }
+    .po-actionbar select {
+      height:28px; padding:0 22px 0 8px; border:1px solid #e5e7eb;
+      border-radius:6px; font-size:12px; outline:none; background:#fff;
+      appearance:none; -webkit-appearance:none;
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23adb5bd' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat:no-repeat; background-position:right 7px center;
+      min-width:90px; max-width:120px; cursor:pointer;
+    }
+    .po-actionbar select:focus { border-color:#2563eb; }
+    .po-actionbar input[type=date] {
+      height:28px; padding:0 8px; border:1px solid #e5e7eb;
+      border-radius:6px; font-size:12px; outline:none; background:#fff;
+      width:120px; flex-shrink:0;
+    }
+    .po-actionbar input[type=date]:focus { border-color:#2563eb; }
+    .po-actionbar input[type=text] {
+      height:28px; padding:0 10px; border:1px solid #e5e7eb;
+      border-radius:6px; font-size:12px; outline:none; background:#fff;
+      flex:1; min-width:0;
+    }
+    .po-actionbar input[type=text]:focus { border-color:#2563eb; }
+    .pr-divider { width:1px; height:20px; background:#d1d5db; flex-shrink:0; margin:0 2px; }
 
-    /* ── 페이지네이션 ── */
-    .ms-pagination {
-      flex-shrink: 0;
-      height: 28px;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: 2px;
-      padding: 2px 0;
-      border-top: 1px solid #f0f0f0;
-      box-sizing: border-box;
+    /* ── 카드 ── */
+    .m-card {
+      background:#fff; border:1px solid #e5e7eb; border-radius:8px;
+      display:flex; flex-direction:column; flex:1; min-height:0; overflow:hidden;
+    }
+    .m-card-head {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:8px 14px; background:#f8fafc; border-bottom:1px solid #e5e7eb; flex-shrink:0;
+    }
+    .m-card-title { font-size:12px; font-weight:700; color:#374151; }
+    .m-card-body  { flex:1; min-height:0; display:flex; flex-direction:column; overflow:hidden; }
+    .m-table-wrap { flex:1; min-height:0; }
+    .pagination-area {
+      padding:4px 14px; flex-shrink:0;
+      display:flex; justify-content:center; border-top:1px solid #f3f4f6;
+      min-height:32px; align-items:center;
     }
   </style>
 </head>
-<body class="material-stats-page">
+<body>
+<div class="ms-page">
 
-  <div class="ms-page">
+  <!-- 메인 탭 -->
+  <div class="po-main-tabs">
+    <button class="tab-btn active" data-tab="receipt">입고 데이터</button>
+    <button class="tab-btn" data-tab="use">사용 데이터</button>
+    <button class="tab-btn" data-tab="ledger">원재료 수불부</button>
+  </div>
 
-    <!-- 필터 바 -->
-    <div class="ms-filter-bar">
-      <form id="statsFilterForm" class="ms-filter-form">
-        <select id="sf_clinic"   class="ms-filter-select"></select>
-        <select id="sf_dept"     class="ms-filter-select"></select>
-        <select id="sf_category" class="ms-filter-select"></select>
-        <input type="date" id="sf_date_from" class="ms-filter-date" />
-        <span class="ms-filter-sep">~</span>
-        <input type="date" id="sf_date_to"   class="ms-filter-date" />
-        <div class="ms-filter-keyword">
-          <i class="ti ti-search ms-filter-icon" aria-hidden="true"></i>
-          <input type="text" id="sf_keyword" class="ms-filter-input"
-            placeholder="자재명 검색..." autocomplete="off" />
+  <div class="po-main-content">
+
+    <!-- 입고 데이터 패널 -->
+    <div id="panel-receipt" class="po-main-panel active">
+      <div class="po-actionbar">
+        <select id="r_clinic"></select>
+        <select id="r_dept"></select>
+        <select id="r_category"></select>
+        <div class="pr-divider"></div>
+        <input type="date" id="r_date_from" />
+        <span style="font-size:11px;color:#9ca3af;flex-shrink:0;">~</span>
+        <input type="date" id="r_date_to" />
+        <div class="pr-divider"></div>
+        <input type="text" id="r_keyword" placeholder="자재명 검색..." />
+        <button class="btn btn-sm btn-primary" id="r_search_btn"><i class="ti ti-search"></i> 조회</button>
+        <button class="btn btn-sm" id="r_reset_btn">초기화</button>
+      </div>
+      <div class="m-card">
+        <div class="m-card-head">
+          <span class="m-card-title">입고 데이터</span>
         </div>
-        <button type="submit" class="btn btn-primary ms-filter-btn">
-          <i class="ti ti-search" aria-hidden="true"></i> 조회
-        </button>
-        <button type="button" class="btn ms-filter-btn" id="sf_reset">초기화</button>
-      </form>
+        <div class="m-card-body">
+          <div id="grid-receipt" class="m-table-wrap ag-theme-alpine"></div>
+        </div>
+        <div class="pagination-area" id="page-receipt"></div>
+      </div>
     </div>
 
-    <!-- 탭 -->
-    <div class="ms-tabs">
-      <button class="ms-tab is-active" data-tab="receipt">
-        <i class="ti ti-package-import"></i> 입고 데이터
-      </button>
-      <button class="ms-tab" data-tab="use">
-        <i class="ti ti-package-export"></i> 사용 데이터
-      </button>
-      <button class="ms-tab" data-tab="ledger">
-        <i class="ti ti-list-details"></i> 원재료 수불부
-      </button>
+    <!-- 사용 데이터 패널 -->
+    <div id="panel-use" class="po-main-panel">
+      <div class="po-actionbar">
+        <select id="u_clinic"></select>
+        <select id="u_dept"></select>
+        <select id="u_category"></select>
+        <div class="pr-divider"></div>
+        <input type="date" id="u_date_from" />
+        <span style="font-size:11px;color:#9ca3af;flex-shrink:0;">~</span>
+        <input type="date" id="u_date_to" />
+        <div class="pr-divider"></div>
+        <input type="text" id="u_keyword" placeholder="자재명 검색..." />
+        <button class="btn btn-sm btn-primary" id="u_search_btn"><i class="ti ti-search"></i> 조회</button>
+        <button class="btn btn-sm" id="u_reset_btn">초기화</button>
+      </div>
+      <div class="m-card">
+        <div class="m-card-head">
+          <span class="m-card-title">사용 데이터</span>
+        </div>
+        <div class="m-card-body">
+          <div id="grid-use" class="m-table-wrap ag-theme-alpine"></div>
+        </div>
+        <div class="pagination-area" id="page-use"></div>
+      </div>
     </div>
 
-    <!-- 콘텐츠 -->
-    <div class="ms-content">
-
-      <!-- 입고 데이터 -->
-      <div id="panel-receipt" class="ms-tab-panel is-active">
-        <div id="grid-receipt" class="ms-grid ag-theme-alpine"></div>
-        <div id="page-receipt" class="ms-pagination"></div>
+    <!-- 원재료 수불부 패널 -->
+    <div id="panel-ledger" class="po-main-panel">
+      <div class="po-actionbar">
+        <select id="l_clinic"></select>
+        <select id="l_dept"></select>
+        <select id="l_category"></select>
+        <div class="pr-divider"></div>
+        <input type="date" id="l_date_from" />
+        <span style="font-size:11px;color:#9ca3af;flex-shrink:0;">~</span>
+        <input type="date" id="l_date_to" />
+        <div class="pr-divider"></div>
+        <input type="text" id="l_keyword" placeholder="자재명 검색..." />
+        <button class="btn btn-sm btn-primary" id="l_search_btn"><i class="ti ti-search"></i> 조회</button>
+        <button class="btn btn-sm" id="l_reset_btn">초기화</button>
       </div>
-
-      <!-- 사용 데이터 -->
-      <div id="panel-use" class="ms-tab-panel">
-        <div id="grid-use" class="ms-grid ag-theme-alpine"></div>
-        <div id="page-use" class="ms-pagination"></div>
+      <div class="m-card">
+        <div class="m-card-head">
+          <span class="m-card-title">원재료 수불부</span>
+        </div>
+        <div class="m-card-body">
+          <div id="grid-ledger" class="m-table-wrap ag-theme-alpine"></div>
+        </div>
+        <div class="pagination-area" id="page-ledger"></div>
       </div>
-
-      <!-- 원재료 수불부 -->
-      <div id="panel-ledger" class="ms-tab-panel">
-        <div id="grid-ledger" class="ms-grid ag-theme-alpine"></div>
-        <div id="page-ledger" class="ms-pagination"></div>
-      </div>
-
     </div>
 
   </div>
+</div>
 
-  <script src="../../assets/libs/supabase.js"></script>
-  <script src="../../assets/js/core/config.js"></script>
-  <script src="../../assets/js/core/utils.js"></script>
-  <script src="../../assets/js/core/supabase.js"></script>
-  <script src="../../assets/js/core/auth.js"></script>
-  <script src="../../assets/js/core/db.js"></script>
+<script src="../../assets/libs/supabase.js"></script>
+<script src="../../assets/js/core/config.js"></script>
+<script src="../../assets/js/core/utils.js"></script>
+<script src="../../assets/js/core/supabase.js"></script>
+<script src="../../assets/js/core/auth.js"></script>
+<script src="../../assets/js/core/db.js"></script>
 
-  <div id="globalLoading" aria-hidden="true">
-    <div class="global-loading__dialog">
-      <div class="global-loading__spinner" aria-hidden="true"></div>
-      <div class="global-loading__text" id="globalLoadingText">불러오는 중...</div>
-    </div>
+<div id="globalLoading" aria-hidden="true">
+  <div class="global-loading__dialog">
+    <div class="global-loading__spinner" aria-hidden="true"></div>
+    <div class="global-loading__text" id="globalLoadingText">불러오는 중...</div>
   </div>
+</div>
 
-  <script src="../../assets/libs/ag-grid/ag-grid-community.min.js"></script>
-  <script src="../../assets/js/master/material-stats.js"></script>
+<script src="../../assets/libs/ag-grid/ag-grid-community.min.js"></script>
+<script src="../../assets/js/master/material-stats.js"></script>
 </body>
 </html>
