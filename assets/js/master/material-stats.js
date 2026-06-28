@@ -278,7 +278,11 @@ async function loadLedgerData(page, f) {
       inMap[r.item_id]  = (inMap[r.item_id]  ||0)+(r.qty||0);
       inAmtMap[r.item_id]  = (inAmtMap[r.item_id] ||0)+amt;
     }
-    if (r.tx_type==='OUT' && (deptFilter || r.ref_type==='use')) {
+    if (r.tx_type==='OUT' && r.ref_type==='dispatch_cancel') {
+      // 불출취소는 부서 관점에서도 '사용'이 아니라 보정(취소)이므로 조정으로 분류
+      adjMap[r.item_id] = (adjMap[r.item_id] ||0)-Math.abs(r.qty||0);
+      adjAmtMap[r.item_id] = (adjAmtMap[r.item_id]||0)-amt;
+    } else if (r.tx_type==='OUT' && (deptFilter || r.ref_type==='use')) {
       outMap[r.item_id] = (outMap[r.item_id] ||0)+Math.abs(r.qty||0);
       outAmtMap[r.item_id] = (outAmtMap[r.item_id]||0)+amt;
     }
