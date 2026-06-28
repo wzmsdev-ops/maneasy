@@ -225,7 +225,7 @@ async function loadReceiptPoList() {
   showGlobalLoading('발주서 목록을 불러오는 중...');
   try {
     var q = supabaseClient.from('purchase_orders')
-      .select('id, order_no, order_date, status, vendors(vendor_name)')
+      .select('id, order_no, order_date, status, request_id, vendors(vendor_name)')
       .order('order_date', { ascending: false });
 
     if (status) q = q.eq('status', status);
@@ -242,39 +242,20 @@ async function loadReceiptPoList() {
              (r.vendors?.vendor_name || '').toLowerCase().includes(keyword.toLowerCase());
     });
 
-    // 요청부서 조회 (2단계)
+    // 요청부서 — request_id → purchase_requests → departments 직접 join
     if (rows.length) {
-      var poIds = rows.map(function(r) { return r.id; });
-
-      // 1단계: purchase_order_items → order_item_id 목록
-      var { data: poiData } = await supabaseClient
-        .from('purchase_order_items')
-        .select('id, order_id')
-        .in('order_id', poIds);
-
-      var poiIds = (poiData || []).map(function(p) { return p.id; });
-      var poiOrderMap = {};
-      (poiData || []).forEach(function(p) { poiOrderMap[p.id] = p.order_id; });
-
-      // 2단계: purchase_request_items → purchase_requests → departments
-      if (poiIds.length) {
-        var { data: priData } = await supabaseClient
-          .from('purchase_request_items')
-          .select('order_item_id, purchase_requests(departments(dept_name))')
-          .in('order_item_id', poiIds);
-
-        var deptMap = {};
-        (priData || []).forEach(function(pri) {
-          var orderId = poiOrderMap[pri.order_item_id];
-          var deptName = pri.purchase_requests?.departments?.dept_name;
-          if (orderId && deptName) {
-            if (!deptMap[orderId]) deptMap[orderId] = {};
-            deptMap[orderId][deptName] = true;
-          }
+      var reqIds = rows.map(function(r) { return r.request_id; }).filter(Boolean);
+      if (reqIds.length) {
+        var { data: reqData } = await supabaseClient
+          .from('purchase_requests')
+          .select('id, departments(dept_name)')
+          .in('id', reqIds);
+        var reqDeptMap = {};
+        (reqData || []).forEach(function(r) {
+          reqDeptMap[r.id] = r.departments?.dept_name || '-';
         });
-
         rows.forEach(function(r) {
-          r._deptNames = deptMap[r.id] ? Object.keys(deptMap[r.id]).join(', ') : '-';
+          r._deptNames = r.request_id ? (reqDeptMap[r.request_id] || '-') : '-';
         });
       }
     }
@@ -1191,55 +1172,40 @@ async function loadDispatchStock() {
       };
     });
 
-    // 요청부서 조회 (2단계)
+    // 요청부서 — stock_receipts → purchase_orders(request_id) → departments
     if (rawRows.length) {
-      var itemIds = rawRows.map(function(r) { return r.item_id; });
-
-      // 1단계: stock_receipts → order_id 목록
+      var itemIds2 = rawRows.map(function(r) { return r.item_id; });
       var { data: rcptData } = await supabaseClient
         .from('stock_receipts')
         .select('item_id, order_id')
-        .in('item_id', itemIds)
+        .in('item_id', itemIds2)
         .not('order_id', 'is', null);
 
       var orderIds = [...new Set((rcptData||[]).map(function(r){ return r.order_id; }).filter(Boolean))];
-      var rcptItemOrderMap = {};
-      (rcptData||[]).forEach(function(r){ if(r.order_id) rcptItemOrderMap[r.order_id] = r.item_id; });
+      var itemByOrder = {};
+      (rcptData||[]).forEach(function(r){ if(r.order_id) itemByOrder[r.order_id] = r.item_id; });
 
       if (orderIds.length) {
-        // 2단계: purchase_order_items → purchase_request_items → departments
-        var { data: poiData2 } = await supabaseClient
-          .from('purchase_order_items')
-          .select('id, order_id')
-          .in('order_id', orderIds);
+        var { data: poData } = await supabaseClient
+          .from('purchase_orders')
+          .select('id, request_id, purchase_requests(departments(dept_name))')
+          .in('id', orderIds);
 
-        var poiIds2 = (poiData2||[]).map(function(p){ return p.id; });
-        var poi2OrderMap = {};
-        (poiData2||[]).forEach(function(p){ poi2OrderMap[p.id] = p.order_id; });
+        var itemDeptMap = {};
+        (poData||[]).forEach(function(po) {
+          var itemId   = itemByOrder[po.id];
+          var deptName = po.purchase_requests?.departments?.dept_name;
+          if (itemId && deptName) {
+            if (!itemDeptMap[itemId]) itemDeptMap[itemId] = {};
+            itemDeptMap[itemId][deptName] = true;
+          }
+        });
 
-        if (poiIds2.length) {
-          var { data: priData2 } = await supabaseClient
-            .from('purchase_request_items')
-            .select('order_item_id, purchase_requests(departments(dept_name))')
-            .in('order_item_id', poiIds2);
-
-          var itemDeptMap = {};
-          (priData2||[]).forEach(function(pri) {
-            var orderId = poi2OrderMap[pri.order_item_id];
-            var itemId  = rcptItemOrderMap[orderId];
-            var deptName = pri.purchase_requests?.departments?.dept_name;
-            if (itemId && deptName) {
-              if (!itemDeptMap[itemId]) itemDeptMap[itemId] = {};
-              itemDeptMap[itemId][deptName] = true;
-            }
-          });
-
-          rawRows.forEach(function(r) {
-            if (itemDeptMap[r.item_id]) {
-              r._reqDepts = Object.keys(itemDeptMap[r.item_id]).join(', ');
-            }
-          });
-        }
+        rawRows.forEach(function(r) {
+          if (itemDeptMap[r.item_id]) {
+            r._reqDepts = Object.keys(itemDeptMap[r.item_id]).join(', ');
+          }
+        });
       }
     }
 
