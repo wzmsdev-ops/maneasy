@@ -45,17 +45,57 @@ const PAGE_GROUPS = [
   ]},
 ];
 
-// app.html의 기존 role 기반 사이드바 노출 로직과 동일한 기본값
-const ROLE_BASE_PAGES = [
-  'equipment/dashboard', 'equipment/list', 'equipment/detail',
-  'qc/items', 'qc/data',
-  'master/purchase-request', 'master/use-stock', 'master/material-stats',
-];
+// 역할별 기본 page_perms (페이지키: 최소접근등급)
 const ROLE_DEFAULT_PAGES = {
-  user:    [...ROLE_BASE_PAGES],
-  edit:    [...ROLE_BASE_PAGES, 'equipment/form'],
-  manager: [...ROLE_BASE_PAGES, 'equipment/form', 'master/procurement', 'master/stock'],
-  admin:   [...ROLE_BASE_PAGES, 'equipment/form', 'master/procurement', 'master/stock', 'master/org', 'master/supply'],
+  user: {
+    'equipment/dashboard':      'user',
+    'equipment/list':           'user',
+    'equipment/detail':         'user',
+    'qc/items':                 'user',
+    'qc/data':                  'user',
+    'master/purchase-request':  'user',
+    'master/use-stock':         'user',
+    'master/material-stats':    'user',
+  },
+  edit: {
+    'equipment/dashboard':      'user',
+    'equipment/list':           'user',
+    'equipment/detail':         'user',
+    'equipment/form':           'edit',
+    'qc/items':                 'user',
+    'qc/data':                  'user',
+    'master/purchase-request':  'user',
+    'master/use-stock':         'user',
+    'master/material-stats':    'user',
+  },
+  manager: {
+    'equipment/dashboard':      'user',
+    'equipment/list':           'user',
+    'equipment/detail':         'user',
+    'equipment/form':           'edit',
+    'qc/items':                 'user',
+    'qc/data':                  'user',
+    'master/purchase-request':  'user',
+    'master/use-stock':         'user',
+    'master/procurement':       'manager',
+    'master/stock':             'manager',
+    'master/material-stats':    'user',
+  },
+  admin: {
+    'equipment/dashboard':      'user',
+    'equipment/list':           'user',
+    'equipment/detail':         'user',
+    'equipment/form':           'edit',
+    'qc/items':                 'user',
+    'qc/data':                  'user',
+    'master/purchase-request':  'user',
+    'master/use-stock':         'user',
+    'master/procurement':       'manager',
+    'master/stock':             'manager',
+    'master/material-stats':    'user',
+    'master/org':               'admin',
+    'master/supply':            'admin',
+  },
 };
 
 /* ── 유틸 ─────────────────────────────────── */
@@ -480,47 +520,127 @@ async function approveUser(id) {
 }
 window.approveUser = approveUser;
 
-/** 앱 접근 권한 체크박스 목록 렌더링 */
-function renderUserPermBody(checkedKeys, disabled) {
-  const body = document.getElementById('userPermBody');
-  if (!body) return;
-  body.innerHTML = PAGE_GROUPS.map(group => `
-    <div class="u-perm-app">
-      <div class="u-perm-app-title">${ts(group.app)}</div>
-      <div class="u-perm-pages">
-        ${group.pages.map(p => `
-          <label class="u-perm-page-row${disabled ? ' is-disabled' : ''}">
-            <input type="checkbox" class="u-perm-checkbox" value="${p.key}"
-              ${checkedKeys.includes(p.key) ? 'checked' : ''} ${disabled ? 'disabled' : ''} />
-            ${ts(p.label)}
-          </label>
-        `).join('')}
-      </div>
-    </div>
-  `).join('');
+/** 권한 레벨 옵션 */
+const PERM_LEVELS = ['접근불가', 'user', 'edit', 'manager', 'admin'];
+const PERM_COLORS = {
+  '접근불가': '#dc2626',
+  'user':     '#6b7280',
+  'edit':     '#7c3aed',
+  'manager':  '#d97706',
+  'admin':    '#2563eb',
+};
+
+let _gridUserPerm = null;
+
+/** 앱 접근 권한 AG Grid 렌더링 */
+function renderUserPermBody(pagePerms, disabled) {
+  // pagePerms: { "page/key": "user"|"edit"|"manager"|"admin" } 또는 레거시 배열
+  // 레거시 배열 호환
+  let permMap = {};
+  if (Array.isArray(pagePerms)) {
+    pagePerms.forEach(k => { permMap[k] = 'user'; });
+  } else if (pagePerms && typeof pagePerms === 'object') {
+    permMap = { ...pagePerms };
+  }
+
+  // 행 데이터 생성
+  const rows = [];
+  PAGE_GROUPS.forEach(group => {
+    group.pages.forEach(p => {
+      rows.push({
+        _key:   p.key,
+        app:    group.app,
+        label:  p.label,
+        level:  permMap[p.key] || '접근불가',
+      });
+    });
+  });
+
+  const el = document.getElementById('userPermGrid');
+  if (!el) return;
+
+  const colDefs = [
+    { headerName: '앱', field: 'app', width: 110, rowGroup: false,
+      headerClass: 'ag-left-header',
+      cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-start',
+                   fontSize:'11px', color:'#6b7280', fontWeight:600 },
+    },
+    { headerName: '페이지', field: 'label', flex: 1,
+      headerClass: 'ag-left-header',
+      cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-start', fontSize:'12px' },
+    },
+    { headerName: '접근 권한', field: 'level', width: 150,
+      editable: !disabled,
+      cellEditor: 'agSelectCellEditor',
+      cellEditorParams: { values: PERM_LEVELS },
+      cellRenderer: function(p) {
+        const v = p.value || '접근불가';
+        const color = PERM_COLORS[v] || '#6b7280';
+        return `<span style="display:inline-flex;align-items:center;gap:5px;">
+          <span style="width:8px;height:8px;border-radius:50%;background:${color};flex-shrink:0;"></span>
+          <span style="color:${color};font-weight:600;font-size:11px;">${v}</span>
+        </span>`;
+      },
+    },
+  ];
+
+  if (_gridUserPerm) {
+    _gridUserPerm.setGridOption('rowData', rows);
+    _gridUserPerm.setGridOption('columnDefs', colDefs);
+    return;
+  }
+
+  _gridUserPerm = agGrid.createGrid(el, {
+    columnDefs: colDefs,
+    rowData: rows,
+    rowHeight: 34,
+    headerHeight: 34,
+    suppressCellFocus: false,
+    suppressHorizontalScroll: false,
+    stopEditingWhenCellsLoseFocus: true,
+    singleClickEdit: true,
+    defaultColDef: {
+      sortable: false, resizable: true, suppressMovable: true,
+      cellStyle: { display:'flex', alignItems:'center', justifyContent:'center' },
+    },
+    onGridReady: function(p) {
+      setTimeout(() => { if (el.offsetWidth > 0) p.api.sizeColumnsToFit(); }, 50);
+    },
+  });
 }
 
-/** 역할 select가 바뀌면 — "기본값 사용" 체크 상태일 때만 그 역할의 기본 권한으로 미리보기 갱신 */
+/** 현재 그리드에서 page_perms 객체 추출 */
+function getPagePermsFromGrid() {
+  if (!_gridUserPerm) return {};
+  const result = {};
+  _gridUserPerm.forEachNode(function(node) {
+    if (node.data.level && node.data.level !== '접근불가') {
+      result[node.data._key] = node.data.level;
+    }
+  });
+  return result;
+}
+
+/** 역할 select가 바뀌면 */
 function onUserRoleChange() {
-  const roleLabelMap = { admin: 'admin', edit: 'edit', manager: 'manager', user: 'user' };
   const role = val('u_role') || 'user';
-  document.getElementById('u_perm_roleLabel').textContent = roleLabelMap[role] || role;
+  document.getElementById('u_perm_roleLabel').textContent = role;
   if (document.getElementById('u_perm_useDefault')?.checked) {
-    renderUserPermBody(ROLE_DEFAULT_PAGES[role] || [], true);
+    renderUserPermBody(ROLE_DEFAULT_PAGES[role] || {}, true);
   }
 }
 window.onUserRoleChange = onUserRoleChange;
 
-/** "역할 기본값 사용" 토글 — 켜면 체크박스를 역할 기본값으로 되돌리고 비활성화, 끄면 직접 선택 가능 */
+/** "역할 기본값 사용" 토글 */
 function onUserPermUseDefaultChange() {
   const useDefault = document.getElementById('u_perm_useDefault')?.checked;
   const role = val('u_role') || 'user';
   if (useDefault) {
-    renderUserPermBody(ROLE_DEFAULT_PAGES[role] || [], true);
+    renderUserPermBody(ROLE_DEFAULT_PAGES[role] || {}, true);
   } else {
-    // 직접 선택 모드로 전환 — 지금 보이는(역할 기본값) 체크 상태를 그대로 시작점으로 둠
-    const checked = Array.from(document.querySelectorAll('.u-perm-checkbox:checked')).map(el => el.value);
-    renderUserPermBody(checked, false);
+    // 직접 설정 모드 — 현재 그리드 상태 유지하되 편집 가능하게
+    const cur = getPagePermsFromGrid();
+    renderUserPermBody(cur, false);
   }
 }
 window.onUserPermUseDefaultChange = onUserPermUseDefaultChange;
@@ -545,11 +665,13 @@ function openEditUser(id) {
   const dept = deptCache.find(d => d.dept_code === row.team_code);
   fillDeptSelect('u_dept_select', '선택 안 함', clinic?.id || null, dept?.id || null);
 
-  // 앱 접근 권한 — allowed_pages가 null이면 역할 기본값 사용 모드
-  const useDefault = !row.allowed_pages;
+  // 앱 접근 권한 — page_perms가 비어있으면 역할 기본값 사용 모드
+  const pagePerms = row.page_perms || {};
+  const useDefault = !row.page_perms || Object.keys(pagePerms).length === 0;
   document.getElementById('u_perm_useDefault').checked = useDefault;
   document.getElementById('u_perm_roleLabel').textContent = row.role || '-';
-  renderUserPermBody(useDefault ? (ROLE_DEFAULT_PAGES[row.role] || []) : (row.allowed_pages || []), useDefault);
+  _gridUserPerm = null; // 모달 열 때마다 그리드 재생성
+  renderUserPermBody(useDefault ? (ROLE_DEFAULT_PAGES[row.role] || {}) : pagePerms, useDefault);
 
   document.getElementById('userModalTitle').textContent = '사용자 수정';
   openModal('userModal');
@@ -570,9 +692,7 @@ async function saveUser() {
   const team_name = deptOpt?.dataset.name || '';
 
   const useDefault = document.getElementById('u_perm_useDefault')?.checked;
-  const allowed_pages = useDefault
-    ? null
-    : Array.from(document.querySelectorAll('.u-perm-checkbox:checked')).map(el => el.value);
+  const page_perms = useDefault ? null : getPagePermsFromGrid();
 
   const payload = {
     user_name:   val('u_user_name'),
@@ -584,7 +704,7 @@ async function saveUser() {
     team_name,
     department:  val('u_department'),
     active:      val('u_active'),
-    allowed_pages,
+    page_perms:  page_perms || {},
     updated_at:  new Date().toISOString(),
   };
   const { error } = await supabaseClient.from('user_profiles').update(payload).eq('id', editingUserId);
