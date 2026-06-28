@@ -26,6 +26,7 @@ function msVal(id) {
 }
 function fmtDate(d)  { return d ? String(d).slice(0, 10) : '-'; }
 function fmtNum(n)   { return (n == null || n === '') ? '-' : Number(n).toLocaleString('ko-KR'); }
+function fmtQty2(n)  { return (n == null || n === '') ? '-' : Number(n).toLocaleString('ko-KR', {minimumFractionDigits:2, maximumFractionDigits:2}); }
 
 /* ── 날짜 기본값 (일주일 전 ~ 오늘) ─────────────── */
 function defaultDateRange() {
@@ -146,12 +147,17 @@ function initLedgerGrid() {
     columnDefs: [
       { headerName:'자재구분', field:'category',    width:100 },
       { headerName:'자재명',   field:'item_name',   flex:2,   headerClass:'ag-left-header', cellStyle:{display:'flex',alignItems:'center',justifyContent:'flex-start'} },
-      { headerName:'단위',     field:'use_unit',    width:70 },
-      { headerName:'기초재고', field:'opening_qty', width:100, cellRenderer:function(p){return fmtNum(p.value);} },
-      { headerName:'입고',     field:'in_qty',      width:90,  cellRenderer:function(p){return fmtNum(p.value);} },
-      { headerName:'사용',     field:'out_qty',     width:90,  cellRenderer:function(p){return fmtNum(p.value);} },
-      { headerName:'조정',     field:'adj_qty',     width:80,  cellRenderer:function(p){ var v=p.value||0; return '<span style="color:'+(v>0?'#166534':v<0?'#991b1b':'#6b7280')+'">'+fmtNum(v)+'</span>'; } },
-      { headerName:'잔고',     field:'closing_qty', width:100, cellRenderer:function(p){ var v=p.value||0; return '<span style="font-weight:700;color:'+(v<0?'#991b1b':'#111827')+'">'+fmtNum(v)+'</span>'; } },
+      { headerName:'단위',     field:'purchase_unit',width:70 },
+      { headerName:'기초재고', field:'opening_qty', width:100, cellRenderer:function(p){return fmtQty2(p.value);} },
+      { headerName:'입고',     field:'in_qty',      width:90,  cellRenderer:function(p){return fmtQty2(p.value);} },
+      { headerName:'사용',     field:'out_qty',     width:90,  cellRenderer:function(p){return fmtQty2(p.value);} },
+      { headerName:'조정',     field:'adj_qty',     width:80,  cellRenderer:function(p){ var v=p.value||0; return '<span style="color:'+(v>0?'#166534':v<0?'#991b1b':'#6b7280')+'">'+fmtQty2(v)+'</span>'; } },
+      { headerName:'잔고',     field:'closing_qty', width:100, cellRenderer:function(p){ var v=p.value||0; return '<span style="font-weight:700;color:'+(v<0?'#991b1b':'#111827')+'">'+fmtQty2(v)+'</span>'; } },
+      { headerName:'기초재고금액', field:'opening_amt', width:110, cellRenderer:function(p){return fmtNum(p.value);} },
+      { headerName:'입고금액', field:'in_amt',      width:100, cellRenderer:function(p){return fmtNum(p.value);} },
+      { headerName:'사용금액', field:'out_amt',     width:100, cellRenderer:function(p){return fmtNum(p.value);} },
+      { headerName:'조정금액', field:'adj_amt',     width:100, cellRenderer:function(p){ var v=p.value||0; return '<span style="color:'+(v>0?'#166534':v<0?'#991b1b':'#6b7280')+'">'+fmtNum(v)+'</span>'; } },
+      { headerName:'잔고금액', field:'closing_amt', width:110, cellStyle:{fontWeight:700}, cellRenderer:function(p){return fmtNum(p.value);} },
     ],
     defaultColDef: defaultColDef, rowData: [], rowHeight: ROW_H, headerHeight: HEADER_H,
     suppressPaginationPanel:true, suppressScrollOnNewData:true, suppressHorizontalScroll:true, suppressCellFocus:true,
@@ -215,7 +221,7 @@ async function loadUseData(page, f) {
 }
 
 async function loadLedgerData(page, f) {
-  var iq = supabaseClient.from('items').select('id,item_name,category,use_unit').eq('active', 'Y');
+  var iq = supabaseClient.from('items').select('id,item_name,category,use_unit,purchase_unit,purchase_unit_qty,standard_price').eq('active', 'Y');
   if (f.keyword)  iq = iq.ilike('item_name', '%'+f.keyword+'%');
   if (f.category) iq = iq.eq('category', f.category);
   var { data:itemRows } = await iq;
@@ -263,9 +269,17 @@ async function loadLedgerData(page, f) {
   });
 
   var rows = itemIds.map(function(id){
-    var o=openingMap[id]||0, i=inMap[id]||0, u=outMap[id]||0, a=adjMap[id]||0;
-    return { item_id:id, item_name:itemMap[id].item_name, category:itemMap[id].category||'-',
-             use_unit:itemMap[id].use_unit||'', opening_qty:o, in_qty:i, out_qty:u, adj_qty:a, closing_qty:o+i-u+a };
+    var item = itemMap[id];
+    var puQty = item.purchase_unit_qty || 1;
+    var price = item.standard_price || 0;
+    // stock_transactions의 qty는 사용단위(예: 개) 기준이라, 입고단위(예: 박스) 기준으로 보려면
+    // 구매단위 환산수로 나눠야 함 — 그 결과 소수점이 생길 수 있음(예: 23개 ÷ 50개/박스 = 0.46박스)
+    var o=(openingMap[id]||0)/puQty, i=(inMap[id]||0)/puQty, u=(outMap[id]||0)/puQty, a=(adjMap[id]||0)/puQty;
+    var closing = o+i-u+a;
+    return { item_id:id, item_name:item.item_name, category:item.category||'-',
+             purchase_unit:item.purchase_unit||item.use_unit||'',
+             opening_qty:o, in_qty:i, out_qty:u, adj_qty:a, closing_qty:closing,
+             opening_amt:o*price, in_amt:i*price, out_amt:u*price, adj_amt:a*price, closing_amt:closing*price };
   }).filter(function(r){ return r.in_qty||r.out_qty||r.adj_qty||r.closing_qty||r.opening_qty; });
 
   var total = rows.length;
