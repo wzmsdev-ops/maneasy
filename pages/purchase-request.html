@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>발주요청</title>
+  <link rel="stylesheet" href="../../assets/css/common.css" />
+  <link rel="stylesheet" href="../../assets/libs/ag-grid/ag-grid.min.css" />
+  <link rel="stylesheet" href="../../assets/libs/ag-grid/ag-theme-alpine.min.css" />
+  <link rel="stylesheet" href="../../assets/css/ag-grid-custom.css" />
+  <link rel="stylesheet" href="../../assets/font/tabler-icons/tabler-icons.min.css" />
+  <script>
+    if (new URLSearchParams(location.search).get('shell') === '1')
+      document.documentElement.classList.add('in-shell');
+  </script>
+  <style>
+    html, body { height:100%; margin:0; background:#f0f2f5; }
+
+    .pr-page {
+      display:flex; flex-direction:column; height:100vh;
+      padding:10px 16px; gap:8px; box-sizing:border-box; overflow:hidden;
+    }
+
+    /* ── 액션바 ── */
+    .pr-actionbar {
+      display: flex; align-items: center; gap: 6px;
+      background: #fff; border: 1px solid #e5e7eb; border-radius: 8px;
+      padding: 7px 12px; flex-shrink: 0; height: 44px; box-sizing: border-box;
+    }
+    .pr-actionbar input[type=text] {
+      flex: 1; min-width: 0;
+      height: 28px; padding: 0 10px; border: 1px solid #e5e7eb;
+      border-radius: 6px; font-size: 12px; outline: none;
+    }
+    .pr-actionbar input[type=text]:focus { border-color: #2563eb; }
+    .pr-actionbar input[type=date] {
+      height: 28px; padding: 0 6px; border: 1px solid #e5e7eb;
+      border-radius: 6px; font-size: 12px; outline: none; width: 130px; flex-shrink: 0;
+    }
+    .pr-actionbar input[type=date]:focus { border-color: #2563eb; }
+    .pr-divider {
+      width: 1px; height: 20px; background: #d1d5db; flex-shrink: 0; margin: 0 4px;
+    }
+
+    /* ── 상태 탭 필터 ── */
+    .pr-status-tabs { display:flex; gap:3px; flex-shrink:0; flex-wrap:wrap; }
+    .pr-status-tab {
+      height:28px; padding:0 12px; border:1px solid #e5e7eb;
+      background:#fff; border-radius:6px; font-size:11px; font-weight:600;
+      color:#6b7280; cursor:pointer; transition:all 0.15s; white-space:nowrap;
+    }
+    .pr-status-tab:hover { border-color:#93c5fd; color:#3b82f6; }
+    .pr-status-tab.active { background:#3b82f6; border-color:#3b82f6; color:#fff; }
+
+    /* ── 카드 ── */
+    .m-card {
+      background:#fff; border:1px solid #e5e7eb; border-radius:8px;
+      display:flex; flex-direction:column; flex:1; min-height:0; overflow:hidden;
+    }
+    .m-card-head {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:8px 14px; background:#f8fafc; border-bottom:1px solid #e5e7eb; flex-shrink:0;
+    }
+    .m-card-title { font-size:12px; font-weight:700; color:#374151; }
+    .m-card-body  { flex:1; min-height:0; display:flex; flex-direction:column; overflow:hidden; }
+    .m-table-wrap { flex:1; min-height:0; height:calc(100vh - 152px); }
+    .pagination-area {
+      padding:6px 14px; flex-shrink:0; margin-top:0;
+      display:flex; justify-content:center; border-top:1px solid #f3f4f6;
+    }
+
+    /* ── 모달 공통 ── */
+    .m-modal { display:none; position:fixed; inset:0; z-index:500; align-items:center; justify-content:center; }
+    .m-modal.is-open { display:flex; }
+    .m-modal-backdrop { position:absolute; inset:0; background:rgba(11,22,48,0.45); }
+    .m-modal-dialog {
+      position:relative; z-index:1; background:#fff; border-radius:8px;
+      display:flex; flex-direction:column;
+      box-shadow:0 20px 60px rgba(0,0,0,0.16); border:1px solid #e5e7eb; overflow:hidden;
+    }
+    .m-modal-dialog--form   { width:calc(100vw - 48px); max-width:1520px; height:calc(100vh - 48px); }
+    .m-modal-dialog--detail { width:720px; max-width:calc(100vw - 32px); max-height:calc(100vh - 48px); }
+    .m-modal-head {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:10px 14px; background:#0b1630; flex-shrink:0;
+    }
+    .m-modal-title { font-size:13px; font-weight:700; color:#fff; }
+    .m-modal-close {
+      width:24px; height:24px; border:none; background:rgba(255,255,255,0.08);
+      border-radius:4px; color:rgba(255,255,255,0.6); cursor:pointer;
+      display:flex; align-items:center; justify-content:center; font-size:13px;
+    }
+    .m-modal-close:hover { background:rgba(255,255,255,0.15); color:#fff; }
+    .m-modal-body { flex:1; min-height:0; overflow-y:auto; padding:14px; display:flex; flex-direction:column; gap:10px; }
+    .m-modal-foot {
+      display:flex; justify-content:flex-end; align-items:center; gap:6px;
+      padding:8px 14px 10px; border-top:1px solid #f3f4f6; background:#f8fafc; flex-shrink:0;
+    }
+
+    /* ── 폼 필드 ── */
+    .m-field { display:flex; flex-direction:column; gap:4px; }
+    .m-field label { font-size:11px; font-weight:600; color:#4b5563; }
+    .m-field input, .m-field select, .m-field textarea {
+      border:1px solid #d1d5db; border-radius:6px; padding:0 8px;
+      font-size:12px; outline:none; transition:border-color 0.15s; background:#fff;
+      box-sizing:border-box;
+    }
+    .m-field input, .m-field select { height:32px; }
+    .m-field textarea { height:52px; padding:6px 8px; resize:vertical; }
+    .m-field input:focus, .m-field select:focus, .m-field textarea:focus { border-color:#3b82f6; }
+    .m-field-row  { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+    .m-req { color:#ef4444; }
+    .m-readonly { background:#f8fafc !important; color:#9ca3af; }
+
+    /* ── 자재 검색 ── */
+    .pr-search-wrap { position:relative; display:flex; gap:6px; flex-shrink:0; }
+    .pr-search-wrap input { flex:1; }
+    .pr-search-results {
+      position:absolute; top:calc(100% + 4px); left:0; right:0; z-index:20;
+      background:#fff; border:1px solid #e5e7eb; border-radius:8px;
+      box-shadow:0 12px 28px rgba(0,0,0,0.14); max-height:220px; overflow-y:auto;
+      display:none;
+    }
+    .pr-search-results.is-open { display:block; }
+    .pr-search-item {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:8px 12px; font-size:12px; cursor:pointer; border-bottom:1px solid #f3f4f6;
+    }
+    .pr-search-item:last-child { border-bottom:none; }
+    .pr-search-item:hover { background:#eff6ff; }
+    .pr-search-item-name { font-weight:600; color:#111827; }
+    .pr-search-item-meta { font-size:10px; color:#9ca3af; }
+    .pr-search-empty { padding:12px; font-size:11px; color:#9ca3af; text-align:center; }
+
+    /* ── 품목 그리드 영역 ── */
+    .pr-items-section {
+      display:flex; flex-direction:column; gap:6px;
+      flex:1; min-height:0;
+    }
+    .pr-items-toolbar-label { font-size:11px; font-weight:700; color:#374151; }
+    .pr-items-grid-wrap {
+      flex:1; min-height:160px;
+      border:1px solid #e5e7eb; border-radius:6px; overflow:hidden;
+    }
+    .pr-items-grid { width:100%; height:100%; }
+
+    /* ── 상태 배지 ── */
+    .badge-requested  { background:#dbeafe;color:#1d4ed8;padding:1px 8px;border-radius:999px;font-size:10px;font-weight:700; }
+    .badge-processing { background:#fef3c7;color:#92400e;padding:1px 8px;border-radius:999px;font-size:10px;font-weight:700; }
+    .badge-ordered    { background:#e0e7ff;color:#4338ca;padding:1px 8px;border-radius:999px;font-size:10px;font-weight:700; }
+    .badge-partial    { background:#fef3c7;color:#92400e;padding:1px 8px;border-radius:999px;font-size:10px;font-weight:700; }
+    .badge-completed  { background:#d1fae5;color:#065f46;padding:1px 8px;border-radius:999px;font-size:10px;font-weight:700; }
+    .badge-rejected   { background:#fee2e2;color:#991b1b;padding:1px 8px;border-radius:999px;font-size:10px;font-weight:700; }
+    .badge-cancelled  { background:#f3f4f6;color:#6b7280;padding:1px 8px;border-radius:999px;font-size:10px;font-weight:700; }
+
+    /* ── 상세 모달 메타 그리드 ── */
+    .pr-detail-meta {
+      display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px;
+    }
+    .pr-detail-meta-item { display:flex; flex-direction:column; gap:2px; }
+    .pr-detail-meta-label { font-size:10px; font-weight:700; color:#9ca3af; }
+    .pr-detail-meta-value { font-size:12px; font-weight:500; color:#111827; }
+    .pr-detail-items-wrap { border:1px solid #e5e7eb; border-radius:6px; overflow:hidden; min-height:200px; }
+
+    /* ── 안전재고 설정 모달 ── */
+    .ss-toolbar {
+      display:flex; align-items:center; gap:8px;
+      padding:10px 16px; border-bottom:1px solid var(--border);
+      background:var(--surface-soft); flex-shrink:0;
+    }
+    .ss-toolbar select, .ss-toolbar input[type=text] {
+      height:32px; padding:0 10px; border:1px solid var(--border);
+      border-radius:var(--radius-md); font-size:12px; outline:none; background:#fff;
+    }
+    .ss-toolbar select { min-width:130px; }
+    .ss-toolbar input[type=text] { flex:1; min-width:0; }
+    .ss-toolbar select:focus, .ss-toolbar input:focus { border-color:var(--blue); }
+    .ss-grid-wrap {
+      flex:1; min-height:0; padding:0;
+    }
+    /* ag-grid 인라인 편집 강조 */
+    .ag-theme-alpine .ag-cell-inline-editing {
+      height:100% !important;
+      background:#fff !important;
+      border:2px solid var(--blue) !important;
+      border-radius:4px;
+    }
+    .ag-theme-alpine .ag-cell.ag-cell-focus:not(.ag-cell-inline-editing) {
+      border:1px solid var(--blue) !important;
+    }
+
+    /* ── 발주요청 모달 2패널 레이아웃 ── */
+    .pr-modal-toolbar {
+      display:flex; align-items:center; gap:8px;
+      padding:10px 16px; border-bottom:1px solid #e5e7eb;
+      background:#f8fafc; flex-shrink:0;
+    }
+    .pr-modal-toolbar select, .pr-modal-toolbar input[type=text] {
+      height:30px; padding:0 10px; border:1px solid #e5e7eb;
+      border-radius:6px; font-size:12px; outline:none; background:#fff;
+    }
+    .pr-modal-toolbar select { min-width:130px; }
+    .pr-modal-toolbar input[type=text] { flex:1; min-width:0; }
+    .pr-modal-toolbar select:focus, .pr-modal-toolbar input:focus { border-color:#2563eb; }
+    .pr-two-panel {
+      display:flex; flex:1; min-height:0; overflow:hidden;
+      height:calc(100vh - 218px);
+    }
+    .pr-search-panel {
+      width:50%; flex-shrink:0; display:flex; flex-direction:column;
+      border-right:2px solid #e5e7eb; min-height:0;
+    }
+    .pr-search-panel-head, .pr-items-panel-head {
+      padding:8px 14px; border-bottom:1px solid #f3f4f6;
+      font-size:11px; font-weight:700; color:#6b7280;
+      background:#f8fafc; flex-shrink:0;
+      display:flex; align-items:center; gap:6px;
+    }
+    .pr-items-panel {
+      flex:1; min-width:0; display:flex; flex-direction:column; min-height:0;
+    }
+    .pr-grid {
+      flex:1; min-height:0;
+      height:calc(100vh - 258px);
+    }
+    .pr-memo-row {
+      padding:8px 14px; border-top:1px solid #e5e7eb; flex-shrink:0;
+      display:flex; align-items:center; gap:8px;
+    }
+    .pr-memo-row label { font-size:12px; font-weight:600; color:#374151; flex-shrink:0; }
+    .pr-memo-row input {
+      flex:1; height:30px; padding:0 10px; border:1px solid #e5e7eb;
+      border-radius:6px; font-size:12px; outline:none;
+    }
+    .pr-memo-row input:focus { border-color:#2563eb; }
+  </style>
+</head>
+<body>
+<div class="pr-page">
+
+  <!-- 액션바 -->
+  <div class="pr-actionbar">
+    <div class="pr-status-tabs">
+      <button class="pr-status-tab active" data-status="">전체</button>
+      <button class="pr-status-tab" data-status="REQUESTED">요청</button>
+      <button class="pr-status-tab" data-status="PROCESSING">처리중</button>
+      <button class="pr-status-tab" data-status="ORDERED">발주확정</button>
+      <button class="pr-status-tab" data-status="PARTIAL">부분입고</button>
+      <button class="pr-status-tab" data-status="COMPLETED">입고완료</button>
+      <button class="pr-status-tab" data-status="REJECTED">반려</button>
+      <button class="pr-status-tab" data-status="CANCELLED">취소</button>
+    </div>
+    <div class="pr-divider"></div>
+    <input type="date" id="prDateFrom" />
+    <span style="font-size:11px;color:#9ca3af;flex-shrink:0;">~</span>
+    <input type="date" id="prDateTo" />
+    <div class="pr-divider"></div>
+    <input type="text" id="prKeyword" placeholder="자재명 검색..." />
+    <button class="btn btn-sm btn-primary" id="prSearchBtn"><i class="ti ti-search"></i> 조회</button>
+  </div>
+
+  <!-- 요청 목록 그리드 -->
+  <div class="m-card">
+    <div class="m-card-head">
+      <span class="m-card-title">내 발주요청 목록</span>
+      <div style="display:flex;align-items:center;gap:6px;margin-left:auto;">
+        <button class="btn btn-sm" id="ssSettingBtn" onclick="openSsSetting()"><i class="ti ti-settings"></i> 안전재고 설정</button>
+        <button class="btn btn-sm btn-warning" id="autoFillBtn" onclick="autoFillByStock()"><i class="ti ti-refresh"></i> 안전재고 기준 자동요청</button>
+        <span style="width:1px;height:20px;background:#e5e7eb;display:inline-block;margin:0 2px;"></span>
+        <button class="btn btn-sm btn-primary" id="addPrBtn"><i class="ti ti-plus"></i> 발주요청 작성</button>
+      </div>
+    </div>
+    <div class="m-card-body">
+      <div id="prGrid" class="m-table-wrap"></div>
+    </div>
+    <div class="pagination-area" id="prPagination"></div>
+  </div>
+
+</div><!-- /pr-page -->
+
+<!-- 안전재고 설정 모달 -->
+<div id="ssModal" class="m-modal">
+  <div class="m-modal-backdrop" onclick="closeSsSetting()"></div>
+  <div class="m-modal-dialog m-modal-dialog--form">
+    <div class="m-modal-head">
+      <span class="m-modal-title"><i class="ti ti-shield-check"></i> 부서별 안전재고 설정 <span id="ssDeptLabel" style="font-size:12px;font-weight:400;color:rgba(255,255,255,0.6);margin-left:8px;"></span></span>
+      <button class="m-modal-close" onclick="closeSsSetting()"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="m-modal-body" style="padding:0;display:flex;flex-direction:column;overflow:hidden;">
+      <div class="ss-toolbar">
+        <select id="ssCategoryFilter" onchange="filterSsGrid()">
+          <option value="">전체 카테고리</option>
+        </select>
+        <input type="text" id="ssKeyword" placeholder="자재명 검색..."
+          oninput="filterSsGrid()" />
+        <button class="btn btn-sm btn-primary" onclick="filterSsGrid()">
+          <i class="ti ti-search"></i> 조회
+        </button>
+        <div style="flex:1;"></div>
+        <button class="btn btn-sm btn-primary" onclick="saveSsAll()">
+          <i class="ti ti-device-floppy"></i> 전체 저장
+        </button>
+      </div>
+      <div class="ss-grid-wrap">
+        <div id="ssGrid" class="ag-theme-alpine" style="width:100%;height:100%;"></div>
+      </div>
+    </div>
+    <div class="m-modal-foot">
+      <span id="ssFootInfo" style="font-size:11px;color:#9ca3af;margin-right:auto;"></span>
+      <button class="btn btn-sm" onclick="closeSsSetting()">닫기</button>
+      <button class="btn btn-sm btn-primary" onclick="saveSsAll()">
+        <i class="ti ti-device-floppy"></i> 저장
+      </button>
+    </div>
+  </div>
+</div>
+
+
+
+
+
+<!-- ══════════════════════════════════════
+     발주요청 작성 모달
+══════════════════════════════════════ -->
+<div id="prModal" class="m-modal">
+  <div class="m-modal-backdrop" onclick="closeModal('prModal')"></div>
+  <div class="m-modal-dialog m-modal-dialog--form">
+
+    <div class="m-modal-head">
+      <span class="m-modal-title">발주요청 작성</span>
+      <button class="m-modal-close" onclick="closeModal('prModal')"><i class="ti ti-x"></i></button>
+    </div>
+
+    <div class="m-modal-body" style="padding:0;display:flex;flex-direction:column;overflow:hidden;">
+      <!-- 검색 툴바 -->
+      <div class="pr-modal-toolbar">
+        <select id="pr_category">
+          <option value="">전체 카테고리</option>
+        </select>
+        <input type="text" id="pr_search_kw" placeholder="자재명 검색..." autocomplete="off" />
+        <button class="btn btn-sm btn-primary" onclick="searchPrItems()">
+          <i class="ti ti-search"></i> 조회
+        </button>
+      </div>
+
+      <!-- 2패널 -->
+      <div class="pr-two-panel">
+
+        <!-- 좌: 검색 결과 -->
+        <div class="pr-search-panel">
+          <div class="pr-search-panel-head">
+            <i class="ti ti-search" style="color:#9ca3af;"></i>
+            검색 결과
+            <span id="prSearchCount"></span>
+          </div>
+          <div id="prSearchGrid" class="pr-grid ag-theme-alpine"></div>
+        </div>
+
+        <!-- 우: 요청 품목 -->
+        <div class="pr-items-panel">
+          <div class="pr-items-panel-head">
+            <i class="ti ti-shopping-cart" style="color:#2563eb;"></i>
+            요청 품목
+            <span id="prItemCount"></span>
+          </div>
+          <div id="prItemGrid" class="pr-grid ag-theme-alpine"></div>
+        </div>
+
+      </div>
+
+      <!-- 메모 -->
+      <div class="pr-memo-row">
+        <label>요청 메모</label>
+        <input type="text" id="pr_memo" placeholder="요청 사유, 참고사항 등" />
+      </div>
+    </div>
+
+    <div class="m-modal-foot">
+      <button class="btn btn-sm" onclick="closeModal('prModal')">취소</button>
+      <button class="btn btn-sm btn-primary" id="prSaveBtn">요청 제출</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     발주요청 상세 모달
+══════════════════════════════════════ -->
+<div id="prDetailModal" class="m-modal">
+  <div class="m-modal-backdrop" onclick="closeModal('prDetailModal')"></div>
+  <div class="m-modal-dialog m-modal-dialog--detail">
+    <div class="m-modal-head">
+      <span class="m-modal-title" id="prDetailTitle">발주요청 상세</span>
+      <button class="m-modal-close" onclick="closeModal('prDetailModal')"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="m-modal-body">
+      <div class="pr-detail-meta" id="prDetailMeta"></div>
+      <div class="pr-detail-items-wrap">
+        <div id="prDetailGrid" style="width:100%;height:220px;" class="ag-theme-alpine"></div>
+      </div>
+    </div>
+    <div class="m-modal-foot" id="prDetailFoot">
+      <button class="btn btn-sm" onclick="closeModal('prDetailModal')">닫기</button>
+    </div>
+  </div>
+</div>
+
+<div id="globalLoading" aria-hidden="true">
+  <div class="global-loading__dialog">
+    <div class="global-loading__spinner"></div>
+    <div class="global-loading__text" id="globalLoadingText">불러오는 중...</div>
+  </div>
+</div>
+
+<script src="../../assets/libs/ag-grid/ag-grid-community.min.js"></script>
+<script src="../../assets/libs/supabase.js"></script>
+<script src="../../assets/js/core/config.js"></script>
+<script src="../../assets/js/core/utils.js"></script>
+<script src="../../assets/js/core/supabase.js"></script>
+<script src="../../assets/js/core/auth.js"></script>
+<script src="../../assets/js/materials/purchase-request.js"></script>
+</body>
+</html>
