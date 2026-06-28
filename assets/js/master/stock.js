@@ -16,13 +16,9 @@
 'use strict';
 
 var stState = {
-  receipt:   { page:1, pageSize:20, totalPages:1, loading:false },
-  dispatch:  { page:1, pageSize:20, totalPages:1, loading:false },
   deptstock: { page:1, pageSize:20, totalPages:1, loading:false },
 };
 
-var _gridReceipt   = null;
-var _gridDispatch  = null;
 var _gridDeptStock = null;
 
 var itemCache    = [];   // 자재 목록
@@ -318,173 +314,10 @@ async function selectReceiptPo(po) {
   }
 }
 
-function initReceiptGrid() {
-  var colDefs = [
-    { headerName: '입고번호', field: 'receipt_no', width: 140,
-      headerClass: 'ag-left-header',
-      cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-start' },
-      cellRenderer: function(p) { return '<code style="font-size:11px;">' + ts(p.value || '-') + '</code>'; }
-    },
-    { headerName: '입고일', field: 'receipt_date', width: 100,
-      cellRenderer: function(p) { return fmtDate(p.value); }
-    },
-    { headerName: '자재명', field: 'items', flex: 2,
-      headerClass: 'ag-left-header',
-      cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-start' },
-      cellRenderer: function(p) { return ts(p.value?.item_name || '-'); }
-    },
-    { headerName: '연계 발주', field: 'purchase_orders', width: 130,
-      cellRenderer: function(p) { return p.value?.order_no ? '<code style="font-size:11px;">' + ts(p.value.order_no) + '</code>' : '<span style="color:#9ca3af;">직접입고</span>'; }
-    },
-    { headerName: '입고단위', field: 'purchase_unit', width: 80,
-      cellRenderer: function(p) { return ts(p.value || '-'); }
-    },
-    { headerName: '입고수량', field: 'receipt_qty', width: 80,
-      cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-end' },
-      cellRenderer: function(p) { return fmtN(p.value); }
-    },
-    { headerName: '환산수량(사용단위)', field: 'use_qty', width: 120,
-      cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-end' },
-      cellRenderer: function(p) { return fmtN(p.value); }
-    },
-    { headerName: '단가', field: 'unit_price', width: 100,
-      cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-end' },
-      cellRenderer: function(p) { return fmtN(p.value) + '원'; }
-    },
-    { headerName: '공급가액', field: 'supply_price', width: 110,
-      cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-end' },
-      cellRenderer: function(p) { return '<strong>' + fmtN(p.value) + '원</strong>'; }
-    },
-    { headerName: '부가세', field: 'vat_amount', width: 100,
-      cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-end' },
-      cellRenderer: function(p) { return fmtN(p.value) + '원'; }
-    },
-  ];
-  _gridReceipt = createMgGrid('receiptGrid', colDefs, [], { noRowsText: '입고 내역이 없습니다.' });
-}
-
-async function loadReceipts(page) {
-  var st = stState.receipt;
-  if (st.loading) return;
-  st.loading = true;
-  page = page || st.page;
-  showGlobalLoading('입고 목록을 불러오는 중...');
-  try {
-    var from = (page - 1) * st.pageSize;
-    var to   = from + st.pageSize - 1;
-    var dateFrom = val('receiptDateFrom');
-    var dateTo   = val('receiptDateTo');
-
-    var q = supabaseClient
-      .from('stock_receipts')
-      .select('*, items(item_name), purchase_orders(order_no)', { count: 'exact' })
-      .order('receipt_date', { ascending: false })
-      .range(from, to);
-
-    var keyword = (document.getElementById('receiptKeyword')?.value || '').trim();
-    if (dateFrom) q = q.gte('receipt_date', dateFrom);
-    if (dateTo)   q = q.lte('receipt_date', dateTo);
-    if (keyword)  q = q.ilike('receipt_no', '%' + keyword + '%');
-
-    var { data, error, count } = await q;
-    if (error) throw new Error(error.message);
-
-    st.page       = page;
-    st.totalPages = Math.max(1, Math.ceil((count || 0) / st.pageSize));
-    if (!_gridReceipt) initReceiptGrid();
-    if (_gridReceipt) _gridReceipt.setGridOption('rowData', data || []);
-    renderPagination('receiptPagination', st, loadReceipts);
-  } catch(e) {
-    alert('입고 목록 로드 실패: ' + e.message);
-  } finally {
-    st.loading = false;
-    hideGlobalLoading();
-  }
-}
-
-/* ── 입고 등록 모달 ── */
-/** 입고 모달의 "연결 발주" select 채우기 — ORDERED/PARTIAL 상태만.
- *  페이지 최초 로드 시 + 입고 모달을 열 때마다 다시 호출해서, 방금 발주확정한
- *  건도 페이지를 새로고침하지 않고 곧바로 목록에 보이게 함. */
-async function loadOrderOptions() {
-  var { data: orders } = await supabaseClient
-    .from('purchase_orders').select('id, order_no')
-    .in('status', ['ORDERED', 'PARTIAL'])
-    .order('created_at', { ascending: false });
-  var oSel = document.getElementById('r_order_id');
-  if (oSel) {
-    var cur = oSel.value;
-    oSel.innerHTML = '<option value="">발주 없이 직접 입고</option>' +
-      (orders || []).map(function(o) { return '<option value="' + o.id + '">' + ts(o.order_no) + '</option>'; }).join('');
-    if (cur) oSel.value = cur;
-  }
-}
 
 var _gridReceiptItem  = null;  // 입고 등록 모달의 품목 그리드
 var _receiptRowIdCounter = 0;
 
-async function openAddReceipt() {
-  setVal('r_order_id', '');
-  setVal('r_receipt_date', new Date().toISOString().slice(0, 10));
-  setVal('r_vat_amount', '0');
-  setVal('r_item_keyword', '');
-  _receiptVatTouched = false;
-  if (!_gridReceiptItem) initReceiptItemGrid();
-  clearReceiptItemGrid();
-  if (!_gridReceiptSearch) initReceiptSearchGrid();
-  populateReceiptCategorySelect();
-  searchReceiptItems();
-  refreshReceiptTotal();
-  openModal('receiptModal');
-  await loadOrderOptions(); // 방금 발주확정한 건도 새로고침 없이 곧바로 목록에 보이도록 매번 재조회
-}
-
-/** 좌측 자재 검색 카테고리 select 채우기 */
-function populateReceiptCategorySelect() {
-  var sel = document.getElementById('r_item_category');
-  if (!sel) return;
-  var cur = sel.value;
-  var cats = [...new Set(itemCache.map(function(i) { return i.category || ''; }))].filter(Boolean).sort();
-  sel.innerHTML = '<option value="">전체 카테고리</option>' +
-    cats.map(function(c) { return '<option value="' + ts(c) + '">' + ts(c) + '</option>'; }).join('');
-  if (cur) sel.value = cur;
-}
-
-/** 발주 선택 시 — 그 발주의 미입고 품목들을 그리드에 한 번에 채움 */
-async function onReceiptOrderChange() {
-  var orderId = val('r_order_id');
-  clearReceiptItemGrid();
-  if (!orderId) return;
-
-  var { data: poItems, error } = await supabaseClient
-    .from('purchase_order_items')
-    .select('id, item_id, order_qty, received_qty, unit_price, purchase_unit, use_unit, items(item_name, purchase_unit_qty)')
-    .eq('order_id', orderId);
-  if (error) { alert('발주 품목 조회 실패: ' + error.message); return; }
-
-  var openItems = (poItems || []).filter(function(r) { return (r.received_qty || 0) < r.order_qty; });
-  if (!openItems.length) {
-    alert('이 발주서는 모든 품목이 입고 완료되었습니다.');
-    return;
-  }
-  openItems.forEach(function(r) {
-    var remain = r.order_qty - (r.received_qty || 0);
-    addReceiptRow({
-      item_id:           r.item_id,
-      item_name:         r.items?.item_name || '-',
-      purchase_unit:     r.purchase_unit || '',
-      purchase_unit_qty: r.items?.purchase_unit_qty || 1,
-      use_unit:          r.use_unit || '',
-      order_item_id:     r.id,
-      order_qty:         r.order_qty,
-      received_qty:      r.received_qty || 0,
-      qty:               remain,
-      unit_price:        r.unit_price || 0,
-      supply_price:      remain * (r.unit_price || 0),
-      memo:              '',
-    });
-  });
-}
 
 /* ── 입고 품목 그리드 (발주 품목 일괄 불러오기 + 발주 외 직접 추가) ── */
 function initReceiptItemGrid() {
@@ -575,96 +408,6 @@ function initReceiptItemGrid() {
   });
 }
 
-/* ── 좌측: 자재 검색 그리드 (발주 외 직접 추가용) ── */
-var _gridReceiptSearch = null;
-
-function initReceiptSearchGrid() {
-  var el = document.getElementById('receiptSearchGrid');
-  if (!el || typeof agGrid === 'undefined') return;
-
-  _gridReceiptSearch = agGrid.createGrid(el, {
-    suppressCellFocus: true,
-    suppressPropertyNamesCheck: true,
-    columnDefs: [
-      { headerName: '카테고리', field: 'category', width: 90,
-        cellStyle: { justifyContent:'center', fontSize:'10px', color:'#6b7280' }
-      },
-      { headerName: '자재명', field: 'item_name', flex: 2, minWidth: 120,
-        headerClass: 'ag-left-header',
-        cellStyle: { justifyContent:'flex-start', fontWeight:600 }
-      },
-      { headerName: '입고단위', field: 'purchase_unit', width: 75,
-        cellStyle: { justifyContent:'center', color:'#6b7280' }
-      },
-      { headerName: '단가', field: 'standard_price', width: 90,
-        cellStyle: { justifyContent:'flex-end' },
-        valueFormatter: function(p) { return p.value ? Number(p.value).toLocaleString('ko-KR') + '원' : '-'; }
-      },
-      { headerName: '', width: 56, sortable: false,
-        cellStyle: { justifyContent:'center', padding:'0 4px' },
-        cellRenderer: function(p) {
-          var btn = document.createElement('button');
-          btn.className = 'btn btn-sm btn-primary';
-          btn.style.cssText = 'padding:2px 8px;font-size:11px;';
-          var added = isReceiptItemAdded(p.data.id);
-          btn.textContent = added ? '추가됨' : '추가';
-          btn.disabled = added;
-          if (added) { btn.style.background = '#059669'; btn.style.borderColor = '#059669'; }
-          btn.onclick = function() {
-            addReceiptRow({
-              item_id:           p.data.id,
-              item_name:         p.data.item_name,
-              purchase_unit:     p.data.purchase_unit || '',
-              purchase_unit_qty: p.data.purchase_unit_qty || 1,
-              use_unit:          p.data.use_unit || p.data.unit || '',
-              qty:               1,
-              unit_price:        p.data.standard_price || 0,
-              supply_price:      p.data.standard_price || 0,
-              memo:              '',
-            });
-            btn.textContent = '추가됨';
-            btn.disabled = true;
-            btn.style.background = '#059669';
-            btn.style.borderColor = '#059669';
-          };
-          return btn;
-        }
-      },
-    ],
-    rowData: [],
-    rowHeight: 34,
-    headerHeight: 34,
-    suppressCellFocus: true,
-    defaultColDef: {
-      sortable: true, resizable: true, suppressMovable: true,
-      cellStyle: { display:'flex', alignItems:'center', justifyContent:'center' },
-    },
-    suppressHorizontalScroll: true,
-    overlayNoRowsTemplate: '<span style="color:#9ca3af;font-size:12px;">카테고리/자재명을 입력해 검색하세요.</span>',
-    onGridReady: function(params) {
-      setTimeout(function() { if (el.offsetWidth > 0) params.api.sizeColumnsToFit(); }, 0);
-    },
-  });
-}
-
-function searchReceiptItems() {
-  var kw  = (document.getElementById('r_item_keyword')?.value || '').toLowerCase();
-  var cat = document.getElementById('r_item_category')?.value || '';
-  var filtered = itemCache.filter(function(i) {
-    var matchCat = !cat || i.category === cat;
-    var matchKw  = !kw  || i.item_name.toLowerCase().includes(kw) || (i.item_code || '').toLowerCase().includes(kw);
-    return matchCat && matchKw;
-  });
-  if (_gridReceiptSearch) _gridReceiptSearch.setGridOption('rowData', filtered);
-}
-
-function isReceiptItemAdded(itemId) {
-  if (!_gridReceiptItem) return false;
-  var found = false;
-  _gridReceiptItem.forEachNode(function(n) { if (n.data.item_id === itemId) found = true; });
-  return found;
-}
-
 function addReceiptRow(preset) {
   if (!_gridReceiptItem) initReceiptItemGrid();
   _receiptRowIdCounter++;
@@ -694,7 +437,6 @@ function removeReceiptRow(rowId) {
     _gridReceiptItem.applyTransaction({ remove: [toRemove] });
     refreshReceiptTotal();
     updateReceiptItemCount();
-    if (_gridReceiptSearch) _gridReceiptSearch.refreshCells({ force: true });
   }
 }
 
@@ -1302,9 +1044,6 @@ async function loadCaches() {
   // 중앙창고(dept_id=NULL) 현재고 캐시
   var { data: sc } = await supabaseClient.from('stock_current').select('item_id, qty').is('dept_id', null);
   (sc || []).forEach(function(r) { centralCache[r.item_id] = r.qty; });
-
-  // 연결 발주 select (입고 모달) — ORDERED/PARTIAL 상태만
-  await loadOrderOptions();
 }
 
 /* ── 채번 ── */
@@ -1336,13 +1075,11 @@ function bindSaveBtn(btnId, saveFn, modalId, refreshFn) {
 
 /* ── 검색 이벤트 ── */
 function initSearch() {
-  document.getElementById('receiptSearchBtn')?.addEventListener('click',  function() { loadReceipts(1); });
   document.getElementById('dispatchSearchBtn')?.addEventListener('click', function() { loadDispatchPoList(); });
   document.getElementById('deptStockSearchBtn')?.addEventListener('click', function() { loadDeptStock(1); });
   document.getElementById('deptStockKeyword')?.addEventListener('keydown', function(e) { if (e.key==='Enter') loadDeptStock(1); });
 
   // 입고 모달
-  document.getElementById('r_order_id')?.addEventListener('change', onReceiptOrderChange);
 
   // 불출 모달
   document.getElementById('d_item_id')?.addEventListener('change', updateDispatchInfo);
