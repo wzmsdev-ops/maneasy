@@ -1,346 +1,808 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>관리이지</title>
-  <link rel="icon" href="data:,">
-  <link rel="stylesheet" href="assets/css/common.css" />
-  <link rel="stylesheet" href="assets/css/shell.css" />
-  <link rel="stylesheet" href="assets/font/tabler-icons/tabler-icons.min.css" />
-</head>
-<body>
-
-<div class="app-shell">
-
-  <nav class="sidebar" id="sidebar" role="navigation" aria-label="메인 메뉴">
-    <div class="sb-brand">
-      <img class="sb-brand-img"
-           src="assets/images/logo.png"
-           alt="관리이지" />
-    </div>
-    <div class="sb-user">
-      <div class="sb-user-info">
-        <div class="sb-user-line" id="sbUserLine">로딩 중...</div>
-        <div class="sb-user-role" id="sbUserRole"></div>
-      </div>
-    </div>
-    <div class="sb-nav">
-
-      <!-- 의료장비 관리 -->
-      <button class="sb-item sb-item-parent" data-group="equipment">
-        <div class="sb-item-inner"><i class="ti ti-device-desktop-analytics"></i><span>의료장비 관리</span></div>
-        <i class="ti ti-chevron-right sb-item-arrow"></i>
-      </button>
-      <div class="sb-submenu" data-group="equipment">
-        <button class="sb-sub-item" data-page="equipment/dashboard" onclick="navigate('equipment/dashboard')">
-          <i class="ti ti-layout-dashboard"></i><span>대시보드</span>
-        </button>
-        <button class="sb-sub-item" data-page="equipment/list" onclick="navigate('equipment/list')">
-          <i class="ti ti-list"></i><span>장비 목록</span>
-        </button>
-        <button class="sb-sub-item" data-page="equipment/form" onclick="navigate('equipment/form')" id="sbItemEquipmentForm">
-          <i class="ti ti-plus"></i><span>장비 등록</span>
-        </button>
-      </div>
-
-      <!-- 정도관리 -->
-      <button class="sb-item sb-item-parent" data-group="qc">
-        <div class="sb-item-inner"><i class="ti ti-chart-line"></i><span>정도관리</span></div>
-        <i class="ti ti-chevron-right sb-item-arrow"></i>
-      </button>
-      <div class="sb-submenu" data-group="qc">
-        <button class="sb-sub-item" data-page="qc/items" onclick="navigate('qc/items')">
-          <i class="ti ti-clipboard-list"></i><span>검사항목 관리</span>
-        </button>
-        <button class="sb-sub-item" data-page="qc/data" onclick="navigate('qc/data')">
-          <i class="ti ti-edit"></i><span>데이터 입력</span>
-        </button>
-      </div>
-
-      <!-- 자재관리 -->
-      <button class="sb-item sb-item-parent" data-group="material">
-        <div class="sb-item-inner"><i class="ti ti-box"></i><span>자재관리</span></div>
-        <i class="ti ti-chevron-right sb-item-arrow"></i>
-      </button>
-      <div class="sb-submenu" data-group="material">
-        <button class="sb-sub-item" data-page="materials/purchase-request" onclick="navigate('materials/purchase-request')" id="sbItemPurchaseRequest">
-          <i class="ti ti-shopping-cart"></i><span>발주요청</span>
-        </button>
-        <button class="sb-sub-item" data-page="materials/procurement" onclick="navigate('materials/procurement')" id="sbItemProcurement" style="display:none;">
-          <i class="ti ti-file-invoice"></i><span>발주 관리</span>
-        </button>
-        <button class="sb-sub-item" data-page="materials/stock" onclick="navigate('materials/stock')" id="sbItemStock" style="display:none;">
-          <i class="ti ti-building-warehouse"></i><span>재고 관리</span>
-        </button>
-        <button class="sb-sub-item" data-page="materials/use-stock" onclick="navigate('materials/use-stock')" id="sbItemUseStock">
-          <i class="ti ti-clipboard-check"></i><span>사용처리</span>
-        </button>
-        <div class="sb-divider"></div>
-        <button class="sb-sub-item" data-page="materials/material-stats" onclick="navigate('materials/material-stats')" id="sbItemMaterialStats">
-          <i class="ti ti-chart-bar"></i><span>자재 통계</span>
-        </button>
-      </div>
-
-      <!-- 마스터 관리 -->
-      <div class="sb-divider sb-admin-only" id="sbDividerMaster" style="display:none;margin:6px 0;"></div>
-      <button class="sb-item sb-item-parent sb-admin-only" data-group="master" id="sbGroupMaster" style="display:none;">
-        <div class="sb-item-inner"><i class="ti ti-settings"></i><span>마스터 관리</span></div>
-        <i class="ti ti-chevron-right sb-item-arrow"></i>
-      </button>
-      <div class="sb-submenu sb-admin-only" data-group="master">
-        <button class="sb-sub-item" data-page="master/org" onclick="navigate('master/org')" id="sbItemMasterOrg">
-          <i class="ti ti-building-hospital"></i><span>의원·부서·사용자</span>
-        </button>
-        <button class="sb-sub-item" data-page="master/supply" onclick="navigate('master/supply')" id="sbItemMasterSupply">
-          <i class="ti ti-package"></i><span>자재·거래처</span>
-        </button>
-      </div>
-
-    </div>
-    <div class="sb-footer">
-      <button class="sb-logout" onclick="doLogout()">
-        <i class="ti ti-logout"></i><span>로그아웃</span>
-      </button>
-    </div>
-  </nav>
-
-  <div class="sb-overlay" id="sbOverlay" onclick="closeSidebar()"></div>
-
-  <div class="shell-main">
-    <header class="shell-topbar">
-      <button class="shell-topbar-hamburger" onclick="openSidebar()" aria-label="메뉴 열기">
-        <i class="ti ti-menu-2"></i>
-      </button>
-      <div class="shell-breadcrumb">
-        <span class="shell-breadcrumb-app" id="breadcrumbApp">—</span>
-        <span class="shell-breadcrumb-sep" id="breadcrumbSep" style="display:none">›</span>
-        <span class="shell-breadcrumb-page" id="breadcrumbPage"></span>
-      </div>
-    </header>
-    <div class="shell-content">
-      <iframe class="shell-iframe" id="shellFrame" src="" title="콘텐츠 영역"></iframe>
-    </div>
-  </div>
-
-</div>
-
-<script src="assets/libs/supabase.js"></script>
-<script src="assets/js/core/config.js"></script>
-<script src="assets/js/core/utils.js"></script>
-<script src="assets/js/core/supabase.js"></script>
-<script src="assets/js/core/auth.js"></script>
-<script>
+/**
+ * assets/js/master/org.js
+ * 조직 관리 — 의원 / 부서 / 사용자
+ * admin role만 접근 가능
+ *
+ * 연동 구조:
+ *   clinicCache → 부서 탭 필터 + 부서 모달 select + 사용자 모달 select
+ *   deptCache   → 부서 탭 필터 + 사용자 탭 필터 + 사용자 모달 select (의원 선택 후 필터)
+ *   userCache   → 사용자 탭 렌더링 (clinic_code / team_code 기준 필터)
+ */
 'use strict';
 
-const MENU_META = {
-  'equipment/dashboard': { app: '의료장비 관리', page: '대시보드' },
-  'equipment/list':      { app: '의료장비 관리', page: '장비 목록' },
-  'equipment/form':      { app: '의료장비 관리', page: '장비 등록·수정' },
-  'equipment/detail':    { app: '의료장비 관리', page: '장비 상세' },
-  'qc/items':            { app: '정도관리', page: '검사항목 관리' },
-  'qc/data':             { app: '정도관리', page: '데이터 입력' },
-  'master/org':             { app: '마스터 관리', page: '의원·부서·사용자' },
-  'master/supply':          { app: '마스터 관리', page: '자재·거래처' },
-  'materials/purchase-request':{ app: '자재관리', page: '발주요청' },
-  'materials/use-stock':       { app: '자재관리', page: '사용처리' },
-  'materials/procurement':     { app: '자재관리', page: '발주 관리' },
-  'materials/stock':           { app: '자재관리', page: '재고 관리' },
-  'materials/material-stats':  { app: '자재관리', page: '자재 통계' },
+let currentUser    = null;
+let editingClinicId = null;
+let editingDeptId   = null;
+let editingUserId   = null;
+
+let clinicCache = [];   // { id, clinic_code, clinic_name, ... }
+let deptCache   = [];   // { id, clinic_id, dept_code, dept_name, ... }
+let userCache   = [];   // user_profiles rows
+
+/* ── 앱별 권한 ─────────────────────────────────
+   app.html MENU_META / 사이드바 노출 로직과 동일한 페이지 키 사용 */
+const PAGE_GROUPS = [
+  { app: '의료장비 관리', pages: [
+    { key: 'equipment/dashboard', label: '대시보드' },
+    { key: 'equipment/list',      label: '장비 목록' },
+    { key: 'equipment/form',      label: '장비 등록·수정' },
+    { key: 'equipment/detail',    label: '장비 상세' },
+  ]},
+  { app: '정도관리', pages: [
+    { key: 'qc/items', label: '검사항목 관리' },
+    { key: 'qc/data',  label: '데이터 입력' },
+  ]},
+  { app: '자재관리', pages: [
+    { key: 'materials/purchase-request', label: '발주요청' },
+    { key: 'materials/use-stock',        label: '사용처리' },
+    { key: 'materials/procurement',      label: '발주 관리' },
+    { key: 'materials/stock',            label: '재고 관리' },
+    { key: 'materials/material-stats',   label: '자재 통계' },
+  ]},
+  { app: '마스터 관리', pages: [
+    { key: 'master/org',    label: '의원·부서·사용자' },
+    { key: 'master/supply', label: '자재·거래처' },
+  ]},
+];
+
+// 역할별 기본 page_perms
+// role: admin = 전체 의원 조회 / user = 소속 의원만
+// 접근권한: 접근불가 / user / edit / manager / admin
+const ROLE_DEFAULT_PAGES = {
+  user: {
+    'equipment/dashboard':      'user',
+    'equipment/list':           'user',
+    'equipment/detail':         'user',
+    'equipment/form':           '접근불가',
+    'qc/items':                 'user',
+    'qc/data':                  'user',
+    'materials/purchase-request':  'user',
+    'materials/use-stock':         'user',
+    'materials/procurement':       '접근불가',
+    'materials/stock':             '접근불가',
+    'materials/material-stats':    'user',
+    'master/org':               '접근불가',
+    'master/supply':            '접근불가',
+  },
+  admin: {
+    'equipment/dashboard':      'user',
+    'equipment/list':           'user',
+    'equipment/detail':         'user',
+    'equipment/form':           'edit',
+    'qc/items':                 'user',
+    'qc/data':                  'user',
+    'materials/purchase-request':  'user',
+    'materials/use-stock':         'user',
+    'materials/procurement':       'manager',
+    'materials/stock':             'manager',
+    'materials/material-stats':    'user',
+    'master/org':               'admin',
+    'master/supply':            'admin',
+  },
 };
 
-/* ── Flyout 서브메뉴 ── */
-let _flyout = null;
-let _flyoutTimer = null;
+/* ── 유틸 ─────────────────────────────────── */
+function ts(v) {
+  return String(v == null ? '' : v)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function val(id)       { return (document.getElementById(id)?.value || '').trim(); }
+function setVal(id, v) { const el = document.getElementById(id); if (el) el.value = v ?? ''; }
 
-function initFlyout() {
-  document.querySelectorAll('.sb-item-parent').forEach(btn => {
-    btn.addEventListener('mouseenter', () => showFlyout(btn));
-    btn.addEventListener('mouseleave', () => scheduleFlyoutClose());
-  });
-  document.addEventListener('click', e => {
-    if (!e.target.closest('.sb-flyout') && !e.target.closest('.sb-item-parent')) hideFlyout();
-  });
+function badgeActive(v) {
+  return v === 'Y'
+    ? '<span class="badge-active">활성</span>'
+    : '<span class="badge-inactive">비활성</span>';
+}
+function badgeRole(r) {
+  const map = {
+    admin:   '<span class="badge-role-admin">admin</span>',
+    edit:    '<span class="badge-role-edit">edit</span>',
+    manager: '<span class="badge-role-manager">manager</span>',
+    user:    '<span class="badge-role-user">user</span>',
+  };
+  return map[r] || ts(r);
 }
 
-function showFlyout(btn) {
-  clearTimeout(_flyoutTimer);
-  hideFlyout(true);
+/* ── 탭 ── */
+function initTabs() {
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const target = btn.dataset.tab;
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById(`tab-${target}`)?.classList.add('active');
 
-  const group   = btn.dataset.group;
-  const submenu = document.querySelector(`.sb-submenu[data-group="${group}"]`);
-  if (!submenu) return;
-  const children = Array.from(submenu.children).filter(el => {
-    if (el.classList.contains('sb-sub-item')) return el.style.display !== 'none';
-    if (el.classList.contains('sb-divider')) return true;
-    return false;
-  });
-  if (!children.some(el => el.classList.contains('sb-sub-item'))) return;
-
-  const fly = document.createElement('div');
-  fly.className = 'sb-flyout';
-  _flyout = fly;
-
-  // 라벨
-  const lbl = document.createElement('div');
-  lbl.style.cssText = 'padding:6px 16px 4px;font-size:10px;font-weight:700;opacity:0.5;text-transform:uppercase;letter-spacing:0.07em;color:#e2e8f0;pointer-events:none;';
-  lbl.textContent = btn.querySelector('span')?.textContent || '';
-  fly.appendChild(lbl);
-
-  children.forEach(item => {
-    if (item.classList.contains('sb-divider')) {
-      const div = document.createElement('div');
-      div.className = 'sb-divider';
-      fly.appendChild(div);
-      return;
-    }
-    const fi = document.createElement('button');
-    fi.className = 'sb-sub-item' + (item.classList.contains('active') ? ' active' : '');
-    fi.innerHTML = item.innerHTML;
-    fi.onclick = () => { item.click(); hideFlyout(); };
-    fly.appendChild(fi);
-  });
-
-  fly.addEventListener('mouseenter', () => clearTimeout(_flyoutTimer));
-  fly.addEventListener('mouseleave', () => scheduleFlyoutClose());
-
-  document.body.appendChild(fly);
-
-  const rect    = btn.getBoundingClientRect();
-  const sidebar = document.querySelector('.sidebar').getBoundingClientRect();
-  fly.style.left = (sidebar.right + 4) + 'px';
-
-  const flyH = fly.offsetHeight;
-  const top  = Math.min(rect.top, window.innerHeight - flyH - 8);
-  fly.style.top = Math.max(8, top) + 'px';
-}
-
-function scheduleFlyoutClose() {
-  _flyoutTimer = setTimeout(hideFlyout, 180);
-}
-
-function hideFlyout(immediate) {
-  if (immediate) clearTimeout(_flyoutTimer);
-  if (_flyout) { _flyout.remove(); _flyout = null; }
-}
-
-document.addEventListener('DOMContentLoaded', async () => {
-  const session = await auth.requireAuth();
-  if (!session) return;
-
-  const user = await auth.getSession();
-  if (user) {
-    const name   = user.user_name || user.email;
-    const clinic = user.clinic_name ? ` · ${user.clinic_name}` : '';
-    document.getElementById('sbUserLine').textContent = name + clinic;
-
-    // 역할 표시
-    const roleEl = document.getElementById('sbUserRole');
-    if (roleEl) {
-      const roleLabel = { admin: '관리자', edit: '편집자', manager: '담당자', user: '일반' };
-      roleEl.textContent = roleLabel[user.role] || user.role || '';
-    }
-
-    // 역할별 기본 권한 (allowed_pages가 null인 사용자에게 적용 — org.js의 ROLE_DEFAULT_PAGES와 동일하게 유지)
-    const ROLE_BASE_PAGES = [
-      'equipment/dashboard', 'equipment/list', 'equipment/detail',
-      'qc/items', 'qc/data',
-      'materials/purchase-request', 'materials/use-stock', 'materials/material-stats',
-    ];
-    const ROLE_DEFAULT_PAGES = {
-      user:    [...ROLE_BASE_PAGES],
-      edit:    [...ROLE_BASE_PAGES, 'equipment/form'],
-      manager: [...ROLE_BASE_PAGES, 'equipment/form', 'materials/procurement', 'materials/stock'],
-      admin:   [...ROLE_BASE_PAGES, 'equipment/form', 'materials/procurement', 'materials/stock', 'master/org', 'master/supply'],
-    };
-    const allowedPages = user.allowed_pages && user.allowed_pages.length
-      ? user.allowed_pages
-      : (ROLE_DEFAULT_PAGES[user.role] || ROLE_DEFAULT_PAGES.user);
-    window.__allowedPages = allowedPages; // navigate()에서 직접 URL 진입 막을 때도 재사용
-
-    // data-page를 가진 모든 사이드바 항목에 범용으로 적용 (개별 사용자마다 다를 수 있으므로 하드코딩 대신 권한 목록으로 판단)
-    document.querySelectorAll('.sb-sub-item[data-page]').forEach(el => {
-      el.style.display = allowedPages.includes(el.dataset.page) ? '' : 'none';
+      // 탭 전환 후 그리드 width 재계산 (display:none 상태에서 초기화되면 width=0)
+      requestAnimationFrame(() => {
+        const gridMap = { clinics: '_clinicGrid', departments: '_deptGrid', users: '_userGrid' };
+        const g = window[gridMap[target]];
+        if (g) g.sizeColumnsToFit();
+      });
     });
-    // 마스터 관리 그룹(상위 메뉴/구분선)은 그 안에 보이는 페이지가 하나라도 있을 때만 노출
-    const masterGroupVisible = allowedPages.includes('master/org') || allowedPages.includes('master/supply');
-    if (masterGroupVisible) {
-      document.getElementById('sbGroupMaster').style.display = '';
-      document.getElementById('sbDividerMaster').style.display = '';
-    }
-  }
+  });
+}
 
-  const params = new URLSearchParams(location.search);
-  initFlyout();
-  navigate(params.get('page') || 'equipment/dashboard', true);
-});
+/* ── 모달 ── */
+function openModal(id) { document.getElementById(id)?.classList.add('is-open'); }
+function closeModal(id) { document.getElementById(id)?.classList.remove('is-open'); }
+window.closeModal = closeModal;
 
-function navigate(page, tab, skipHistory, extraQuery) {
-  if (!page) return;
+/* ════════════════════════════════════════════
+   공통 select 헬퍼
+════════════════════════════════════════════ */
 
-  const pagePathOnly = page.split('?')[0];
-  if (window.__allowedPages && !window.__allowedPages.includes(pagePathOnly) && pagePathOnly !== 'equipment/detail') {
-    alert('이 페이지에 접근할 권한이 없습니다.');
-    return;
-  }
+/** 의원 select 채우기 (여러 곳에서 공유) */
+function fillClinicSelect(selId, placeholder, selectedId) {
+  const sel = document.getElementById(selId);
+  if (!sel) return;
+  sel.innerHTML = `<option value="">${placeholder}</option>` +
+    clinicCache.map(c =>
+      `<option value="${c.id}" data-code="${ts(c.clinic_code)}" data-name="${ts(c.clinic_name)}">${ts(c.clinic_name)}</option>`
+    ).join('');
+  if (selectedId) sel.value = selectedId;
+}
 
-  // extraQuery 객체가 있으면 쿼리스트링으로 변환해서 page에 합침
-  if (extraQuery && typeof extraQuery === 'object') {
-    var qs = Object.entries(extraQuery).map(function([k, v]) {
-      return encodeURIComponent(k) + '=' + encodeURIComponent(v);
-    }).join('&');
-    if (qs) page = page + '?' + qs;
-  }
+/** 특정 의원(clinic_id)에 속한 부서만 select에 채우기 */
+function fillDeptSelect(selId, placeholder, clinicId, selectedId) {
+  const sel = document.getElementById(selId);
+  if (!sel) return;
+  const filtered = clinicId
+    ? deptCache.filter(d => d.clinic_id === clinicId)
+    : deptCache;
+  sel.innerHTML = `<option value="">${placeholder}</option>` +
+    filtered.map(d =>
+      `<option value="${d.id}" data-code="${ts(d.dept_code)}" data-name="${ts(d.dept_name)}">${ts(d.dept_name)}</option>`
+    ).join('');
+  if (selectedId) sel.value = selectedId;
+}
 
-  const pagePath  = page.split('?')[0];
-  const pageQuery = page.split('?')[1] || '';
+/* ════════════════════════════════════════════
+   의원 (clinics)
+════════════════════════════════════════════ */
+async function loadClinics() {
+  const { data, error } = await supabaseClient
+    .from('clinics')
+    .select('*')
+    .order('sort_order', { ascending: true });
+  if (error) throw new Error(error.message);
+  return data || [];
+}
 
-  const meta = MENU_META[pagePath] || { app: pagePath, page: '' };
-  document.getElementById('breadcrumbApp').textContent  = meta.app;
-  document.getElementById('breadcrumbPage').textContent = meta.page;
-  document.getElementById('breadcrumbSep').style.display = meta.page ? '' : 'none';
+function renderClinics(rows) {
+  clinicCache = rows;
+  const list  = document.getElementById('clinicList');
+  const empty = document.getElementById('clinicEmpty');
+  if (!list) return;
 
-  document.getElementById('shellFrame').src =
-    `${CONFIG.SITE_BASE_URL}/pages/${pagePath}.html${pageQuery ? '?' + pageQuery : ''}`;
+  if (empty) empty.style.display = 'none';
 
-  document.querySelectorAll('.sb-item.active, .sb-sub-item.active').forEach(el => el.classList.remove('active'));
-  const _activeItem = document.querySelector(`.sb-sub-item[data-page="${pagePath}"]`);
-  if (_activeItem) {
-    _activeItem.classList.add('active');
-    // 부모 그룹 버튼도 active
-    const _group = _activeItem.closest('.sb-submenu')?.dataset.group;
-    if (_group) document.querySelector(`.sb-item-parent[data-group="${_group}"]`)?.classList.add('active');
+  if (!window._clinicGrid) {
+    window._clinicGrid =
+  createMgGrid('clinicList', [
+      { headerName: '코드',       field: 'clinic_code',  flex: 1, minWidth: 90 },
+      { headerName: '의원명',     field: 'clinic_name',  flex: 2, minWidth: 120 },
+      { headerName: '사업자번호', field: 'business_no',  width: 130, valueFormatter: p => p.value || '-' },
+      { headerName: '요양기관번호', field: 'care_inst_no', width: 120, valueFormatter: p => p.value || '-' },
+      { headerName: '전화',       field: 'phone',        flex: 1, minWidth: 110, valueFormatter: p => p.value || '-' },
+      { headerName: '주소',       field: 'address',      flex: 2, minWidth: 140, valueFormatter: p => p.value || '-' },
+      { headerName: '순서',   field: 'sort_order',  flex: 0, width: 60 },
+      { headerName: '상태',   field: 'active',      flex: 0, width: 70,
+        cellRenderer: p => { const s = document.createElement('span'); s.innerHTML = badgeActive(p.value); return s; } },
+      { headerName: '', flex: 0, width: 120, sortable: false,
+        cellRenderer: p => {
+          const wrap = document.createElement('div'); wrap.style.cssText = 'display:flex;gap:4px;align-items:center;';
+          const e = document.createElement('button'); e.className = 'btn btn-sm'; e.textContent = '수정'; e.onclick = () => window.openEditClinic(p.data.id);
+          const d = document.createElement('button'); d.className = 'btn btn-sm btn-danger'; d.textContent = '삭제'; d.onclick = () => window.deleteClinic(p.data.id);
+          wrap.append(e, d); return wrap;
+        }},
+    ], rows, { pageSize: 15, fit: true, noRowsText: '등록된 의원이 없습니다.' });
   } else {
-    document.querySelector(`.sb-item[data-page="${pagePath}"]`)?.classList.add('active');
+    updateMgGrid(window._clinicGrid, rows);
+  }
+  syncClinicSelects();
+}
+
+/** 의원 데이터가 바뀔 때마다 연관 select 전부 갱신 */
+function syncClinicSelects() {
+  // 부서 탭 필터
+  const deptFilter = document.getElementById('deptClinicFilter');
+  if (deptFilter) {
+    const cur = deptFilter.value;
+    deptFilter.innerHTML = '<option value="">전체</option>' +
+      clinicCache.map(c => `<option value="${c.id}">${ts(c.clinic_name)}</option>`).join('');
+    if (cur) deptFilter.value = cur;
+  }
+  // 사용자 탭 필터
+  const userFilter = document.getElementById('userClinicFilter');
+  if (userFilter) {
+    const cur = userFilter.value;
+    userFilter.innerHTML = '<option value="">전체</option>' +
+      clinicCache.map(c => `<option value="${c.clinic_code}">${ts(c.clinic_name)}</option>`).join('');
+    if (cur) userFilter.value = cur;
+  }
+  // 부서 모달 — 의원 select
+  fillClinicSelect('d_clinic_id', '의원을 선택하세요', null);
+  // 사용자 모달 — 의원 select
+  fillClinicSelect('u_clinic_select', '선택 안 함', null);
+}
+
+function openAddClinic() {
+  editingClinicId = null;
+  ['c_clinic_code','c_clinic_name','c_address','c_phone','c_business_no','c_care_inst_no'].forEach(id => setVal(id, ''));
+  setVal('c_sort_order', '0');
+  setVal('c_active', 'Y');
+  document.getElementById('clinicModalTitle').textContent = '의원 추가';
+  openModal('clinicModal');
+}
+
+function openEditClinic(id) {
+  const row = clinicCache.find(r => r.id === id);
+  if (!row) return;
+  editingClinicId = id;
+  setVal('c_clinic_code',   row.clinic_code);
+  setVal('c_clinic_name',   row.clinic_name);
+  setVal('c_business_no',   row.business_no   || '');
+  setVal('c_care_inst_no',  row.care_inst_no  || '');
+  setVal('c_address',       row.address);
+  setVal('c_phone',         row.phone);
+  setVal('c_sort_order',  row.sort_order ?? 0);
+  setVal('c_active',      row.active);
+  document.getElementById('clinicModalTitle').textContent = '의원 수정';
+  openModal('clinicModal');
+}
+window.openEditClinic = openEditClinic;
+
+async function saveClinic() {
+  const payload = {
+    clinic_code: editingClinicId ? val('c_clinic_code') : await (async () => {
+      const { data } = await supabaseClient.rpc('generate_clinic_code');
+      return data || 'CLINIC-' + Date.now().toString().slice(-6);
+    })(),
+    clinic_name:  val('c_clinic_name'),
+    business_no:  val('c_business_no')  || '',
+    care_inst_no: val('c_care_inst_no') || '',
+    address:      val('c_address'),
+    phone:        val('c_phone'),
+    sort_order:  Number(val('c_sort_order') || 0),
+    active:      val('c_active'),
+    updated_at:  new Date().toISOString(),
+  };
+  // clinic_code는 자동생성
+  if (!payload.clinic_name) throw new Error('의원명은 필수입니다.');
+  if (editingClinicId) {
+    const { error } = await supabaseClient.from('clinics').update(payload).eq('id', editingClinicId);
+    if (error) throw new Error(error.message);
+  } else {
+    const { error } = await supabaseClient.from('clinics').insert(payload);
+    if (error) throw new Error(error.message);
+  }
+}
+
+async function deleteClinic(id) {
+  if (!confirm('의원을 삭제하시겠습니까?\n소속 부서가 있으면 삭제되지 않습니다.')) return;
+  const { error } = await supabaseClient.from('clinics').delete().eq('id', id);
+  if (error) { alert('삭제 실패: ' + error.message); return; }
+  await refreshClinics();
+}
+window.deleteClinic = deleteClinic;
+
+async function refreshClinics() {
+  const rows = await loadClinics();
+  renderClinics(rows);
+}
+
+/* ════════════════════════════════════════════
+   부서 (departments)
+════════════════════════════════════════════ */
+async function loadDepts() {
+  const { data, error } = await supabaseClient
+    .from('departments')
+    .select('*, clinics(clinic_name, clinic_code)')
+    .order('sort_order', { ascending: true });
+  if (error) throw new Error(error.message);
+  return data || [];
+}
+
+function renderDepts(rows, filterClinicId) {
+  deptCache = rows;
+  const list  = document.getElementById('deptList');
+  const empty = document.getElementById('deptEmpty');
+  if (!list) return;
+
+  const filtered = filterClinicId
+    ? rows.filter(r => r.clinic_id === filterClinicId)
+    : rows;
+
+  if (empty) empty.style.display = 'none';
+
+  if (!window._deptGrid) {
+    window._deptGrid =
+  createMgGrid('deptList', [
+      { headerName: '코드',     field: 'dept_code',  flex: 1, minWidth: 90 },
+      { headerName: '부서명',   field: 'dept_name',  flex: 2, minWidth: 100 },
+      { headerName: '소속 의원', flex: 1, minWidth: 100,
+        valueGetter: p => p.data.clinics?.clinic_name || '-' },
+      { headerName: '순서',     field: 'sort_order', flex: 0, width: 60 },
+      { headerName: '상태',     field: 'active',     flex: 0, width: 70,
+        cellRenderer: p => { const s = document.createElement('span'); s.innerHTML = badgeActive(p.value); return s; } },
+      { headerName: '', flex: 0, width: 120, sortable: false,
+        cellRenderer: p => {
+          const wrap = document.createElement('div'); wrap.style.cssText = 'display:flex;gap:4px;align-items:center;';
+          const e = document.createElement('button'); e.className = 'btn btn-sm'; e.textContent = '수정'; e.onclick = () => window.openEditDept(p.data.id);
+          const d = document.createElement('button'); d.className = 'btn btn-sm btn-danger'; d.textContent = '삭제'; d.onclick = () => window.deleteDept(p.data.id);
+          wrap.append(e, d); return wrap;
+        }},
+    ], filtered, { pageSize: 15, fit: true, noRowsText: '등록된 부서가 없습니다.' });
+  } else {
+    updateMgGrid(window._deptGrid, filtered);
+  }
+  syncDeptFilter();
+}
+
+/** 사용자 탭 부서 필터 select 갱신 (현재 선택된 의원 기준) */
+function syncDeptFilter() {
+  const userClinicFilter = document.getElementById('userClinicFilter');
+  const clinicCode = userClinicFilter?.value || '';
+  const userDeptFilter = document.getElementById('userDeptFilter');
+  if (!userDeptFilter) return;
+
+  const cur = userDeptFilter.value;
+  const clinic = clinicCache.find(c => c.clinic_code === clinicCode);
+  const filtered = clinic
+    ? deptCache.filter(d => d.clinic_id === clinic.id)
+    : deptCache;
+
+  userDeptFilter.innerHTML = '<option value="">전체</option>' +
+    filtered.map(d => `<option value="${d.dept_code}">${ts(d.dept_name)}</option>`).join('');
+  if (cur) userDeptFilter.value = cur;
+}
+
+function openAddDept() {
+  editingDeptId = null;
+  setVal('d_clinic_id', '');
+  ['d_dept_code','d_dept_name'].forEach(id => setVal(id, ''));
+  setVal('d_sort_order', '0');
+  setVal('d_active', 'Y');
+  // 현재 부서 탭 필터에 의원이 선택돼 있으면 모달에 미리 세팅
+  const filterVal = document.getElementById('deptClinicFilter')?.value || '';
+  if (filterVal) setVal('d_clinic_id', filterVal);
+  document.getElementById('deptModalTitle').textContent = '부서 추가';
+  openModal('deptModal');
+}
+
+function openEditDept(id) {
+  const row = deptCache.find(r => r.id === id);
+  if (!row) return;
+  editingDeptId = id;
+  setVal('d_clinic_id',  row.clinic_id || '');
+  setVal('d_dept_code',  row.dept_code);
+  setVal('d_dept_name',  row.dept_name);
+  setVal('d_sort_order', row.sort_order ?? 0);
+  setVal('d_active',     row.active);
+  document.getElementById('deptModalTitle').textContent = '부서 수정';
+  openModal('deptModal');
+}
+window.openEditDept = openEditDept;
+
+async function saveDept() {
+  const clinicId = val('d_clinic_id');
+  if (!clinicId) throw new Error('소속 의원을 선택해주세요.');
+  const payload = {
+    dept_code: editingDeptId ? val('d_dept_code') : await (async () => {
+      const { data } = await supabaseClient.rpc('generate_dept_code');
+      return data || 'DEPT-' + Date.now().toString().slice(-6);
+    })(),
+    dept_name:  val('d_dept_name'),
+    clinic_id:  clinicId,
+    sort_order: Number(val('d_sort_order') || 0),
+    active:     val('d_active'),
+    updated_at: new Date().toISOString(),
+  };
+  // dept_code는 자동생성
+  if (!payload.dept_name) throw new Error('부서명은 필수입니다.');
+  if (editingDeptId) {
+    const { error } = await supabaseClient.from('departments').update(payload).eq('id', editingDeptId);
+    if (error) throw new Error(error.message);
+  } else {
+    const { error } = await supabaseClient.from('departments').insert(payload);
+    if (error) throw new Error(error.message);
+  }
+}
+
+async function deleteDept(id) {
+  if (!confirm('부서를 삭제하시겠습니까?')) return;
+  const { error } = await supabaseClient.from('departments').delete().eq('id', id);
+  if (error) { alert('삭제 실패: ' + error.message); return; }
+  await refreshDepts();
+}
+window.deleteDept = deleteDept;
+
+async function refreshDepts() {
+  const rows = await loadDepts();
+  const filterVal = document.getElementById('deptClinicFilter')?.value || '';
+  renderDepts(rows, filterVal || null);
+}
+
+/* ════════════════════════════════════════════
+   사용자 (user_profiles)
+════════════════════════════════════════════ */
+async function loadUsers() {
+  const { data, error } = await supabaseClient
+    .from('user_profiles_with_email')
+    .select('*')
+    .order('clinic_code', { ascending: true });
+  if (error) throw new Error(error.message);
+  return data || [];
+}
+
+function renderUsers(rows, filterClinicCode, filterDeptCode) {
+  userCache = rows;
+  const list  = document.getElementById('userList');
+  const empty = document.getElementById('userEmpty');
+  if (!list) return;
+
+  const pendingCount = rows.filter(r => r.active !== 'Y').length;
+  const pendingEl = document.getElementById('userPendingCount');
+  if (pendingEl) pendingEl.textContent = pendingCount ? `(${pendingCount})` : '';
+
+  let filtered = rows;
+  if (filterClinicCode) filtered = filtered.filter(r => r.clinic_code === filterClinicCode);
+  if (filterDeptCode)   filtered = filtered.filter(r => r.team_code   === filterDeptCode);
+  if (document.getElementById('userPendingOnly')?.checked) filtered = filtered.filter(r => r.active !== 'Y');
+
+  if (empty) empty.style.display = 'none';
+
+  if (!window._userGrid) {
+    window._userGrid =
+  createMgGrid('userList', [
+      { headerName: '이름',   field: 'user_name',  flex: 1, minWidth: 80, valueFormatter: p => p.value || '-' },
+      { headerName: '이메일', field: 'email',      flex: 2, minWidth: 160, valueFormatter: p => p.value || '-' },
+      { headerName: '역할',   field: 'role',       flex: 0, width: 90,
+        cellRenderer: p => { const s = document.createElement('span'); s.innerHTML = badgeRole(p.value); return s; } },
+      { headerName: '의원',   field: 'clinic_name', flex: 1, minWidth: 90, valueFormatter: p => p.value || '-' },
+      { headerName: '팀/부서', flex: 1, minWidth: 90,
+        valueGetter: p => p.data.team_name || p.data.department || '-' },
+      { headerName: '전화',   field: 'phone',      flex: 1, minWidth: 110, valueFormatter: p => p.value || '-' },
+      { headerName: '상태',   field: 'active',     flex: 0, width: 70,
+        cellRenderer: p => { const s = document.createElement('span'); s.innerHTML = badgeActive(p.value); return s; } },
+      { headerName: '', flex: 0, width: 140, sortable: false,
+        cellRenderer: p => {
+          const wrap = document.createElement('div'); wrap.style.cssText = 'display:flex;gap:4px;align-items:center;';
+          const btnEdit = document.createElement('button'); btnEdit.className = 'btn btn-sm'; btnEdit.textContent = '수정';
+          btnEdit.onclick = () => window.openEditUser(p.data.id);
+          wrap.append(btnEdit);
+          if (p.data.active !== 'Y') {
+            const btnApprove = document.createElement('button'); btnApprove.className = 'btn btn-sm btn-primary'; btnApprove.textContent = '승인';
+            btnApprove.onclick = () => window.approveUser(p.data.id);
+            wrap.append(btnApprove);
+          }
+          return wrap;
+        }},
+    ], filtered, { pageSize: 15, fit: true, noRowsText: '등록된 사용자가 없습니다.' });
+  } else {
+    updateMgGrid(window._userGrid, filtered);
+  }
+}
+
+/** 사용자 모달: 의원 선택 → 해당 의원 부서만 부서 select에 뿌리기 */
+function onUserClinicSelectChange() {
+  const clinicId = document.getElementById('u_clinic_select')?.value || '';
+  fillDeptSelect('u_dept_select', '선택 안 함', clinicId || null, null);
+}
+
+async function approveUser(id) {
+  if (!confirm('이 사용자를 승인하시겠습니까?')) return;
+  const { error } = await supabaseClient
+    .from('user_profiles')
+    .update({ active: 'Y', role: 'user' })
+    .eq('id', id);
+  if (error) { alert('승인 실패: ' + error.message); return; }
+  await refreshUsers();
+}
+window.approveUser = approveUser;
+
+/** 권한 레벨 옵션 */
+const PERM_LEVELS = ['접근불가', 'user', 'edit', 'manager', 'admin'];
+const PERM_COLORS = {
+  '접근불가': '#dc2626',
+  'user':     '#6b7280',
+  'edit':     '#7c3aed',
+  'manager':  '#d97706',
+  'admin':    '#2563eb',
+};
+
+let _gridUserPerm = null;
+
+/** 앱 접근 권한 AG Grid 렌더링 */
+function renderUserPermBody(pagePerms, disabled) {
+  // pagePerms: { "page/key": "user"|"edit"|"manager"|"admin" } 또는 레거시 배열
+  // 레거시 배열 호환
+  let permMap = {};
+  if (Array.isArray(pagePerms)) {
+    pagePerms.forEach(k => { permMap[k] = 'user'; });
+  } else if (pagePerms && typeof pagePerms === 'object') {
+    permMap = { ...pagePerms };
   }
 
-  if (!skipHistory) history.pushState({ page }, '', `?page=${page}`);
-  closeSidebar();
-}
+  // 행 데이터 생성
+  const rows = [];
+  PAGE_GROUPS.forEach(group => {
+    group.pages.forEach(p => {
+      rows.push({
+        _key:   p.key,
+        app:    group.app,
+        label:  p.label,
+        level:  permMap[p.key] || '접근불가',
+      });
+    });
+  });
 
-function openSidebar() {
-  document.getElementById('sidebar').classList.add('is-open');
-  document.getElementById('sbOverlay').classList.add('is-visible');
-}
-function closeSidebar() {
-  document.getElementById('sidebar').classList.remove('is-open');
-  document.getElementById('sbOverlay').classList.remove('is-visible');
-}
-async function doLogout() { await auth.logout(); }
+  const el = document.getElementById('userPermGrid');
+  if (!el) return;
 
-window.shellNavigate = navigate;
-window.addEventListener('popstate', e => {
-  if (e.state?.page) navigate(e.state.page, true);
-});
-</script>
+  const colDefs = [
+    { headerName: '앱', field: 'app', width: 110, rowGroup: false,
+      headerClass: 'ag-left-header',
+      cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-start',
+                   fontSize:'11px', color:'#6b7280', fontWeight:600 },
+    },
+    { headerName: '페이지', field: 'label', flex: 1,
+      headerClass: 'ag-left-header',
+      cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-start', fontSize:'12px' },
+    },
+    { headerName: '접근 권한', field: 'level', width: 160,
+      editable: false,
+      cellRenderer: function(p) {
+        if (disabled) {
+          const v = p.value || '접근불가';
+          const color = PERM_COLORS[v] || '#6b7280';
+          return `<span style="display:inline-flex;align-items:center;gap:5px;">
+            <span style="width:8px;height:8px;border-radius:50%;background:${color};flex-shrink:0;"></span>
+            <span style="color:${color};font-weight:600;font-size:11px;">${v}</span>
+          </span>`;
+        }
+        // 드롭다운 select 렌더링 (인라인, 셀 클릭 없이 바로 변경)
+        const sel = document.createElement('select');
+        sel.style.cssText = 'height:26px;padding:0 6px;border:1px solid #e5e7eb;border-radius:5px;font-size:11px;font-weight:600;outline:none;cursor:pointer;background:#fff;';
+        PERM_LEVELS.forEach(lv => {
+          const opt = document.createElement('option');
+          opt.value = lv;
+          opt.textContent = lv;
+          if (lv === (p.value || '접근불가')) opt.selected = true;
+          sel.appendChild(opt);
+        });
+        sel.style.color = PERM_COLORS[p.value || '접근불가'] || '#6b7280';
+        sel.addEventListener('change', function() {
+          p.node.setDataValue('level', sel.value);
+          sel.style.color = PERM_COLORS[sel.value] || '#6b7280';
+        });
+        return sel;
+      },
+    },
+  ];
 
-<style>
-  /* 사용자 역할 표시 */
-  .sb-user-role {
-    font-size: 10px;
-    color: rgba(255,255,255,0.4);
-    margin-top: 2px;
+  if (_gridUserPerm) {
+    _gridUserPerm.destroy();
+    _gridUserPerm = null;
+    el.innerHTML = '';
   }
-</style>
-</body>
-</html>
+
+  _gridUserPerm = agGrid.createGrid(el, {
+    columnDefs: colDefs,
+    rowData: rows,
+    rowHeight: 34,
+    headerHeight: 34,
+    suppressCellFocus: true,
+    suppressHorizontalScroll: false,
+    stopEditingWhenCellsLoseFocus: true,
+    singleClickEdit: false,
+    defaultColDef: {
+      sortable: false, resizable: true, suppressMovable: true,
+      cellStyle: { display:'flex', alignItems:'center', justifyContent:'center' },
+    },
+    onGridReady: function(p) {
+      setTimeout(() => { if (el.offsetWidth > 0) p.api.sizeColumnsToFit(); }, 50);
+    },
+  });
+}
+
+/** 현재 그리드에서 page_perms 객체 추출 */
+function getPagePermsFromGrid() {
+  if (!_gridUserPerm) return {};
+  const result = {};
+  _gridUserPerm.forEachNode(function(node) {
+    if (node.data.level && node.data.level !== '접근불가') {
+      result[node.data._key] = node.data.level;
+    }
+  });
+  return result;
+}
+
+/** 역할 select가 바뀌면 */
+function onUserRoleChange() {
+  const role = val('u_role') || 'user';
+  document.getElementById('u_perm_roleLabel').textContent = role;
+  if (document.getElementById('u_perm_useDefault')?.checked) {
+    if (_gridUserPerm) { try { _gridUserPerm.destroy(); } catch(e) {} _gridUserPerm = null; }
+    const _permEl = document.getElementById('userPermGrid');
+    if (_permEl) _permEl.innerHTML = '';
+    renderUserPermBody(ROLE_DEFAULT_PAGES[role] || {}, true);
+  }
+}
+window.onUserRoleChange = onUserRoleChange;
+
+/** "역할 기본값 사용" 토글 */
+function onUserPermUseDefaultChange() {
+  const useDefault = document.getElementById('u_perm_useDefault')?.checked;
+  const role = val('u_role') || 'user';
+  if (useDefault) {
+    renderUserPermBody(ROLE_DEFAULT_PAGES[role] || {}, true);
+  } else {
+    // 직접 설정 모드 — 현재 그리드 상태 유지하되 편집 가능하게
+    const cur = getPagePermsFromGrid();
+    renderUserPermBody(cur, false);
+  }
+}
+window.onUserPermUseDefaultChange = onUserPermUseDefaultChange;
+
+function openEditUser(id) {
+  const row = userCache.find(r => r.id === id);
+  if (!row) return;
+  editingUserId = id;
+
+  setVal('u_email',      row.email || '');
+  setVal('u_user_name',  row.user_name);
+  setVal('u_phone',      row.phone);
+  setVal('u_role',       row.role);
+  setVal('u_active',     row.active);
+  setVal('u_department', row.department);
+
+  // 의원 select: clinic_code 기준으로 id 찾아 세팅
+  const clinic = clinicCache.find(c => c.clinic_code === row.clinic_code);
+  fillClinicSelect('u_clinic_select', '선택 안 함', clinic?.id || null);
+
+  // 부서 select: 해당 의원 부서로 채운 뒤 team_code 기준으로 선택
+  const dept = deptCache.find(d => d.dept_code === row.team_code);
+  fillDeptSelect('u_dept_select', '선택 안 함', clinic?.id || null, dept?.id || null);
+
+  // 앱 접근 권한 — page_perms가 비어있으면 역할 기본값 사용 모드
+  const pagePerms = row.page_perms || {};
+  const useDefault = !row.page_perms || Object.keys(pagePerms).length === 0;
+  document.getElementById('u_perm_useDefault').checked = useDefault;
+  document.getElementById('u_perm_roleLabel').textContent = row.role || '-';
+  // 모달 열 때마다 그리드 완전 재생성
+  if (_gridUserPerm) { try { _gridUserPerm.destroy(); } catch(e) {} _gridUserPerm = null; }
+  const permEl = document.getElementById('userPermGrid');
+  if (permEl) permEl.innerHTML = '';
+  renderUserPermBody(useDefault ? (ROLE_DEFAULT_PAGES[row.role] || {}) : pagePerms, useDefault);
+
+  document.getElementById('userModalTitle').textContent = '사용자 수정';
+  openModal('userModal');
+}
+window.openEditUser = openEditUser;
+
+async function saveUser() {
+  // 선택된 의원 option에서 code/name 추출
+  const clinicSel  = document.getElementById('u_clinic_select');
+  const clinicOpt  = clinicSel?.options[clinicSel.selectedIndex];
+  const clinic_code = clinicOpt?.dataset.code || '';
+  const clinic_name = clinicOpt?.dataset.name || '';
+
+  // 선택된 부서 option에서 code/name 추출
+  const deptSel  = document.getElementById('u_dept_select');
+  const deptOpt  = deptSel?.options[deptSel.selectedIndex];
+  const team_code = deptOpt?.dataset.code || '';
+  const team_name = deptOpt?.dataset.name || '';
+
+  const useDefault = document.getElementById('u_perm_useDefault')?.checked;
+  const page_perms = useDefault ? null : getPagePermsFromGrid();
+
+  const payload = {
+    user_name:   val('u_user_name'),
+    phone:       val('u_phone'),
+    role:        val('u_role'),
+    clinic_code,
+    clinic_name,
+    team_code,
+    team_name,
+    department:  val('u_department'),
+    active:      val('u_active'),
+    page_perms:  page_perms || {},
+    updated_at:  new Date().toISOString(),
+  };
+  const { error } = await supabaseClient.from('user_profiles').update(payload).eq('id', editingUserId);
+  if (error) throw new Error(error.message);
+}
+
+async function refreshUsers() {
+  const rows = await loadUsers();
+  const cc = document.getElementById('userClinicFilter')?.value || '';
+  const dc = document.getElementById('userDeptFilter')?.value || '';
+  renderUsers(rows, cc, dc);
+}
+
+/* ════════════════════════════════════════════
+   저장 버튼 공통
+════════════════════════════════════════════ */
+function bindSaveBtn(btnId, saveFn, modalId, refreshFn) {
+  document.getElementById(btnId)?.addEventListener('click', async () => {
+    const btn = document.getElementById(btnId);
+    btn.disabled = true;
+    try {
+      await saveFn();
+      closeModal(modalId);
+      await refreshFn();
+    } catch (e) {
+      alert('저장 실패: ' + e.message);
+    } finally {
+      btn.disabled = false;
+    }
+  });
+}
+
+/* ════════════════════════════════════════════
+   필터 이벤트 바인딩
+════════════════════════════════════════════ */
+function initFilters() {
+  // 부서 탭 — 의원 필터
+  document.getElementById('deptClinicFilter')?.addEventListener('change', e => {
+    renderDepts(deptCache, e.target.value || null);
+  });
+
+  // 사용자 탭 — 의원 필터
+  document.getElementById('userClinicFilter')?.addEventListener('change', e => {
+    syncDeptFilter();                        // 부서 필터 갱신
+    setVal('userDeptFilter', '');           // 부서 필터 초기화
+    const cc = e.target.value;
+    renderUsers(userCache, cc, '');
+  });
+
+  // 사용자 탭 — 부서 필터
+  document.getElementById('userDeptFilter')?.addEventListener('change', e => {
+    const cc = document.getElementById('userClinicFilter')?.value || '';
+    renderUsers(userCache, cc, e.target.value);
+  });
+
+  // 사용자 모달 — 의원 select → 부서 select 연동
+  document.getElementById('u_clinic_select')?.addEventListener('change', onUserClinicSelectChange);
+}
+
+/* ════════════════════════════════════════════
+   초기화
+════════════════════════════════════════════ */
+async function init() {
+  currentUser = await auth.requireAdmin();
+  if (!currentUser) return;
+
+  initTabs();
+  initFilters();
+
+  document.getElementById('addClinicBtn')?.addEventListener('click', openAddClinic);
+  document.getElementById('addDeptBtn')?.addEventListener('click', openAddDept);
+
+  bindSaveBtn('clinicSaveBtn', saveClinic, 'clinicModal', refreshClinics);
+  bindSaveBtn('deptSaveBtn',   saveDept,   'deptModal',   refreshDepts);
+  bindSaveBtn('userSaveBtn',   saveUser,   'userModal',   refreshUsers);
+
+  showGlobalLoading('데이터를 불러오는 중...');
+  try {
+    const [clinics, depts, users] = await Promise.all([
+      loadClinics(),
+      loadDepts(),
+      loadUsers(),
+    ]);
+    // 순서 중요: clinic 먼저 → select 동기화 → dept/user 렌더
+    renderClinics(clinics);   // clinicCache 세팅 + select 동기화
+    renderDepts(depts, null); // deptCache 세팅 + 사용자 탭 부서 필터 동기화
+    renderUsers(users, '', '');
+  } catch (e) {
+    alert('초기화 실패: ' + e.message);
+    console.error('[master/org]', e);
+  } finally {
+    hideGlobalLoading();
+  }
+}
+
+document.addEventListener('DOMContentLoaded', init);
