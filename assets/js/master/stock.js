@@ -610,9 +610,13 @@ function initTransferInfoGrid() {
 
 function selectTransferItem(row) {
   _selectedTransferItem = {
+    lot_id:         row.id,           // stock_lots.id
     item_id:        row.item_id,
     item_name:      row.items?.item_name || '-',
-    use_unit:       row.items?.use_unit  || '',
+    lot_no:         row.lot_no || '-',
+    receipt_date:   row.receipt_date || '',
+    unit_price:     row.unit_price || 0,
+    use_unit:       row.use_unit || row.items?.use_unit || '',
     qty:            row.qty,
     from_dept_id:   row.dept_id || null,
     from_dept_name: row.departments?.dept_name || '중앙창고',
@@ -621,10 +625,10 @@ function selectTransferItem(row) {
   };
 
   var lbl = document.getElementById('transferItemLabel');
-  if (lbl) lbl.textContent = _selectedTransferItem.item_name;
+  if (lbl) lbl.textContent = _selectedTransferItem.item_name + ' [' + _selectedTransferItem.lot_no + ']';
 
   var sum = document.getElementById('transferSummary');
-  if (sum) sum.textContent = _selectedTransferItem.from_dept_name + ' · 현재고 ' +
+  if (sum) sum.textContent = _selectedTransferItem.from_dept_name + ' · 잔여 ' +
     Number(_selectedTransferItem.qty).toLocaleString('ko-KR') + ' ' + _selectedTransferItem.use_unit;
 
   var deptNames = _deptOptions
@@ -634,18 +638,20 @@ function selectTransferItem(row) {
   if (!_gridTransferInfo) initTransferInfoGrid();
 
   _gridTransferInfo.setGridOption('rowData', [
-    { key:'from',    label:'출발 부서', value: _selectedTransferItem.from_dept_name, editable:false },
-    { key:'to',      label:'도착 부서', value: '', editable:true,
+    { key:'lot',     label:'LOT번호',   value: _selectedTransferItem.lot_no, editable:false },
+    { key:'date',    label:'입고일',     value: _selectedTransferItem.receipt_date, editable:false },
+    { key:'price',   label:'단가',       value: fmtN(_selectedTransferItem.unit_price) + '원', editable:false },
+    { key:'from',    label:'출발 부서',  value: _selectedTransferItem.from_dept_name, editable:false },
+    { key:'to',      label:'도착 부서',  value: '', editable:true,
       editor:'agSelectCellEditor', editorParams:{ values: deptNames } },
-    { key:'qty',     label:'이동 수량', value: 1,  editable:true,
+    { key:'qty',     label:'이동 수량',  value: 1,  editable:true,
       editor:'agNumberCellEditor', editorParams:{ min:1, max:_selectedTransferItem.qty } },
-    { key:'history', label:'최근 이력', value: '불러오는 중...', editable:false },
+    { key:'history', label:'최근 이력',  value: '불러오는 중...', editable:false },
   ]);
 
   var btn = document.getElementById('transferSaveBtn');
   if (btn) btn.disabled = false;
 
-  // 이동 이력 비동기 로드
   loadTransferHistory(_selectedTransferItem.item_id);
 }
 
@@ -686,7 +692,6 @@ async function loadTransferHistory(itemId) {
 
 async function saveTransfer() {
   if (!_selectedTransferItem) { alert('이동할 품목을 선택하세요.'); return; }
-  // 그리드에서 값 읽기
   var toDeptId = _selectedTransferItem._toDeptId || '';
   var qty = 1;
   if (_gridTransferInfo) {
@@ -696,12 +701,12 @@ async function saveTransfer() {
     });
   }
   var transferDate = val('transferDate');
-  var memo        = val('transferMemo');
+  var memo         = val('transferMemo');
 
-  if (!toDeptId)      { alert('도착 부서를 선택하세요.'); return; }
-  if (qty < 1)        { alert('이동 수량을 1 이상 입력하세요.'); return; }
-  if (qty > _selectedTransferItem.qty) { alert('현재고(' + _selectedTransferItem.qty + ')를 초과합니다.'); return; }
-  if (!transferDate)  { alert('이동일을 입력하세요.'); return; }
+  if (!toDeptId)     { alert('도착 부서를 선택하세요.'); return; }
+  if (qty < 1)       { alert('이동 수량을 1 이상 입력하세요.'); return; }
+  if (qty > _selectedTransferItem.qty) { alert('LOT 잔여수량(' + _selectedTransferItem.qty + ')을 초과합니다.'); return; }
+  if (!transferDate) { alert('이동일을 입력하세요.'); return; }
 
   var btn = document.getElementById('transferSaveBtn');
   if (btn) btn.disabled = true;
@@ -710,45 +715,68 @@ async function saveTransfer() {
     var session = await supabaseClient.auth.getSession();
     var userId  = session.data?.session?.user?.id || null;
 
+    // 1. 출발 LOT 잔여수량 차감
+    var { error: lotOutErr } = await supabaseClient.from('stock_lots')
+      .update({ qty: _selectedTransferItem.qty - qty })
+      .eq('id', _selectedTransferItem.lot_id);
+    if (lotOutErr) throw new Error('LOT 차감 실패: ' + lotOutErr.message);
+
+    // 2. 도착 부서 LOT 생성 (단가 승계)
+    var { data: newLot, error: lotInErr } = await supabaseClient.from('stock_lots').insert({
+      item_id:      _selectedTransferItem.item_id,
+      receipt_id:   null,
+      lot_no:       _selectedTransferItem.lot_no,
+      receipt_date: _selectedTransferItem.receipt_date,
+      unit_price:   _selectedTransferItem.unit_price,
+      purchase_unit: '',
+      use_unit:     _selectedTransferItem.use_unit,
+      dept_id:      toDeptId,
+      qty:          qty,
+    }).select('id').single();
+    if (lotInErr) throw new Error('도착 LOT 생성 실패: ' + lotInErr.message);
+
     var transferNo = await genDocNo('TR');
 
-    // stock_transfers 기록
+    // 3. stock_transfers 기록
     var { error: te } = await supabaseClient.from('stock_transfers').insert({
-      transfer_no:  transferNo,
-      item_id:      _selectedTransferItem.item_id,
-      from_dept_id: _selectedTransferItem.from_dept_id,
-      to_dept_id:   toDeptId,
-      qty:          qty,
-      use_unit:     _selectedTransferItem.use_unit,
+      transfer_no:   transferNo,
+      item_id:       _selectedTransferItem.item_id,
+      from_dept_id:  _selectedTransferItem.from_dept_id,
+      to_dept_id:    toDeptId,
+      qty:           qty,
+      use_unit:      _selectedTransferItem.use_unit,
+      lot_no:        _selectedTransferItem.lot_no,
+      lot_id:        _selectedTransferItem.lot_id,
+      unit_price:    _selectedTransferItem.unit_price,
       transfer_date: transferDate,
-      memo:         memo,
-      created_by:   userId,
+      memo:          memo,
+      created_by:    userId,
     });
     if (te) throw new Error('이동 기록 실패: ' + te.message);
 
-    // stock_transactions (출발 OUT + 도착 IN)
+    // 4. stock_transactions (출발 OUT + 도착 IN) — lot_id + unit_price 포함
     var { error: txe } = await supabaseClient.from('stock_transactions').insert([
-      { item_id: _selectedTransferItem.item_id, dept_id: _selectedTransferItem.from_dept_id || null, tx_type:'OUT', tx_date: transferDate, qty: -qty, use_unit: _selectedTransferItem.use_unit, ref_type:'transfer', created_by: userId },
-      { item_id: _selectedTransferItem.item_id, dept_id: toDeptId, tx_type:'IN', tx_date: transferDate, qty: qty, use_unit: _selectedTransferItem.use_unit, ref_type:'transfer', created_by: userId },
+      { item_id: _selectedTransferItem.item_id, dept_id: _selectedTransferItem.from_dept_id || null,
+        tx_type:'OUT', tx_date: transferDate, qty: -qty, use_unit: _selectedTransferItem.use_unit,
+        ref_type:'transfer', lot_id: _selectedTransferItem.lot_id, unit_price: _selectedTransferItem.unit_price, created_by: userId },
+      { item_id: _selectedTransferItem.item_id, dept_id: toDeptId,
+        tx_type:'IN', tx_date: transferDate, qty: qty, use_unit: _selectedTransferItem.use_unit,
+        ref_type:'transfer', lot_id: newLot.id, unit_price: _selectedTransferItem.unit_price, created_by: userId },
     ]);
     if (txe) throw new Error('재고 이동 실패: ' + txe.message);
 
-    // stock_current 갱신
+    // 5. stock_current 갱신
     await upsertStockCurrent(_selectedTransferItem.item_id, -qty, _selectedTransferItem.from_dept_id);
     await upsertStockCurrent(_selectedTransferItem.item_id,  qty, toDeptId);
 
-    alert('재고 이동 완료! (' + _selectedTransferItem.from_dept_name + ' → ' +
-      (_deptOptions.find(function(d){ return d.id===toDeptId; })?.name||'') + ' ' + qty + _selectedTransferItem.use_unit + ')');
+    var toDeptName = _deptOptions.find(function(d){ return d.id===toDeptId; })?.name || '';
+    alert('재고 이동 완료! [' + _selectedTransferItem.lot_no + '] ' +
+      _selectedTransferItem.from_dept_name + ' → ' + toDeptName + ' ' + qty + _selectedTransferItem.use_unit);
 
-    // 초기화
     _selectedTransferItem = null;
     var lbl = document.getElementById('transferItemLabel'); if(lbl) lbl.textContent = '';
-    var fromEl = document.getElementById('transferFromDept'); if(fromEl) fromEl.textContent = '-';
-    var maxLbl = document.getElementById('transferMaxLabel'); if(maxLbl) maxLbl.textContent = '';
-    var histEl = document.getElementById('transferHistoryList'); if(histEl) histEl.textContent = '품목을 선택하세요';
+    var sum = document.getElementById('transferSummary'); if(sum) sum.textContent = '← 왼쪽에서 품목을 선택하세요';
     if(btn) btn.disabled = true;
-
-    // 목록 갱신
     loadDeptStock(1);
 
   } catch(e) {
@@ -1520,32 +1548,37 @@ function initDeptStockGrid() {
   var el = document.getElementById('deptStockGrid');
   if (el) el.style.height = Math.max(200, window.innerHeight - 200) + 'px';
   var colDefs = [
-    { headerName: '부서', field: 'departments', flex: 1,
+    { headerName: '부서', field: 'departments', width: 90,
       headerClass: 'ag-left-header',
       cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-start' },
       cellRenderer: function(p) { return ts(p.value?.dept_name || '-'); }
     },
     { headerName: '자재명', field: 'items', flex: 2,
       headerClass: 'ag-left-header',
-      cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-start' },
+      cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-start', fontWeight:600 },
       cellRenderer: function(p) { return ts(p.value?.item_name || '-'); }
     },
-    { headerName: '사용단위', field: 'items', width: 80,
-      cellRenderer: function(p) { return ts(p.value?.use_unit || p.value?.unit || '-'); }
+    { headerName: 'LOT번호', field: 'lot_no', width: 120,
+      headerClass: 'ag-left-header',
+      cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-start', color:'#1d4ed8', fontFamily:'Consolas,monospace', fontSize:'11px', paddingLeft:'8px' },
+      cellRenderer: function(p) { return ts(p.value || '-'); }
     },
-    { headerName: '현재고', field: 'qty', width: 100,
+    { headerName: '입고일', field: 'receipt_date', width: 90,
+      cellRenderer: function(p) { return p.value ? String(p.value).slice(0,10) : '-'; }
+    },
+    { headerName: '단가', field: 'unit_price', width: 75,
+      cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-end' },
+      cellRenderer: function(p) { return fmtN(p.value) + '원'; }
+    },
+    { headerName: '단위', field: 'use_unit', width: 60,
+      cellRenderer: function(p) { return ts(p.value || '-'); }
+    },
+    { headerName: '잔여수량', field: 'qty', width: 85,
       cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-end' },
       cellRenderer: function(p) {
         var qty = p.value || 0;
-        var item = p.data?.items;
-        var reorder = item?.reorder_point;
-        var cls = qty === 0 ? 'stock-qty-zero' : (reorder && qty <= reorder ? 'stock-qty-low' : 'stock-qty-ok');
+        var cls = qty === 0 ? 'stock-qty-zero' : 'stock-qty-ok';
         return '<span class="' + cls + '">' + fmtN(qty) + '</span>';
-      }
-    },
-    { headerName: '최종갱신', field: 'last_updated_at', width: 140,
-      cellRenderer: function(p) {
-        return p.value ? new Date(p.value).toLocaleString('ko-KR',{hour12:false}).slice(0,16) : '-';
       }
     },
   ];
@@ -1564,16 +1597,16 @@ async function loadDeptStock(page) {
   try {
     var from = (page - 1) * st.pageSize;
     var to   = from + st.pageSize - 1;
-    var deptId  = val('deptStockDeptFilter');  // 빈 값이면 전체(중앙창고 포함)
+    var deptId  = val('deptStockDeptFilter');
     var keyword = val('deptStockKeyword');
 
+    // stock_lots 기반 — LOT별 행 (dept_id IS NOT NULL, 잔여수량 > 0)
     var q = supabaseClient
-      .from('stock_current')
-      .select('*, items(item_name, use_unit, unit, reorder_point), departments(dept_name)', { count: 'exact' })
+      .from('stock_lots')
+      .select('*, items(item_name, use_unit, reorder_point), departments(dept_name)', { count: 'exact' })
       .not('dept_id', 'is', null)
       .gt('qty', 0)
-      .order('last_updated_at', { ascending: false })
-      .range(from, to);
+      .order('receipt_date', { ascending: true });
 
     if (deptId) q = q.eq('dept_id', deptId);
     if (keyword) {
@@ -1592,7 +1625,7 @@ async function loadDeptStock(page) {
     if (!_gridDeptStock) initDeptStockGrid();
     if (_gridDeptStock) { _gridDeptStock.setGridOption('rowData', data || []); refitGridColumns(_gridDeptStock); }
     renderPagination('deptStockPagination', st, loadDeptStock);
-    var dcnt = document.getElementById('deptStockCount'); if(dcnt) dcnt.textContent = (count||0) + '건';
+    var dcnt = document.getElementById('deptStockCount'); if(dcnt) dcnt.textContent = (count||0) + '건 (LOT)';
   } catch(e) {
     alert('부서별 재고 로드 실패: ' + e.message);
   } finally {
