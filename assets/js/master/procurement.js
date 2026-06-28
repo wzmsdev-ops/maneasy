@@ -929,11 +929,11 @@ function initPoItemGrid() {
         return ts(p.value || '-');
       }
     },
-    { headerName: '입고단위', field: 'purchase_unit', width: 80,
+    { headerName: '입고단위', field: 'purchase_unit', width: 92,
       cellStyle: { display:'flex', alignItems:'center', justifyContent:'center', background:'#f8fafc', color:'#6b7280' },
       cellRenderer: function(p) { return ts(p.value || '-'); }
     },
-    { headerName: '사용단위', field: 'use_unit', width: 80,
+    { headerName: '사용단위', field: 'use_unit', width: 92,
       cellStyle: { display:'flex', alignItems:'center', justifyContent:'center', background:'#f8fafc', color:'#6b7280' },
       cellRenderer: function(p) { return ts(p.value || '-'); }
     },
