@@ -1315,10 +1315,39 @@ async function cancelDispatch(dispatchId) {
     var session = await supabaseClient.auth.getSession();
     var userId  = session.data?.session?.user?.id || null;
 
-    // 재고 원복 — 부서 → 중앙창고로 되돌리는 역방향 거래 기록 (기존 이력은 그대로 두고, 취소 이력을 새로 남김)
+    var cancelDate = new Date().toISOString().slice(0,10);
+
+    // lot_id가 있으면 LOT 단위 원복, 없으면 구버전 데이터 — stock_lots 없이 stock_current만 원복
+    if (d.lot_id) {
+      // 1. 부서 LOT 삭제 (불출로 생성된 LOT)
+      // 부서 lot 중 이 dispatch의 lot_id(중앙창고 원본)와 lot_no가 같고 dept_id가 일치하는 것을 찾아 삭제
+      var { data: deptLot } = await supabaseClient.from('stock_lots')
+        .select('id, qty')
+        .eq('dept_id', d.dept_id)
+        .eq('lot_no', d.lot_no)
+        .eq('item_id', d.item_id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (deptLot) {
+        var remainAfterCancel = deptLot.qty - d.dispatch_qty;
+        if (remainAfterCancel <= 0) {
+          await supabaseClient.from('stock_lots').delete().eq('id', deptLot.id);
+        } else {
+          await supabaseClient.from('stock_lots').update({ qty: remainAfterCancel }).eq('id', deptLot.id);
+        }
+      }
+      // 2. 중앙창고 원본 LOT 수량 복원
+      var { data: srcLot } = await supabaseClient.from('stock_lots').select('qty').eq('id', d.lot_id).maybeSingle();
+      if (srcLot) {
+        await supabaseClient.from('stock_lots').update({ qty: (srcLot.qty || 0) + d.dispatch_qty }).eq('id', d.lot_id);
+      }
+    }
+
+    // stock_transactions 취소 이력
     var { error: te } = await supabaseClient.from('stock_transactions').insert([
-      { item_id: d.item_id, dept_id: d.dept_id, tx_type:'OUT', tx_date: new Date().toISOString().slice(0,10), qty: -d.dispatch_qty, use_unit: d.use_unit, ref_type:'dispatch_cancel', ref_id: d.id, created_by: userId },
-      { item_id: d.item_id, dept_id: null,      tx_type:'IN',  tx_date: new Date().toISOString().slice(0,10), qty:  d.dispatch_qty, use_unit: d.use_unit, ref_type:'dispatch_cancel', ref_id: d.id, created_by: userId },
+      { item_id: d.item_id, dept_id: d.dept_id, tx_type:'OUT', tx_date: cancelDate, qty: -d.dispatch_qty, use_unit: d.use_unit, ref_type:'dispatch_cancel', ref_id: d.id, lot_id: d.lot_id||null, created_by: userId },
+      { item_id: d.item_id, dept_id: null,       tx_type:'IN',  tx_date: cancelDate, qty:  d.dispatch_qty, use_unit: d.use_unit, ref_type:'dispatch_cancel', ref_id: d.id, lot_id: d.lot_id||null, created_by: userId },
     ]);
     if (te) throw new Error('재고 원복 실패: ' + te.message);
     await upsertStockCurrent(d.item_id, -d.dispatch_qty, d.dept_id);
