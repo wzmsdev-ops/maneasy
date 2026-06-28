@@ -225,7 +225,7 @@ async function loadReceiptPoList() {
   showGlobalLoading('발주서 목록을 불러오는 중...');
   try {
     var q = supabaseClient.from('purchase_orders')
-      .select('id, order_no, order_date, status, vendors(vendor_name), purchase_order_items(purchase_request_items(purchase_requests(departments(dept_name))))')
+      .select('id, order_no, order_date, status, vendors(vendor_name)')
       .order('order_date', { ascending: false });
 
     if (status) q = q.eq('status', status);
@@ -240,16 +240,32 @@ async function loadReceiptPoList() {
       if (!keyword) return true;
       return r.order_no.toLowerCase().includes(keyword.toLowerCase()) ||
              (r.vendors?.vendor_name || '').toLowerCase().includes(keyword.toLowerCase());
-    }).map(function(r) {
-      // 요청부서 추출 (중복 제거)
-      var deptSet = {};
-      (r.purchase_order_items || []).forEach(function(poi) {
-        var deptName = poi.purchase_request_items?.purchase_requests?.departments?.dept_name;
-        if (deptName) deptSet[deptName] = true;
-      });
-      r._deptNames = Object.keys(deptSet).join(', ') || '-';
-      return r;
     });
+
+    // 요청부서 조회 — purchase_order_items → purchase_request_items → purchase_requests → departments
+    if (rows.length) {
+      var poIds = rows.map(function(r) { return r.id; });
+      var { data: priData } = await supabaseClient
+        .from('purchase_order_items')
+        .select('order_id, purchase_request_items!purchase_request_items_order_item_id_fkey(purchase_requests(dept_id, departments(dept_name)))')
+        .in('order_id', poIds);
+
+      // order_id → 부서명 맵
+      var deptMap = {};
+      (priData || []).forEach(function(poi) {
+        var pri = poi.purchase_request_items;
+        if (!pri) return;
+        var deptName = pri.purchase_requests?.departments?.dept_name;
+        if (deptName) {
+          if (!deptMap[poi.order_id]) deptMap[poi.order_id] = {};
+          deptMap[poi.order_id][deptName] = true;
+        }
+      });
+
+      rows.forEach(function(r) {
+        r._deptNames = deptMap[r.id] ? Object.keys(deptMap[r.id]).join(', ') : '-';
+      });
+    }
 
     if (!_gridReceiptPo) initReceiptPoGrid();
     _gridReceiptPo.setGridOption('rowData', rows);
@@ -1143,7 +1159,7 @@ async function loadDispatchStock() {
       .gt('qty', 0);
     if (error) throw new Error(error.message);
 
-    var rows = (data || []).map(function(r) {
+    var rawRows = (data || []).map(function(r) {
       var puQty = r.items?.purchase_unit_qty || 1;
       return {
         item_id:           r.item_id,
@@ -1152,10 +1168,43 @@ async function loadDispatchStock() {
         use_unit:          r.items?.use_unit  || '',
         purchase_unit:     r.items?.purchase_unit || '',
         purchase_unit_qty: puQty,
-        qty:               r.qty,                       // 환산수량(use_unit)
-        qty_pu:            Math.floor(r.qty / puQty),   // 입고단위 수량
+        qty:               r.qty,
+        qty_pu:            Math.floor(r.qty / puQty),
+        _reqDepts:         '-',
       };
-    }).filter(function(r) {
+    });
+
+    // 요청부서: stock_receipts → purchase_orders → purchase_order_items → purchase_request_items
+    if (rawRows.length) {
+      var itemIds = rawRows.map(function(r) { return r.item_id; });
+      var { data: rcptData } = await supabaseClient
+        .from('stock_receipts')
+        .select('item_id, order_id, purchase_orders(purchase_order_items(purchase_request_items!purchase_request_items_order_item_id_fkey(purchase_requests(departments(dept_name)))))')
+        .in('item_id', itemIds)
+        .not('order_id', 'is', null);
+
+      var itemDeptMap = {};
+      (rcptData || []).forEach(function(rcpt) {
+        var poItems = rcpt.purchase_orders?.purchase_order_items || [];
+        poItems.forEach(function(poi) {
+          var pri = poi.purchase_request_items;
+          if (!pri) return;
+          var deptName = pri.purchase_requests?.departments?.dept_name;
+          if (deptName && rcpt.item_id) {
+            if (!itemDeptMap[rcpt.item_id]) itemDeptMap[rcpt.item_id] = {};
+            itemDeptMap[rcpt.item_id][deptName] = true;
+          }
+        });
+      });
+
+      rawRows.forEach(function(r) {
+        if (itemDeptMap[r.item_id]) {
+          r._reqDepts = Object.keys(itemDeptMap[r.item_id]).join(', ');
+        }
+      });
+    }
+
+    var rows = rawRows.filter(function(r) {
       var matchKw  = !kw  || r.item_name.toLowerCase().includes(kw);
       var matchCat = !cat || r.category === cat;
       return matchKw && matchCat;
