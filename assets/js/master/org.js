@@ -625,7 +625,9 @@ function onUserRoleChange() {
   const role = val('u_role') || 'user';
   document.getElementById('u_perm_roleLabel').textContent = role;
   if (document.getElementById('u_perm_useDefault')?.checked) {
-    _gridUserPerm = null;
+    if (_gridUserPerm) { try { _gridUserPerm.destroy(); } catch(e) {} _gridUserPerm = null; }
+    const _permEl = document.getElementById('userPermGrid');
+    if (_permEl) _permEl.innerHTML = '';
     renderUserPermBody(ROLE_DEFAULT_PAGES[role] || {}, true);
   }
 }
@@ -670,7 +672,10 @@ function openEditUser(id) {
   const useDefault = !row.page_perms || Object.keys(pagePerms).length === 0;
   document.getElementById('u_perm_useDefault').checked = useDefault;
   document.getElementById('u_perm_roleLabel').textContent = row.role || '-';
-  _gridUserPerm = null; // 모달 열 때마다 그리드 재생성
+  // 모달 열 때마다 그리드 완전 재생성
+  if (_gridUserPerm) { try { _gridUserPerm.destroy(); } catch(e) {} _gridUserPerm = null; }
+  const permEl = document.getElementById('userPermGrid');
+  if (permEl) permEl.innerHTML = '';
   renderUserPermBody(useDefault ? (ROLE_DEFAULT_PAGES[row.role] || {}) : pagePerms, useDefault);
 
   document.getElementById('userModalTitle').textContent = '사용자 수정';
