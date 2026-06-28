@@ -242,29 +242,41 @@ async function loadReceiptPoList() {
              (r.vendors?.vendor_name || '').toLowerCase().includes(keyword.toLowerCase());
     });
 
-    // 요청부서 조회 — purchase_order_items → purchase_request_items → purchase_requests → departments
+    // 요청부서 조회 (2단계)
     if (rows.length) {
       var poIds = rows.map(function(r) { return r.id; });
-      var { data: priData } = await supabaseClient
+
+      // 1단계: purchase_order_items → order_item_id 목록
+      var { data: poiData } = await supabaseClient
         .from('purchase_order_items')
-        .select('order_id, purchase_request_items!purchase_request_items_order_item_id_fkey(purchase_requests(dept_id, departments(dept_name)))')
+        .select('id, order_id')
         .in('order_id', poIds);
 
-      // order_id → 부서명 맵
-      var deptMap = {};
-      (priData || []).forEach(function(poi) {
-        var pri = poi.purchase_request_items;
-        if (!pri) return;
-        var deptName = pri.purchase_requests?.departments?.dept_name;
-        if (deptName) {
-          if (!deptMap[poi.order_id]) deptMap[poi.order_id] = {};
-          deptMap[poi.order_id][deptName] = true;
-        }
-      });
+      var poiIds = (poiData || []).map(function(p) { return p.id; });
+      var poiOrderMap = {};
+      (poiData || []).forEach(function(p) { poiOrderMap[p.id] = p.order_id; });
 
-      rows.forEach(function(r) {
-        r._deptNames = deptMap[r.id] ? Object.keys(deptMap[r.id]).join(', ') : '-';
-      });
+      // 2단계: purchase_request_items → purchase_requests → departments
+      if (poiIds.length) {
+        var { data: priData } = await supabaseClient
+          .from('purchase_request_items')
+          .select('order_item_id, purchase_requests(departments(dept_name))')
+          .in('order_item_id', poiIds);
+
+        var deptMap = {};
+        (priData || []).forEach(function(pri) {
+          var orderId = poiOrderMap[pri.order_item_id];
+          var deptName = pri.purchase_requests?.departments?.dept_name;
+          if (orderId && deptName) {
+            if (!deptMap[orderId]) deptMap[orderId] = {};
+            deptMap[orderId][deptName] = true;
+          }
+        });
+
+        rows.forEach(function(r) {
+          r._deptNames = deptMap[r.id] ? Object.keys(deptMap[r.id]).join(', ') : '-';
+        });
+      }
     }
 
     if (!_gridReceiptPo) initReceiptPoGrid();
@@ -1093,7 +1105,12 @@ function initDispatchStockGrid() {
       headerClass: 'ag-left-header',
       cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-start', fontWeight:600 }
     },
-    { headerName: '단위', field: 'use_unit', width: 60,
+    { headerName: '요청부서', field: '_reqDepts', width: 100,
+      headerClass: 'ag-left-header',
+      cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-start', color:'#6b7280', fontSize:'11px' },
+      cellRenderer: function(p) { return ts(p.value || '-'); }
+    },
+    { headerName: '단위', field: 'use_unit', width: 55,
       cellStyle: { justifyContent:'center', color:'#6b7280' }
     },
     { headerName: '재고(입고단위)', field: 'qty_pu', width: 120,
@@ -1174,34 +1191,56 @@ async function loadDispatchStock() {
       };
     });
 
-    // 요청부서: stock_receipts → purchase_orders → purchase_order_items → purchase_request_items
+    // 요청부서 조회 (2단계)
     if (rawRows.length) {
       var itemIds = rawRows.map(function(r) { return r.item_id; });
+
+      // 1단계: stock_receipts → order_id 목록
       var { data: rcptData } = await supabaseClient
         .from('stock_receipts')
-        .select('item_id, order_id, purchase_orders(purchase_order_items(purchase_request_items!purchase_request_items_order_item_id_fkey(purchase_requests(departments(dept_name)))))')
+        .select('item_id, order_id')
         .in('item_id', itemIds)
         .not('order_id', 'is', null);
 
-      var itemDeptMap = {};
-      (rcptData || []).forEach(function(rcpt) {
-        var poItems = rcpt.purchase_orders?.purchase_order_items || [];
-        poItems.forEach(function(poi) {
-          var pri = poi.purchase_request_items;
-          if (!pri) return;
-          var deptName = pri.purchase_requests?.departments?.dept_name;
-          if (deptName && rcpt.item_id) {
-            if (!itemDeptMap[rcpt.item_id]) itemDeptMap[rcpt.item_id] = {};
-            itemDeptMap[rcpt.item_id][deptName] = true;
-          }
-        });
-      });
+      var orderIds = [...new Set((rcptData||[]).map(function(r){ return r.order_id; }).filter(Boolean))];
+      var rcptItemOrderMap = {};
+      (rcptData||[]).forEach(function(r){ if(r.order_id) rcptItemOrderMap[r.order_id] = r.item_id; });
 
-      rawRows.forEach(function(r) {
-        if (itemDeptMap[r.item_id]) {
-          r._reqDepts = Object.keys(itemDeptMap[r.item_id]).join(', ');
+      if (orderIds.length) {
+        // 2단계: purchase_order_items → purchase_request_items → departments
+        var { data: poiData2 } = await supabaseClient
+          .from('purchase_order_items')
+          .select('id, order_id')
+          .in('order_id', orderIds);
+
+        var poiIds2 = (poiData2||[]).map(function(p){ return p.id; });
+        var poi2OrderMap = {};
+        (poiData2||[]).forEach(function(p){ poi2OrderMap[p.id] = p.order_id; });
+
+        if (poiIds2.length) {
+          var { data: priData2 } = await supabaseClient
+            .from('purchase_request_items')
+            .select('order_item_id, purchase_requests(departments(dept_name))')
+            .in('order_item_id', poiIds2);
+
+          var itemDeptMap = {};
+          (priData2||[]).forEach(function(pri) {
+            var orderId = poi2OrderMap[pri.order_item_id];
+            var itemId  = rcptItemOrderMap[orderId];
+            var deptName = pri.purchase_requests?.departments?.dept_name;
+            if (itemId && deptName) {
+              if (!itemDeptMap[itemId]) itemDeptMap[itemId] = {};
+              itemDeptMap[itemId][deptName] = true;
+            }
+          });
+
+          rawRows.forEach(function(r) {
+            if (itemDeptMap[r.item_id]) {
+              r._reqDepts = Object.keys(itemDeptMap[r.item_id]).join(', ');
+            }
+          });
         }
-      });
+      }
     }
 
     var rows = rawRows.filter(function(r) {
