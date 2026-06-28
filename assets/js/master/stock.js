@@ -960,6 +960,21 @@ async function loadDispatchPoList() {
         _deptName:r.purchase_requests?.departments?.dept_name||'-',
       });
     });
+
+    // 발주 상태(입고완료/부분입고)만 보고 가져온 목록이라, 실제로 불출할 품목이 남아있는지는
+    // 별도로 확인해야 함 — 모든 품목이 이미 다 불출된 발주서는 목록에서 빼줌
+    if (rows.length) {
+      var orderIds = rows.map(function(r) { return r.id; });
+      var { data: poItems } = await supabaseClient
+        .from('purchase_order_items').select('order_id, order_qty, dispatched_qty')
+        .in('order_id', orderIds);
+      var hasRemaining = {};
+      (poItems || []).forEach(function(it) {
+        if ((it.dispatched_qty || 0) < it.order_qty) hasRemaining[it.order_id] = true;
+      });
+      rows = rows.filter(function(r) { return hasRemaining[r.id]; });
+    }
+
     if(!_gridDispatchPo) initDispatchPoGrid();
     if(_gridDispatchPo) { _gridDispatchPo.setGridOption('rowData',rows); refitGridColumns(_gridDispatchPo); }
     var cnt=document.getElementById('dispatchPoCount'); if(cnt) cnt.textContent=rows.length+'건';
