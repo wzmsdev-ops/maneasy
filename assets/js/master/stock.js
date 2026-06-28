@@ -558,7 +558,7 @@ function initTransferInfoGrid() {
       },
     ],
     rowData: [],
-    rowHeight: 38, headerHeight: 0,  // 헤더 숨김
+    rowHeight: 38, headerHeight: 34,
     suppressHorizontalScroll: true,
     stopEditingWhenCellsLoseFocus: true,
     defaultColDef: { sortable:false, resizable:false, suppressMovable:true },
@@ -1151,7 +1151,10 @@ function initDeptStockGrid() {
       }
     },
   ];
-  _gridDeptStock = createMgGrid('deptStockGrid', colDefs, [], { noRowsText: '부서별 재고 데이터가 없습니다.' });
+  _gridDeptStock = createMgGrid('deptStockGrid', colDefs, [], {
+    noRowsText: '부서별 재고 데이터가 없습니다.',
+    onRowClick: selectTransferItem,
+  });
 }
 
 async function loadDeptStock(page) {
