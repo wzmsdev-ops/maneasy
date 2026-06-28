@@ -518,6 +518,7 @@ async function splitPrIntoOrders(pr, ev) {
       var { data: newPo, error: poErr } = await supabaseClient.from('purchase_orders').insert({
         order_no:      orderNo,
         vendor_id:     vendorId,
+        request_id:    pr.id,
         clinic_id:     pr.clinic_id,
         order_date:    new Date().toISOString().slice(0, 10),
         supply_price:  supplyTotal,
