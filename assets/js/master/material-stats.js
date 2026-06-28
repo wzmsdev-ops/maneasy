@@ -101,6 +101,7 @@ function initReceiptGrid() {
       { headerName:'단가',     field:'unit_price',    width:90,  cellRenderer:function(p){return fmtNum(p.value);} },
       { headerName:'공급가액', field:'supply_price',  width:100, cellRenderer:function(p){return fmtNum((p.data.receipt_qty||0)*(p.data.unit_price||0));} },
       { headerName:'부가세',   field:'vat_amount',    width:90,  cellRenderer:function(p){return fmtNum(p.value);} },
+      { headerName:'합계금액', field:'total_amount',  width:110, cellStyle:{fontWeight:700}, cellRenderer:function(p){return fmtNum((p.data.receipt_qty||0)*(p.data.unit_price||0)+(p.data.vat_amount||0));} },
       { headerName:'발주번호', field:'order_no',      width:130, headerClass:'ag-left-header', cellStyle:{display:'flex',alignItems:'center',justifyContent:'flex-start',fontFamily:'Consolas,monospace',fontSize:'11px'}, valueGetter:function(p){return p.data.purchase_orders?.order_no||'-';} },
       { headerName:'메모',     field:'memo',          flex:1,    headerClass:'ag-left-header', cellStyle:{display:'flex',alignItems:'center',justifyContent:'flex-start'} },
     ],
@@ -116,13 +117,19 @@ function initUseGrid() {
   if (!el || msState.grids.use) return;
   msState.grids.use = agGrid.createGrid(el, {
     columnDefs: [
+      { headerName:'의원',     field:'clinic_name',width:110, valueGetter:function(p){return p.data.departments?.clinics?.clinic_name||'-';} },
+      { headerName:'부서',     field:'dept_name',  width:110, valueGetter:function(p){return p.data.departments?.dept_name||'-';} },
       { headerName:'사용일',   field:'tx_date',    width:100, cellRenderer:function(p){return fmtDate(p.value);} },
       { headerName:'자재구분', field:'category',   width:90,  valueGetter:function(p){return p.data.items?.category||'-';} },
       { headerName:'자재명',   field:'item_name',  flex:2,    headerClass:'ag-left-header', cellStyle:{display:'flex',alignItems:'center',justifyContent:'flex-start'}, valueGetter:function(p){return p.data.items?.item_name||'-';} },
       { headerName:'사용수량', field:'qty',        width:90,  cellRenderer:function(p){return fmtNum(Math.abs(p.value));} },
       { headerName:'단위',     field:'use_unit',   width:70 },
-      { headerName:'부서',     field:'dept_name',  width:110, valueGetter:function(p){return p.data.departments?.dept_name||'-';} },
-      { headerName:'의원',     field:'clinic_name',width:110, valueGetter:function(p){return p.data.departments?.clinics?.clinic_name||'-';} },
+      { headerName:'공급가',   field:'supply_price',width:100, cellRenderer:function(p){return fmtNum(Math.abs(p.data.qty||0)*(p.data.unit_price||0));} },
+      { headerName:'부가세',   field:'vat_amount',  width:90,  cellRenderer:function(p){return fmtNum(Math.round(Math.abs(p.data.qty||0)*(p.data.unit_price||0)*0.1));} },
+      { headerName:'합계금액', field:'total_amount',width:110, cellStyle:{fontWeight:700}, cellRenderer:function(p){
+          var supply=Math.abs(p.data.qty||0)*(p.data.unit_price||0);
+          return fmtNum(supply+Math.round(supply*0.1));
+        } },
       { headerName:'메모',     field:'memo',       flex:1,    headerClass:'ag-left-header', cellStyle:{display:'flex',alignItems:'center',justifyContent:'flex-start'} },
     ],
     defaultColDef: defaultColDef, rowData: [], rowHeight: ROW_H, headerHeight: HEADER_H,
