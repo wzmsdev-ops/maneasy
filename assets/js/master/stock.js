@@ -1227,7 +1227,6 @@ function initSearch() {
   document.getElementById('deptStockSearchBtn')?.addEventListener('click', function() { loadDeptStock(1); });
   document.getElementById('deptStockKeyword')?.addEventListener('keydown', function(e) { if (e.key==='Enter') loadDeptStock(1); });
   document.getElementById('deptStockDeptFilter')?.addEventListener('change', function() { loadDeptStock(1); });
-  setVal('transferDate', todayStr);
 
   // 도착부서 select 채우기
   var transferToSel = document.getElementById('transferToDept');
@@ -1281,6 +1280,7 @@ async function init() {
   // 날짜 기본값 추가
   setVal('receiptDate',  todayStr);
   setVal('dispatchDate', todayStr);
+  setVal('transferDate', todayStr);
 
   // 입고 조회 버튼
   document.getElementById('receiptPoSearchBtn')?.addEventListener('click', loadReceiptPoList);
