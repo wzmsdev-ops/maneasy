@@ -241,23 +241,32 @@ document.addEventListener('DOMContentLoaded', async () => {
       roleEl.textContent = roleLabel[user.role] || user.role || '';
     }
 
-    // admin이면 마스터 관리 메뉴 노출
-    if (user.role === 'admin') {
+    // 역할별 기본 권한 (allowed_pages가 null인 사용자에게 적용 — org.js의 ROLE_DEFAULT_PAGES와 동일하게 유지)
+    const ROLE_BASE_PAGES = [
+      'equipment/dashboard', 'equipment/list', 'equipment/detail',
+      'qc/items', 'qc/data',
+      'master/purchase-request', 'master/use-stock', 'master/material-stats',
+    ];
+    const ROLE_DEFAULT_PAGES = {
+      user:    [...ROLE_BASE_PAGES],
+      edit:    [...ROLE_BASE_PAGES, 'equipment/form'],
+      manager: [...ROLE_BASE_PAGES, 'equipment/form', 'master/procurement', 'master/stock'],
+      admin:   [...ROLE_BASE_PAGES, 'equipment/form', 'master/procurement', 'master/stock', 'master/org', 'master/supply'],
+    };
+    const allowedPages = user.allowed_pages && user.allowed_pages.length
+      ? user.allowed_pages
+      : (ROLE_DEFAULT_PAGES[user.role] || ROLE_DEFAULT_PAGES.user);
+    window.__allowedPages = allowedPages; // navigate()에서 직접 URL 진입 막을 때도 재사용
+
+    // data-page를 가진 모든 사이드바 항목에 범용으로 적용 (개별 사용자마다 다를 수 있으므로 하드코딩 대신 권한 목록으로 판단)
+    document.querySelectorAll('.sb-sub-item[data-page]').forEach(el => {
+      el.style.display = allowedPages.includes(el.dataset.page) ? '' : 'none';
+    });
+    // 마스터 관리 그룹(상위 메뉴/구분선)은 그 안에 보이는 페이지가 하나라도 있을 때만 노출
+    const masterGroupVisible = allowedPages.includes('master/org') || allowedPages.includes('master/supply');
+    if (masterGroupVisible) {
       document.getElementById('sbGroupMaster').style.display = '';
       document.getElementById('sbDividerMaster').style.display = '';
-      document.getElementById('sbItemMasterOrg').style.display = '';
-      document.getElementById('sbItemMasterSupply').style.display = '';
-    }
-
-    // 자재담당자(admin 또는 manager)면 발주 관리 / 재고 관리 메뉴 노출
-    if (user.role === 'admin' || user.role === 'manager') {
-      document.getElementById('sbItemProcurement').style.display = '';
-      document.getElementById('sbItemStock').style.display = '';
-    }
-
-    // edit 이하 역할이면 장비 등록 버튼 숨김
-    if (user.role === 'user') {
-      document.getElementById('sbItemEquipmentForm').style.display = 'none';
     }
   }
 
@@ -268,6 +277,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 function navigate(page, tab, skipHistory, extraQuery) {
   if (!page) return;
+
+  const pagePathOnly = page.split('?')[0];
+  if (window.__allowedPages && !window.__allowedPages.includes(pagePathOnly) && pagePathOnly !== 'equipment/detail') {
+    alert('이 페이지에 접근할 권한이 없습니다.');
+    return;
+  }
 
   // extraQuery 객체가 있으면 쿼리스트링으로 변환해서 page에 합침
   if (extraQuery && typeof extraQuery === 'object') {
