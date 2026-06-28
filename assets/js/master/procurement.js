@@ -867,12 +867,14 @@ function initPoSearchGrid() {
 }
 
 function searchPoItems() {
-  var kw  = (document.getElementById('po_item_keyword')?.value || '').toLowerCase();
-  var cat = document.getElementById('po_item_category')?.value || '';
+  var kw       = (document.getElementById('po_item_keyword')?.value || '').toLowerCase();
+  var cat      = document.getElementById('po_item_category')?.value || '';
+  var vendorId = val('po_vendor_id');
   var filtered = itemCache.filter(function(i) {
-    var matchCat = !cat || i.category === cat;
-    var matchKw  = !kw  || i.item_name.toLowerCase().includes(kw) || (i.item_code || '').toLowerCase().includes(kw);
-    return matchCat && matchKw;
+    var matchCat    = !cat      || i.category  === cat;
+    var matchKw     = !kw       || i.item_name.toLowerCase().includes(kw) || (i.item_code||'').toLowerCase().includes(kw);
+    var matchVendor = !vendorId || i.vendor_id === vendorId;
+    return matchCat && matchKw && matchVendor;
   });
   if (_poSearchGrid) _poSearchGrid.setGridOption('rowData', filtered);
   var cnt = document.getElementById('poSearchCount');
