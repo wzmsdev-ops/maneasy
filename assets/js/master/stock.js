@@ -358,8 +358,13 @@ function initReceiptItemGrid() {
         cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-end' },
         editable: true,
         cellEditor: 'agNumberCellEditor',
-        cellEditorParams: { min: 1 },
-        cellRenderer: function(p) { return Number(p.value || 1).toLocaleString('ko-KR'); },
+        cellEditorParams: { min: 0 },
+        cellRenderer: function(p) {
+          var v = Number(p.value || 0);
+          return v === 0
+            ? '<span style="color:#d1d5db;">0</span>'
+            : v.toLocaleString('ko-KR');
+        },
         onCellValueChanged: function(p) { recalcReceiptFromQtyPrice(p.node); }
       },
       { headerName: '단가', field: 'unit_price', width: 90,
