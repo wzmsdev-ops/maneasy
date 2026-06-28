@@ -215,7 +215,7 @@ async function loadUseData(page, f) {
 }
 
 async function loadLedgerData(page, f) {
-  var iq = supabaseClient.from('items').select('id,item_name,category,use_unit').eq('active', true);
+  var iq = supabaseClient.from('items').select('id,item_name,category,use_unit').eq('active', 'Y');
   if (f.keyword)  iq = iq.ilike('item_name', '%'+f.keyword+'%');
   if (f.category) iq = iq.eq('category', f.category);
   var { data:itemRows } = await iq;
