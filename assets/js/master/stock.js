@@ -724,13 +724,17 @@ function onReceiptVatInput() {
 }
 
 async function saveReceipt() {
-  if (!_gridReceiptItem) throw new Error('처리할 품목이 없습니다.');
+  // ── 사전 검증 (try 바깥 — 로딩 없이 즉시 alert) ──
+  if (!_gridReceiptItem) { alert('처리할 품목이 없습니다.'); return; }
   var rows = [];
   _gridReceiptItem.forEachNode(function(node) { rows.push(node.data); });
-  if (!rows.length) throw new Error('입고할 품목을 1개 이상 추가해주세요.');
+  if (!rows.length) { alert('입고할 품목을 1개 이상 추가해주세요.'); return; }
 
   var invalid = rows.find(function(r) { return !r.qty || r.qty < 1; });
-  if (invalid) throw new Error(invalid.item_name + '의 입고수량은 1 이상이어야 합니다.');
+  if (invalid) { alert(invalid.item_name + '의 입고수량은 1 이상이어야 합니다.'); return; }
+
+  var receiptDate = val('receiptDate');
+  if (!receiptDate) { alert('입고일을 입력해주세요.'); return; }
 
   var orderId = _selectedPoId || null;
   var overRow = rows.find(function(r) {
@@ -738,13 +742,14 @@ async function saveReceipt() {
   });
   if (overRow) {
     var remain = overRow.order_qty - (overRow.received_qty || 0);
-    if (!confirm(overRow.item_name + '의 입고수량이 발주 잔여수량(' + remain + ')을 초과합니다. 계속하시겠습니까?')) {
-      throw new Error('입고 취소됨');
-    }
+    if (!confirm(overRow.item_name + '의 입고수량이 발주 잔여수량(' + remain + ')을 초과합니다. 계속하시겠습니까?')) return;
   }
 
-  var receiptDate  = val('receiptDate');
-  if (!receiptDate) throw new Error('입고일을 입력해주세요.');
+  // ── 저장 처리 ──
+  var saveBtn = document.getElementById('receiptSaveBtn');
+  if (saveBtn) saveBtn.disabled = true;
+  showGlobalLoading('입고 등록 중...');
+  try {
   var vatTotal     = Number(val('r_vat_amount') || 0);
   var supplyTotal  = rows.reduce(function(sum, r) { return sum + Number(r.supply_price || 0); }, 0);
   var vatAssigned  = 0;
@@ -809,6 +814,26 @@ async function saveReceipt() {
 
   for (var oid of touchedOrders) {
     await recalcOrderStatus(oid);
+  }
+
+    // ── 성공 처리 ──
+    alert('입고 등록이 완료됐습니다.');
+    // 우측 그리드/합계 리셋
+    clearReceiptItemGrid();
+    _selectedPoId = null;
+    var label = document.getElementById('receiptSelectedPoLabel');
+    if (label) label.textContent = '';
+    var saveBtn2 = document.getElementById('receiptSaveBtn');
+    if (saveBtn2) saveBtn2.disabled = true;
+    // 발주서 목록 갱신
+    loadReceiptPoList();
+
+  } catch(e) {
+    if (e.message !== '입고 취소됨') alert('입고 등록 실패: ' + e.message);
+  } finally {
+    hideGlobalLoading();
+    var saveBtn3 = document.getElementById('receiptSaveBtn');
+    if (saveBtn3) saveBtn3.disabled = false;
   }
 }
 
