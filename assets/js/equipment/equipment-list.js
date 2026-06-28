@@ -646,6 +646,7 @@ async function loadEquipmentList(nextPage) {
     if (requestParams.status)     sbQuery = sbQuery.eq('status', requestParams.status);
     if (requestParams.clinic_code) sbQuery = sbQuery.eq('clinic_code', requestParams.clinic_code);
     if (requestParams.team_code)   sbQuery = sbQuery.eq('team_code', requestParams.team_code);
+    if (requestParams.team_suffix) sbQuery = sbQuery.eq('team_code', requestParams.team_suffix);
     if (requestParams.keyword) {
       var kw = requestParams.keyword;
       sbQuery = sbQuery.or(
@@ -795,6 +796,7 @@ async function exportEquipmentExcel() {
     if (filters.status)     sbExport = sbExport.eq('status', filters.status);
     if (filters.clinic_code) sbExport = sbExport.eq('clinic_code', filters.clinic_code);
     if (filters.team_code)   sbExport = sbExport.eq('team_code', filters.team_code);
+    if (filters.team_suffix) sbExport = sbExport.eq('team_code', filters.team_suffix);
     if (filters.keyword) {
       var kw = filters.keyword;
       sbExport = sbExport.or('equipment_name.ilike.%' + kw + '%,model_name.ilike.%' + kw + '%,serial_no.ilike.%' + kw + '%');
