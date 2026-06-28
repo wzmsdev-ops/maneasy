@@ -500,6 +500,146 @@ function onReceiptVatInput() {
   refreshReceiptTotal();
 }
 
+
+/* ── 재고 이동 ── */
+function selectTransferItem(row) {
+  _selectedTransferItem = {
+    item_id:        row.item_id,
+    item_name:      row.items?.item_name || '-',
+    use_unit:       row.items?.use_unit  || '',
+    qty:            row.qty,
+    from_dept_id:   row.dept_id || null,
+    from_dept_name: row.departments?.dept_name || '중앙창고',
+  };
+
+  // 우측 패널 채우기
+  var lbl = document.getElementById('transferItemLabel');
+  if (lbl) lbl.textContent = _selectedTransferItem.item_name;
+
+  var fromEl = document.getElementById('transferFromDept');
+  if (fromEl) fromEl.textContent = _selectedTransferItem.from_dept_name;
+
+  var unitEl = document.getElementById('transferUnit');
+  if (unitEl) unitEl.textContent = _selectedTransferItem.use_unit;
+
+  var maxLbl = document.getElementById('transferMaxLabel');
+  if (maxLbl) maxLbl.textContent = '(최대 ' + Number(_selectedTransferItem.qty).toLocaleString('ko-KR') + ')';
+
+  var qtyEl = document.getElementById('transferQty');
+  if (qtyEl) { qtyEl.value = 1; qtyEl.max = _selectedTransferItem.qty; }
+
+  // 도착 부서에서 출발 부서 제외
+  var toSel = document.getElementById('transferToDept');
+  if (toSel) {
+    toSel.innerHTML = '<option value="">도착 부서 선택</option>' +
+      _deptOptions.filter(function(d) { return d.id !== _selectedTransferItem.from_dept_id; })
+        .map(function(d) { return '<option value="' + d.id + '">' + d.name + '</option>'; }).join('');
+  }
+
+  // 이동 이력 로드
+  loadTransferHistory(_selectedTransferItem.item_id);
+
+  var btn = document.getElementById('transferSaveBtn');
+  if (btn) btn.disabled = false;
+}
+
+async function loadTransferHistory(itemId) {
+  var el = document.getElementById('transferHistoryList');
+  if (!el) return;
+  el.textContent = '불러오는 중...';
+
+  var { data } = await supabaseClient
+    .from('stock_transfers')
+    .select('transfer_no, transfer_date, qty, use_unit, from_dept_id, to_dept_id, departments!stock_transfers_from_dept_id_fkey(dept_name), departments!stock_transfers_to_dept_id_fkey(dept_name)')
+    .eq('item_id', itemId)
+    .order('created_at', { ascending: false })
+    .limit(5);
+
+  if (!data || !data.length) {
+    el.textContent = '이동 이력이 없습니다.';
+    return;
+  }
+
+  el.innerHTML = data.map(function(r) {
+    var from = r['departments!stock_transfers_from_dept_id_fkey']?.dept_name || '중앙창고';
+    var to   = r['departments!stock_transfers_to_dept_id_fkey']?.dept_name   || '중앙창고';
+    return '<div style="padding:6px 0;border-bottom:1px solid #f3f4f6;display:flex;gap:8px;">' +
+      '<span style="color:#9ca3af;flex-shrink:0;">' + (r.transfer_date||'').slice(0,10) + '</span>' +
+      '<span>' + from + ' → ' + to + '</span>' +
+      '<span style="margin-left:auto;font-weight:700;">' + Number(r.qty).toLocaleString('ko-KR') + ' ' + (r.use_unit||'') + '</span>' +
+    '</div>';
+  }).join('');
+}
+
+async function saveTransfer() {
+  if (!_selectedTransferItem) { alert('이동할 품목을 선택하세요.'); return; }
+  var toDeptId    = val('transferToDept');
+  var qty         = Number(document.getElementById('transferQty')?.value || 0);
+  var transferDate = val('transferDate');
+  var memo        = val('transferMemo');
+
+  if (!toDeptId)      { alert('도착 부서를 선택하세요.'); return; }
+  if (qty < 1)        { alert('이동 수량을 1 이상 입력하세요.'); return; }
+  if (qty > _selectedTransferItem.qty) { alert('현재고(' + _selectedTransferItem.qty + ')를 초과합니다.'); return; }
+  if (!transferDate)  { alert('이동일을 입력하세요.'); return; }
+
+  var btn = document.getElementById('transferSaveBtn');
+  if (btn) btn.disabled = true;
+  showGlobalLoading('재고 이동 중...');
+  try {
+    var session = await supabaseClient.auth.getSession();
+    var userId  = session.data?.session?.user?.id || null;
+
+    var transferNo = await genDocNo('TR');
+
+    // stock_transfers 기록
+    var { error: te } = await supabaseClient.from('stock_transfers').insert({
+      transfer_no:  transferNo,
+      item_id:      _selectedTransferItem.item_id,
+      from_dept_id: _selectedTransferItem.from_dept_id,
+      to_dept_id:   toDeptId,
+      qty:          qty,
+      use_unit:     _selectedTransferItem.use_unit,
+      transfer_date: transferDate,
+      memo:         memo,
+      created_by:   userId,
+    });
+    if (te) throw new Error('이동 기록 실패: ' + te.message);
+
+    // stock_transactions (출발 OUT + 도착 IN)
+    var { error: txe } = await supabaseClient.from('stock_transactions').insert([
+      { item_id: _selectedTransferItem.item_id, dept_id: _selectedTransferItem.from_dept_id || null, tx_type:'OUT', tx_date: transferDate, qty: -qty, use_unit: _selectedTransferItem.use_unit, ref_type:'transfer', created_by: userId },
+      { item_id: _selectedTransferItem.item_id, dept_id: toDeptId, tx_type:'IN', tx_date: transferDate, qty: qty, use_unit: _selectedTransferItem.use_unit, ref_type:'transfer', created_by: userId },
+    ]);
+    if (txe) throw new Error('재고 이동 실패: ' + txe.message);
+
+    // stock_current 갱신
+    await upsertStockCurrent(_selectedTransferItem.item_id, -qty, _selectedTransferItem.from_dept_id);
+    await upsertStockCurrent(_selectedTransferItem.item_id,  qty, toDeptId);
+
+    alert('재고 이동 완료! (' + _selectedTransferItem.from_dept_name + ' → ' +
+      (_deptOptions.find(function(d){ return d.id===toDeptId; })?.name||'') + ' ' + qty + _selectedTransferItem.use_unit + ')');
+
+    // 초기화
+    _selectedTransferItem = null;
+    var lbl = document.getElementById('transferItemLabel'); if(lbl) lbl.textContent = '';
+    var fromEl = document.getElementById('transferFromDept'); if(fromEl) fromEl.textContent = '-';
+    var maxLbl = document.getElementById('transferMaxLabel'); if(maxLbl) maxLbl.textContent = '';
+    var histEl = document.getElementById('transferHistoryList'); if(histEl) histEl.textContent = '품목을 선택하세요';
+    if(btn) btn.disabled = true;
+
+    // 목록 갱신
+    loadDeptStock(1);
+
+  } catch(e) {
+    alert('이동 실패: ' + e.message);
+  } finally {
+    hideGlobalLoading();
+    if(btn) btn.disabled = false;
+  }
+}
+
+
 async function saveReceipt() {
   // ── 사전 검증 (try 바깥 — 로딩 없이 즉시 alert) ──
   if (!_gridReceiptItem) { alert('처리할 품목이 없습니다.'); return; }
@@ -936,6 +1076,8 @@ async function saveDispatch() {
    부서별재고 탭
 ════════════════════════════════ */
 function initDeptStockGrid() {
+  var el = document.getElementById('deptStockGrid');
+  if (el) el.style.height = Math.max(200, window.innerHeight - 200) + 'px';
   var colDefs = [
     { headerName: '부서', field: 'departments', flex: 1,
       headerClass: 'ag-left-header',
@@ -978,7 +1120,7 @@ async function loadDeptStock(page) {
   try {
     var from = (page - 1) * st.pageSize;
     var to   = from + st.pageSize - 1;
-    var deptId  = val('deptStockDeptFilter');
+    var deptId  = val('deptStockDeptFilter');  // 빈 값이면 전체(중앙창고 포함)
     var keyword = val('deptStockKeyword');
 
     var q = supabaseClient
@@ -1005,6 +1147,7 @@ async function loadDeptStock(page) {
     if (!_gridDeptStock) initDeptStockGrid();
     if (_gridDeptStock) _gridDeptStock.setGridOption('rowData', data || []);
     renderPagination('deptStockPagination', st, loadDeptStock);
+    var dcnt = document.getElementById('deptStockCount'); if(dcnt) dcnt.textContent = (count||0) + '건';
   } catch(e) {
     alert('부서별 재고 로드 실패: ' + e.message);
   } finally {
@@ -1078,6 +1221,15 @@ function initSearch() {
   document.getElementById('dispatchSearchBtn')?.addEventListener('click', function() { loadDispatchPoList(); });
   document.getElementById('deptStockSearchBtn')?.addEventListener('click', function() { loadDeptStock(1); });
   document.getElementById('deptStockKeyword')?.addEventListener('keydown', function(e) { if (e.key==='Enter') loadDeptStock(1); });
+  document.getElementById('deptStockDeptFilter')?.addEventListener('change', function() { loadDeptStock(1); });
+  setVal('transferDate', todayStr);
+
+  // 도착부서 select 채우기
+  var transferToSel = document.getElementById('transferToDept');
+  if (transferToSel && _deptOptions.length) {
+    transferToSel.innerHTML = '<option value="">도착 부서 선택</option>' +
+      _deptOptions.map(function(d){ return '<option value="' + d.id + '">' + d.name + '</option>'; }).join('');
+  }
 
   // 입고 모달
 
