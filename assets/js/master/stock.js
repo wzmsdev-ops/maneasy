@@ -262,6 +262,7 @@ async function loadReceiptPoList() {
 
     if (!_gridReceiptPo) initReceiptPoGrid();
     _gridReceiptPo.setGridOption('rowData', rows);
+    refitGridColumns(_gridReceiptPo);
 
     var cnt = document.getElementById('receiptPoCount');
     if (cnt) cnt.textContent = rows.length + '건';
@@ -426,6 +427,7 @@ function addReceiptRow(preset) {
     _gridReceiptItem.applyTransaction({ add: [row] });
     refreshReceiptTotal();
     updateReceiptItemCount();
+    refitGridColumns(_gridReceiptItem);
   }
 }
 
@@ -959,7 +961,7 @@ async function loadDispatchPoList() {
       });
     });
     if(!_gridDispatchPo) initDispatchPoGrid();
-    if(_gridDispatchPo) _gridDispatchPo.setGridOption('rowData',rows);
+    if(_gridDispatchPo) { _gridDispatchPo.setGridOption('rowData',rows); refitGridColumns(_gridDispatchPo); }
     var cnt=document.getElementById('dispatchPoCount'); if(cnt) cnt.textContent=rows.length+'건';
   } catch(e){alert('발주서 목록 조회 실패: '+e.message);
   } finally{hideGlobalLoading();}
@@ -1036,6 +1038,7 @@ async function selectDispatchPo(po) {
       dispatch_qty:r.order_qty-(r.dispatched_qty||0),
     };
   }));
+  refitGridColumns(_gridDispatchItem);
   var cnt=document.getElementById('dispatchItemCount'); if(cnt) cnt.textContent=openItems.length?openItems.length+'건':'';
   var btn=document.getElementById('dispatchSaveBtn'); if(btn) btn.disabled=!openItems.length;
   updateDispatchSummary();
@@ -1185,7 +1188,7 @@ async function loadDeptStock(page) {
     st.page       = page;
     st.totalPages = Math.max(1, Math.ceil((count || 0) / st.pageSize));
     if (!_gridDeptStock) initDeptStockGrid();
-    if (_gridDeptStock) _gridDeptStock.setGridOption('rowData', data || []);
+    if (_gridDeptStock) { _gridDeptStock.setGridOption('rowData', data || []); refitGridColumns(_gridDeptStock); }
     renderPagination('deptStockPagination', st, loadDeptStock);
     var dcnt = document.getElementById('deptStockCount'); if(dcnt) dcnt.textContent = (count||0) + '건';
   } catch(e) {
