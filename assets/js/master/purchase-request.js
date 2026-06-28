@@ -310,7 +310,7 @@ function searchPrItems() {
     return matchCat && matchKw;
   });
 
-  if (_prSearchGrid) _prSearchGrid.setGridOption('rowData', filtered);
+  if (_prSearchGrid) { _prSearchGrid.setGridOption('rowData', filtered); refitGridColumns(_prSearchGrid); }
 
   var cnt = document.getElementById('prSearchCount');
   if (cnt) cnt.textContent = filtered.length ? filtered.length + '건' : '';
@@ -425,6 +425,7 @@ function addPrItemRow(item) {
   if (_prItemGrid) {
     _prItemGrid.applyTransaction({ add: [row] });
     updatePrItemCount();
+    refitGridColumns(_prItemGrid);
   }
 }
 
@@ -484,6 +485,7 @@ async function openAddPrModal(alerts) {
       if (_prItemGrid) {
         _prItemGrid.setGridOption('rowData', rows);
         updatePrItemCount();
+        refitGridColumns(_prItemGrid);
       }
     }
   }, 80);
@@ -620,7 +622,7 @@ async function openPrDetail(id) {
       if (!_prDetailGrid) initPrDetailGrid();
       if (_prDetailGrid) {
         _prDetailGrid.setGridOption('rowData', gridRows);
-        _prDetailGrid.sizeColumnsToFit();
+        refitGridColumns(_prDetailGrid);
       }
     }, 50);
 
@@ -820,6 +822,7 @@ async function openSsSetting() {
       _initSsGrid();
     } else {
       _ssGrid.setGridOption('rowData', _ssItems);
+      refitGridColumns(_ssGrid);
     }
     // 모달 렌더 후 그리드 높이 재조정
     setTimeout(function() {
@@ -964,6 +967,7 @@ function filterSsGrid() {
       return matchCat && matchKw;
     })
   );
+  refitGridColumns(_ssGrid);
 }
 
 function updateSsFootInfo() {
