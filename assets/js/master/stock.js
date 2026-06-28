@@ -1226,6 +1226,7 @@ async function selectDispatchPo(po) {
       dispatch_qty:   0,
       dispatched_qty: poi.dispatched_qty||0,
       order_qty:      poi.order_qty||0,
+      purchase_unit_qty: poi.purchase_unit_qty||1,
     };
   }));
   refitGridColumns(_gridDispatchItem);
@@ -1329,6 +1330,16 @@ async function cancelDispatch(dispatchId) {
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
+
+      // 취소하려는 수량만큼 부서 LOT에 실제로 남아있는지 먼저 확인 — 그 사이 사용처리 등으로
+      // 이미 일부/전부 소진됐으면 취소 시 재고가 허공에서 생겨날 수 있으므로 막아야 함
+      var deptLotQty = deptLot?.qty || 0;
+      if (deptLotQty < d.dispatch_qty) {
+        alert('취소할 수 없습니다.\n해당 부서 LOT에 남은 재고(' + fmtN(deptLotQty) + ')가 불출 수량(' + fmtN(d.dispatch_qty) + ')보다 적습니다.\n(이미 사용처리 등으로 소진된 것으로 보입니다.)');
+        hideGlobalLoading();
+        return;
+      }
+
       if (deptLot) {
         var remainAfterCancel = deptLot.qty - d.dispatch_qty;
         if (remainAfterCancel <= 0) {
@@ -1341,6 +1352,14 @@ async function cancelDispatch(dispatchId) {
       var { data: srcLot } = await supabaseClient.from('stock_lots').select('qty').eq('id', d.lot_id).maybeSingle();
       if (srcLot) {
         await supabaseClient.from('stock_lots').update({ qty: (srcLot.qty || 0) + d.dispatch_qty }).eq('id', d.lot_id);
+      }
+    } else {
+      // 구버전(LOT 정보 없는) 불출 — stock_current 기준으로만 검증
+      var deptQty = await getStockQty(d.item_id, d.dept_id);
+      if (deptQty < d.dispatch_qty) {
+        alert('취소할 수 없습니다.\n해당 부서에 남은 재고(' + fmtN(deptQty) + ')가 불출 수량(' + fmtN(d.dispatch_qty) + ')보다 적습니다.\n(이미 사용처리 등으로 소진된 것으로 보입니다.)');
+        hideGlobalLoading();
+        return;
       }
     }
 
@@ -1355,8 +1374,10 @@ async function cancelDispatch(dispatchId) {
 
     // 발주서 품목의 불출수량 되돌리고, 발주서 상태도 다시 PARTIAL/COMPLETED(입고완료)로 조정
     if (d.order_item_id) {
-      var { data: poi } = await supabaseClient.from('purchase_order_items').select('dispatched_qty').eq('id', d.order_item_id).single();
-      var newDispatched = Math.max(0, (poi?.dispatched_qty || 0) - d.dispatch_qty);
+      var { data: poi } = await supabaseClient.from('purchase_order_items').select('dispatched_qty,purchase_unit_qty').eq('id', d.order_item_id).single();
+      // dispatched_qty는 order_qty와 같은 단위(구매단위)인데, d.dispatch_qty는 LOT 기준(사용단위)이므로 환산해서 빼야 함
+      var puQtyForCancel = poi?.purchase_unit_qty || 1;
+      var newDispatched = Math.max(0, (poi?.dispatched_qty || 0) - (d.dispatch_qty / puQtyForCancel));
       await supabaseClient.from('purchase_order_items').update({ dispatched_qty: newDispatched }).eq('id', d.order_item_id);
     }
     if (d.order_id) {
@@ -1436,30 +1457,84 @@ async function bulkDispatchSelectedPo() {
         var openItems = (items || []).filter(function(r) { return (r.dispatched_qty || 0) < r.order_qty; });
         if (!openItems.length) continue;
 
+        var poiDispatchAccum = {}; // 품목별 누적(여러 LOT으로 나뉠 수 있으므로)
+
         for (var j = 0; j < openItems.length; j++) {
           var r = openItems[j];
-          var qty = r.order_qty - (r.dispatched_qty || 0); // 미불출 전량
-          var useQty = qty * (r.purchase_unit_qty || 1);
-          var dispatchNo = await genDocNo('SD');
-          var { data: newDispatch, error: de } = await supabaseClient.from('stock_dispatch').insert({
-            dispatch_no: dispatchNo, item_id: r.item_id, dept_id: deptId,
-            order_id: orderId, order_item_id: r.id,
-            dispatch_date: dispatchDate, dispatch_qty: qty, use_unit: r.use_unit, created_by: userId,
-          }).select('id').single();
-          if (de) throw new Error(de.message);
-          var { error: te } = await supabaseClient.from('stock_transactions').insert([
-            { item_id: r.item_id, dept_id: null,   tx_type:'OUT', tx_date: dispatchDate, qty: -useQty, use_unit: r.use_unit, ref_type:'dispatch', ref_id: newDispatch.id, created_by: userId },
-            { item_id: r.item_id, dept_id: deptId, tx_type:'IN',  tx_date: dispatchDate, qty:  useQty, use_unit: r.use_unit, ref_type:'dispatch', ref_id: newDispatch.id, created_by: userId },
-          ]);
-          if (te) throw new Error(te.message);
-          await upsertStockCurrent(r.item_id, -useQty, null);
-          await upsertStockCurrent(r.item_id,  useQty, deptId);
-          await supabaseClient.from('purchase_order_items').update({ dispatched_qty: (r.dispatched_qty || 0) + qty }).eq('id', r.id);
+          var puQty = r.purchase_unit_qty || 1;
+          var needQty = (r.order_qty - (r.dispatched_qty || 0)) * puQty; // 미불출 전량 — 사용단위로 환산(LOT은 사용단위 기준)
+
+          // 중앙창고 LOT을 입고일 오름차순(FIFO)으로 가져와서 필요한 만큼 순서대로 소비
+          var { data: lots } = await supabaseClient
+            .from('stock_lots')
+            .select('id,lot_no,receipt_date,unit_price,purchase_unit,use_unit,qty')
+            .eq('item_id', r.item_id).is('dept_id', null).gt('qty', 0)
+            .order('receipt_date', { ascending: true });
+
+          var remaining = needQty;
+          for (var k = 0; k < (lots || []).length && remaining > 0; k++) {
+            var lot = lots[k];
+            var takeQty = Math.min(lot.qty, remaining);
+            if (takeQty <= 0) continue;
+
+            // 1. 중앙창고 LOT 차감
+            var { error: lotOutErr } = await supabaseClient.from('stock_lots')
+              .update({ qty: lot.qty - takeQty }).eq('id', lot.id);
+            if (lotOutErr) throw new Error(lotOutErr.message);
+
+            // 2. 부서 LOT 생성 (단가 승계)
+            var { data: newDeptLot, error: lotInErr } = await supabaseClient.from('stock_lots').insert({
+              item_id: r.item_id, receipt_id: null, lot_no: lot.lot_no, receipt_date: lot.receipt_date,
+              unit_price: lot.unit_price, purchase_unit: lot.purchase_unit || '', use_unit: lot.use_unit || r.use_unit || '',
+              dept_id: deptId, qty: takeQty,
+            }).select('id').single();
+            if (lotInErr) throw new Error(lotInErr.message);
+
+            // 3. stock_dispatch 기록
+            var dispatchNo = await genDocNo('SD');
+            var { data: newDispatch, error: de } = await supabaseClient.from('stock_dispatch').insert({
+              dispatch_no: dispatchNo, item_id: r.item_id, dept_id: deptId,
+              order_id: orderId, order_item_id: r.id,
+              dispatch_date: dispatchDate, dispatch_qty: takeQty, use_unit: lot.use_unit || r.use_unit,
+              lot_no: lot.lot_no, lot_id: lot.id, created_by: userId,
+            }).select('id').single();
+            if (de) throw new Error(de.message);
+
+            // 4. stock_transactions (중앙창고 OUT + 부서 IN)
+            var { error: te } = await supabaseClient.from('stock_transactions').insert([
+              { item_id: r.item_id, dept_id: null,   tx_type:'OUT', tx_date: dispatchDate, qty: -takeQty, use_unit: lot.use_unit || r.use_unit, ref_type:'dispatch', ref_id: newDispatch.id, lot_id: lot.id, unit_price: lot.unit_price, created_by: userId },
+              { item_id: r.item_id, dept_id: deptId, tx_type:'IN',  tx_date: dispatchDate, qty:  takeQty, use_unit: lot.use_unit || r.use_unit, ref_type:'dispatch', ref_id: newDispatch.id, lot_id: newDeptLot.id, unit_price: lot.unit_price, created_by: userId },
+            ]);
+            if (te) throw new Error(te.message);
+
+            // 5. stock_current 갱신
+            await upsertStockCurrent(r.item_id, -takeQty, null);
+            await upsertStockCurrent(r.item_id,  takeQty, deptId);
+
+            remaining -= takeQty;
+          }
+
+          var actuallyDispatchedUseUnit = needQty - remaining;
+          if (actuallyDispatchedUseUnit > 0) {
+            // dispatched_qty는 order_qty와 같은 단위(구매단위)이므로 다시 환산해서 누적
+            if (!poiDispatchAccum[r.id]) poiDispatchAccum[r.id] = { base: r.dispatched_qty || 0, added: 0 };
+            poiDispatchAccum[r.id].added += actuallyDispatchedUseUnit / puQty;
+          }
+          if (remaining > 0) {
+            // 중앙창고 LOT 재고가 부족해서 일부만 불출됨 — 실패로 표시하지 않고 알 수 있게 표시만
+            failed.push(orderId + ' (' + r.item_id + ' 일부만 처리)');
+          }
+        }
+
+        for (var poiId in poiDispatchAccum) {
+          var acc = poiDispatchAccum[poiId];
+          await supabaseClient.from('purchase_order_items').update({ dispatched_qty: acc.base + acc.added }).eq('id', poiId);
         }
 
         var { data: allItems } = await supabaseClient.from('purchase_order_items').select('order_qty,dispatched_qty').eq('order_id', orderId);
         var allDone = (allItems || []).every(function(it) { return (it.dispatched_qty || 0) >= it.order_qty; });
-        await supabaseClient.from('purchase_orders').update({ status: allDone ? 'COMPLETED' : 'PARTIAL' }).eq('id', orderId);
+        var anyDone = (allItems || []).some(function(it) { return (it.dispatched_qty || 0) > 0; });
+        await supabaseClient.from('purchase_orders').update({ status: allDone ? 'COMPLETED' : (anyDone ? 'PARTIAL' : 'ORDERED') }).eq('id', orderId);
         okCount++;
       } catch(innerErr) {
         failed.push(orderId);
@@ -1472,7 +1547,7 @@ async function bulkDispatchSelectedPo() {
     var lbl = document.getElementById('dispatchSelectedPoLabel'); if (lbl) lbl.textContent = '';
     var sum = document.getElementById('dispatchSummary'); if (sum) sum.textContent = '← 왼쪽에서 발주서를 선택하세요';
     await loadDispatchPoList();
-    if (failed.length) alert(okCount + '건 처리 완료, ' + failed.length + '건은 실패했습니다. (요청부서 미연결 또는 오류)');
+    if (failed.length) alert(okCount + '건 처리 완료, ' + failed.length + '건은 문제가 있었습니다. (요청부서 미연결/중앙창고 재고 부족/오류)');
     else alert(okCount + '건이 일괄 불출 처리됐습니다.');
   } catch(e) {
     alert('일괄불출 실패: ' + e.message);
@@ -1502,6 +1577,7 @@ async function saveDispatch() {
   try {
     var session=await supabaseClient.auth.getSession();
     var userId=session.data?.session?.user?.id||null;
+    var poiDispatchAccum = {}; // 같은 발주품목(_poiId)이 여러 LOT으로 나뉜 경우를 위한 누적 집계
     // LOT별로 처리 — 1행 = 1LOT
     for(var i=0;i<rows.length;i++){
       var r=rows[i];
@@ -1555,11 +1631,20 @@ async function saveDispatch() {
       await upsertStockCurrent(r.item_id,-qty,null);
       await upsertStockCurrent(r.item_id, qty,deptId);
 
-      // 6. 발주서 품목 불출수량 갱신
+      // 6. 발주서 품목 불출수량 — 같은 품목이 LOT 여러 개로 나뉘어 이번 루프에서 여러 번
+      // 처리될 수 있으므로, 바로 DB에 반영하지 않고 일단 누적만 해둠 (루프 끝에서 한 번에 반영).
+      // dispatched_qty는 order_qty와 같은 단위(구매단위)인데, qty는 LOT 차감 단위(사용단위)이므로
+      // 구매단위 환산수로 나눠서 단위를 맞춤
       if(r._poiId){
-        await supabaseClient.from('purchase_order_items')
-          .update({dispatched_qty:(r.dispatched_qty||0)+qty}).eq('id',r._poiId);
+        if(!poiDispatchAccum[r._poiId]) poiDispatchAccum[r._poiId] = { base: r.dispatched_qty||0, added: 0 };
+        poiDispatchAccum[r._poiId].added += qty / (r.purchase_unit_qty || 1);
       }
+    }
+    // 누적된 발주품목별 불출수량을 이제 한 번에 정확히 반영 (LOT별로 쪼개져 있던 걸 합산)
+    for(var poiId in poiDispatchAccum){
+      var acc=poiDispatchAccum[poiId];
+      await supabaseClient.from('purchase_order_items')
+        .update({dispatched_qty: acc.base + acc.added}).eq('id', poiId);
     }
     var {data:allItems}=await supabaseClient.from('purchase_order_items').select('order_qty,dispatched_qty').eq('order_id',_selectedDispatchPoId);
     var allDone=(allItems||[]).every(function(i){return (i.dispatched_qty||0)>=i.order_qty;});
