@@ -193,8 +193,8 @@ function renderClinics(rows) {
       { headerName: '', flex: 0, width: 120, sortable: false,
         cellRenderer: p => {
           const wrap = document.createElement('div'); wrap.style.cssText = 'display:flex;gap:4px;align-items:center;';
-          const e = document.createElement('button'); e.className = 'btn btn-sm'; e.textContent = '수정'; e.onclick = () => openEditClinic(p.data.id);
-          const d = document.createElement('button'); d.className = 'btn btn-sm btn-danger'; d.textContent = '삭제'; d.onclick = () => deleteClinic(p.data.id);
+          const e = document.createElement('button'); e.className = 'btn btn-sm'; e.textContent = '수정'; e.onclick = () => window.openEditClinic(p.data.id);
+          const d = document.createElement('button'); d.className = 'btn btn-sm btn-danger'; d.textContent = '삭제'; d.onclick = () => window.deleteClinic(p.data.id);
           wrap.append(e, d); return wrap;
         }},
     ], rows, { pageSize: 15, fit: true, noRowsText: '등록된 의원이 없습니다.' });
@@ -330,8 +330,8 @@ function renderDepts(rows, filterClinicId) {
       { headerName: '', flex: 0, width: 120, sortable: false,
         cellRenderer: p => {
           const wrap = document.createElement('div'); wrap.style.cssText = 'display:flex;gap:4px;align-items:center;';
-          const e = document.createElement('button'); e.className = 'btn btn-sm'; e.textContent = '수정'; e.onclick = () => openEditDept(p.data.id);
-          const d = document.createElement('button'); d.className = 'btn btn-sm btn-danger'; d.textContent = '삭제'; d.onclick = () => deleteDept(p.data.id);
+          const e = document.createElement('button'); e.className = 'btn btn-sm'; e.textContent = '수정'; e.onclick = () => window.openEditDept(p.data.id);
+          const d = document.createElement('button'); d.className = 'btn btn-sm btn-danger'; d.textContent = '삭제'; d.onclick = () => window.deleteDept(p.data.id);
           wrap.append(e, d); return wrap;
         }},
     ], filtered, { pageSize: 15, fit: true, noRowsText: '등록된 부서가 없습니다.' });
@@ -471,11 +471,11 @@ function renderUsers(rows, filterClinicCode, filterDeptCode) {
         cellRenderer: p => {
           const wrap = document.createElement('div'); wrap.style.cssText = 'display:flex;gap:4px;align-items:center;';
           const btnEdit = document.createElement('button'); btnEdit.className = 'btn btn-sm'; btnEdit.textContent = '수정';
-          btnEdit.onclick = () => openEditUser(p.data.id);
+          btnEdit.onclick = () => window.openEditUser(p.data.id);
           wrap.append(btnEdit);
           if (p.data.active !== 'Y') {
             const btnApprove = document.createElement('button'); btnApprove.className = 'btn btn-sm btn-primary'; btnApprove.textContent = '승인';
-            btnApprove.onclick = () => approveUser(p.data.id);
+            btnApprove.onclick = () => window.approveUser(p.data.id);
             wrap.append(btnApprove);
           }
           return wrap;
