@@ -338,7 +338,7 @@
 
     <div class="m-modal-head">
       <span class="m-modal-title" id="poModalTitle">발주 등록</span>
-      <button class="m-modal-close" onclick="closeModal('poModal')"><i class="ti ti-x"></i></button>
+      <button class="m-modal-close" onclick="closeModal('poModal'); var _v=document.getElementById('po_vendor_id'); if(_v) _v.disabled=false;"><i class="ti ti-x"></i></button>
     </div>
 
     <div class="m-modal-body" style="padding:12px 14px;gap:8px;">
