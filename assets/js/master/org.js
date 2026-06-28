@@ -420,9 +420,14 @@ function renderUsers(rows, filterClinicCode, filterDeptCode) {
   const empty = document.getElementById('userEmpty');
   if (!list) return;
 
+  const pendingCount = rows.filter(r => r.active !== 'Y').length;
+  const pendingEl = document.getElementById('userPendingCount');
+  if (pendingEl) pendingEl.textContent = pendingCount ? `(${pendingCount})` : '';
+
   let filtered = rows;
   if (filterClinicCode) filtered = filtered.filter(r => r.clinic_code === filterClinicCode);
   if (filterDeptCode)   filtered = filtered.filter(r => r.team_code   === filterDeptCode);
+  if (document.getElementById('userPendingOnly')?.checked) filtered = filtered.filter(r => r.active !== 'Y');
 
   if (empty) empty.style.display = 'none';
 
