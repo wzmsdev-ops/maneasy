@@ -5,10 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>자재 통계 · 관리이지</title>
   <link rel="stylesheet" href="../../assets/css/common.css" />
-  <link rel="stylesheet" href="../../assets/css/pages/material-stats.css" />
-  <link rel="stylesheet" href="../../assets/font/tabler-icons/tabler-icons.min.css" />
   <link rel="stylesheet" href="../../assets/libs/ag-grid/ag-grid.min.css" />
   <link rel="stylesheet" href="../../assets/libs/ag-grid/ag-theme-alpine.min.css" />
+  <link rel="stylesheet" href="../../assets/css/ag-grid-custom.css" />
+  <link rel="stylesheet" href="../../assets/font/tabler-icons/tabler-icons.min.css" />
   <script>
     if (new URLSearchParams(location.search).get('shell') === '1')
       document.documentElement.classList.add('in-shell');
@@ -29,34 +29,189 @@
     html, body { height: 100%; margin: 0; }
     body { background: #f0f2f5; }
 
-    .ms-filter-bar, .ms-tabs, .ms-content, .ms-pagination { visibility: hidden; }
+    /* 로딩 중 숨김 */
+    .ms-filter-bar, .ms-tabs, .ms-content { visibility: hidden; }
     body.page-ready .ms-filter-bar,
     body.page-ready .ms-tabs,
-    body.page-ready .ms-content,
-    body.page-ready .ms-pagination { visibility: visible; }
+    body.page-ready .ms-content { visibility: visible; }
 
-    .ag-theme-alpine {
-      --ag-font-size: 11px !important;
-      --ag-font-family: "Pretendard", "Noto Sans KR", sans-serif !important;
-      --ag-header-background-color: #f8fafc;
-      --ag-header-foreground-color: #4b5563;
-      --ag-border-color: #e5e7eb;
-      --ag-row-border-color: #f0f0f0;
-      --ag-background-color: #fff;
-      --ag-odd-row-background-color: #fff;
-      --ag-row-hover-color: #f0f5ff;
-      --ag-cell-horizontal-padding: 8px;
+    /* ── 전체 페이지 ── */
+    .ms-page {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+      padding: 4px 12px 14px;
+      gap: 4px;
+      box-sizing: border-box;
     }
-    .ag-theme-alpine .ag-root-wrapper { border-radius: 0; overflow: hidden; border: none; }
-    .ag-theme-alpine .ag-body-viewport { overflow-x: hidden !important; overflow-y: auto !important; height: calc(100% + 1px) !important; }
-    .ag-theme-alpine .ag-body-horizontal-scroll { display: none !important; }
-    .ag-theme-alpine .ag-header { font-size: 11px; }
-    .ag-theme-alpine .ag-cell { font-size: 11px !important; font-family: "Pretendard", "Noto Sans KR", sans-serif !important; border-right: 1px solid #e5e7eb !important; }
-    .ag-theme-alpine .ag-cell:last-child { border-right: none !important; }
-    .ag-theme-alpine .ag-cell * { font-size: 11px !important; }
-    .ag-theme-alpine .ag-header-cell-text { font-size: 11px !important; }
-    .ag-theme-alpine .ag-header-cell-label { justify-content: center; font-weight: 700; }
-    .ag-left-header .ag-header-cell-label { justify-content: flex-start !important; }
+    .ms-page > :empty { display: none; }
+
+    /* ── 필터 바 ── */
+    .ms-filter-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 7px 12px;
+      flex-shrink: 0;
+      height: 40px;
+      box-sizing: border-box;
+    }
+    .ms-filter-form {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex: 1;
+      min-width: 0;
+    }
+    .ms-filter-keyword {
+      position: relative;
+      flex: 1.5;
+      min-width: 0;
+    }
+    .ms-filter-icon {
+      position: absolute;
+      left: 9px; top: 50%;
+      transform: translateY(-50%);
+      font-size: 13px;
+      color: #9ca3af;
+      pointer-events: none;
+    }
+    .ms-filter-input {
+      width: 100% !important;
+      height: 30px !important;
+      padding: 0 10px 0 30px !important;
+      border: 1px solid #e5e7eb;
+      border-radius: 6px;
+      background: #f9fafb;
+      font-size: 12px !important;
+      color: #111827;
+      outline: none;
+      box-sizing: border-box !important;
+    }
+    .ms-filter-input:focus { border-color: #2563eb; background: #fff; }
+    .ms-filter-input::placeholder { color: #9ca3af; }
+    .ms-filter-select {
+      height: 30px;
+      padding: 0 22px 0 8px;
+      border: 1px solid #e5e7eb;
+      border-radius: 6px;
+      background: #f9fafb url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23adb5bd' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 7px center;
+      font-size: 12px;
+      color: #374151;
+      outline: none;
+      cursor: pointer;
+      flex: 1;
+      min-width: 80px;
+      max-width: 120px;
+      appearance: none;
+      -webkit-appearance: none;
+    }
+    .ms-filter-select:focus { border-color: #2563eb; background-color: #fff; }
+    .ms-filter-date {
+      height: 30px;
+      padding: 0 8px;
+      border: 1px solid #e5e7eb;
+      border-radius: 6px;
+      background: #f9fafb;
+      font-size: 12px;
+      color: #374151;
+      outline: none;
+      min-width: 108px;
+      max-width: 120px;
+      box-sizing: border-box;
+    }
+    .ms-filter-date:focus { border-color: #2563eb; background: #fff; }
+    .ms-filter-sep { font-size: 11px; color: #9ca3af; flex-shrink: 0; }
+    .ms-filter-btn {
+      height: 30px;
+      padding: 0 12px;
+      font-size: 12px;
+      border-radius: 6px;
+      white-space: nowrap;
+      flex-shrink: 0;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    /* ── 탭 ── */
+    .ms-tabs {
+      display: flex;
+      align-items: flex-end;
+      gap: 2px;
+      flex-shrink: 0;
+      height: 34px;
+      padding: 0 2px;
+      box-sizing: border-box;
+    }
+    .ms-tab {
+      height: 30px;
+      padding: 0 16px;
+      border: 1px solid #e5e7eb;
+      border-bottom: none;
+      border-radius: 6px 6px 0 0;
+      background: #f0f2f5;
+      font-size: 12px;
+      font-weight: 500;
+      color: #6b7280;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: background 0.15s, color 0.15s;
+      white-space: nowrap;
+    }
+    .ms-tab:hover { background: #e9ebef; color: #374151; }
+    .ms-tab.is-active {
+      background: #fff;
+      color: #111827;
+      font-weight: 700;
+      border-color: #e5e7eb;
+      position: relative;
+      z-index: 1;
+    }
+    .ms-tab i { font-size: 13px; }
+
+    /* ── 콘텐츠 영역 ── */
+    .ms-content {
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      border: 1px solid #e5e7eb;
+      border-radius: 0 8px 8px 8px;
+      background: #fff;
+    }
+    .ms-tab-panel {
+      display: none;
+      flex: 1;
+      min-height: 0;
+      flex-direction: column;
+    }
+    .ms-tab-panel.is-active { display: flex; }
+
+    /* ── 그리드 ── */
+    .ms-grid { flex: 1; min-height: 0; width: 100%; }
+    .ag-theme-alpine .ag-root-wrapper { border-radius: 0; border: none; }
+    .ag-theme-alpine .ag-body-viewport { height: calc(100% + 1px) !important; }
+
+    /* ── 페이지네이션 ── */
+    .ms-pagination {
+      flex-shrink: 0;
+      height: 28px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 2px;
+      padding: 2px 0;
+      border-top: 1px solid #f0f0f0;
+      box-sizing: border-box;
+    }
   </style>
 </head>
 <body class="material-stats-page">
@@ -69,8 +224,7 @@
         <div class="ms-filter-keyword">
           <i class="ti ti-search ms-filter-icon" aria-hidden="true"></i>
           <input type="text" id="sf_keyword" class="ms-filter-input"
-            placeholder="자재명 검색..."
-            autocomplete="off" />
+            placeholder="자재명 검색..." autocomplete="off" />
         </div>
         <select id="sf_clinic"   class="ms-filter-select"></select>
         <select id="sf_dept"     class="ms-filter-select"></select>
@@ -101,19 +255,19 @@
     <!-- 콘텐츠 -->
     <div class="ms-content">
 
-      <!-- 입고 데이터 탭 -->
+      <!-- 입고 데이터 -->
       <div id="panel-receipt" class="ms-tab-panel is-active">
         <div id="grid-receipt" class="ms-grid ag-theme-alpine"></div>
         <div id="page-receipt" class="ms-pagination"></div>
       </div>
 
-      <!-- 사용 데이터 탭 -->
+      <!-- 사용 데이터 -->
       <div id="panel-use" class="ms-tab-panel">
         <div id="grid-use" class="ms-grid ag-theme-alpine"></div>
         <div id="page-use" class="ms-pagination"></div>
       </div>
 
-      <!-- 원재료 수불부 탭 -->
+      <!-- 원재료 수불부 -->
       <div id="panel-ledger" class="ms-tab-panel">
         <div id="grid-ledger" class="ms-grid ag-theme-alpine"></div>
         <div id="page-ledger" class="ms-pagination"></div>
