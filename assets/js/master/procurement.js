@@ -671,15 +671,18 @@ function initPoListGrid() {
         return s;
       }
     },
-    { headerName: '', width: 130, sortable: false,
+    { headerName: '', width: 150, sortable: false,
       cellRenderer: function(p) {
         var wrap = document.createElement('div');
         wrap.style.cssText = 'display:flex;gap:4px;align-items:center;height:100%;';
+        var isDraft = p.data.status === 'DRAFT';
         var vBtn = document.createElement('button');
-        vBtn.className = 'tbl-btn'; vBtn.textContent = '상세';
+        // 초안 상태는 상세 모달을 열어야 '발주 확정' 액션이 있다는 걸 바로 인지하도록 버튼명을 바꿈
+        vBtn.className = isDraft ? 'tbl-btn tbl-btn--primary' : 'tbl-btn';
+        vBtn.textContent = isDraft ? '발주확정' : '상세';
         vBtn.onclick = function() { openPoDetail(p.data.id); };
         wrap.appendChild(vBtn);
-        if (p.data.status === 'DRAFT') {
+        if (isDraft) {
           var eBtn = document.createElement('button');
           eBtn.className = 'tbl-btn tbl-btn--primary'; eBtn.textContent = '수정';
           eBtn.onclick = function() { openEditPo(p.data.id); };
