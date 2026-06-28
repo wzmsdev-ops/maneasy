@@ -584,9 +584,9 @@ function renderUserPermBody(pagePerms, disabled) {
   ];
 
   if (_gridUserPerm) {
-    _gridUserPerm.setGridOption('rowData', rows);
-    _gridUserPerm.setGridOption('columnDefs', colDefs);
-    return;
+    _gridUserPerm.destroy();
+    _gridUserPerm = null;
+    el.innerHTML = '';
   }
 
   _gridUserPerm = agGrid.createGrid(el, {
