@@ -1120,6 +1120,9 @@ function initPoDetailGrid() {
       { headerName: '입고단위', field: 'purchase_unit', width: 90,
         cellRenderer: function(p) { return ts(p.value || '-'); }
       },
+      { headerName: '사용단위', field: 'use_unit', width: 90,
+        cellRenderer: function(p) { return ts(p.value || '-'); }
+      },
       { headerName: '발주수량', field: 'order_qty', width: 90,
         headerClass: 'ag-right-header',
         cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-end' },
@@ -1318,7 +1321,7 @@ async function openPoDetail(id) {
     if (e1) throw new Error(e1.message);
 
     var { data: poItems, error: e2 } = await supabaseClient
-      .from('purchase_order_items').select('*, items(item_name, purchase_unit)')
+      .from('purchase_order_items').select('*, items(item_name, purchase_unit, use_unit)')
       .eq('order_id', id).order('created_at');
     if (e2) throw new Error(e2.message);
 
@@ -1337,6 +1340,7 @@ async function openPoDetail(id) {
       return {
         item_name:    r.items?.item_name || '-',
         purchase_unit:r.purchase_unit || r.items?.purchase_unit || '-',
+        use_unit:     r.use_unit      || r.items?.use_unit      || '-',
         order_qty:    r.order_qty,
         received_qty: r.received_qty || 0,
         unit_price:   r.unit_price,
