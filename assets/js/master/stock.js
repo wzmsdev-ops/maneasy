@@ -1033,50 +1033,6 @@ function openAddDispatch() {
   openModal('dispatchModal');
 }
 
-function updateDispatchInfo() {
-  var itemId = val('d_item_id');
-  var item   = itemCache.find(function(it) { return it.id === itemId; });
-  document.getElementById('dUseUnit').textContent    = item ? (item.use_unit || item.unit || '-') : '-';
-  document.getElementById('dCurrentQty').textContent = item ? (fmtN(centralCache[itemId] || 0) + ' ' + (item.use_unit || '')) : '-';
-}
-
-async function saveDispatch() {
-  var itemId = val('d_item_id');
-  var deptId = val('d_dept_id');
-  if (!itemId) throw new Error('자재를 선택해주세요.');
-  if (!deptId) throw new Error('받을 부서를 선택해주세요.');
-  var item = itemCache.find(function(it) { return it.id === itemId; });
-  var qty  = Number(val('d_qty') || 0);
-  if (qty < 1) throw new Error('불출 수량은 1 이상이어야 합니다.');
-
-  var central = await getStockQty(itemId, null);
-  if (qty > central) throw new Error('불출 수량(' + qty + ')이 중앙창고 현재고(' + central + ')를 초과합니다.');
-
-  var dispatchNo = await genDocNo('SD');
-  var useUnit = item?.use_unit || item?.unit || '';
-
-  var { data: newDispatch, error } = await supabaseClient.from('stock_dispatch').insert({
-    dispatch_no:   dispatchNo,
-    item_id:       itemId,
-    dept_id:       deptId,
-    dispatch_date: val('d_dispatch_date'),
-    dispatch_qty:  qty,
-    use_unit:      useUnit,
-    memo:          val('d_memo'),
-  }).select().single();
-  if (error) throw new Error(error.message);
-
-  // 이력: 중앙창고 OUT, 부서 IN
-  var { error: te1 } = await supabaseClient.from('stock_transactions').insert([
-    { item_id: itemId, dept_id: null,   tx_type: 'OUT', tx_date: val('d_dispatch_date'), qty: -qty, use_unit: useUnit, ref_type: 'dispatch', ref_id: newDispatch.id, memo: val('d_memo') },
-    { item_id: itemId, dept_id: deptId, tx_type: 'IN',  tx_date: val('d_dispatch_date'), qty:  qty, use_unit: useUnit, ref_type: 'dispatch', ref_id: newDispatch.id, memo: val('d_memo') },
-  ]);
-  if (te1) throw new Error('이력 기록 실패: ' + te1.message);
-
-  await upsertStockCurrent(itemId, -qty, null);
-  await upsertStockCurrent(itemId,  qty, deptId);
-}
-
 /* ════════════════════════════════
    부서별재고 탭
 ════════════════════════════════ */
