@@ -64,20 +64,20 @@
         <i class="ti ti-chevron-right sb-item-arrow"></i>
       </button>
       <div class="sb-submenu" data-group="material">
-        <button class="sb-sub-item" data-page="master/purchase-request" onclick="navigate('master/purchase-request')" id="sbItemPurchaseRequest">
+        <button class="sb-sub-item" data-page="materials/purchase-request" onclick="navigate('materials/purchase-request')" id="sbItemPurchaseRequest">
           <i class="ti ti-shopping-cart"></i><span>발주요청</span>
         </button>
-        <button class="sb-sub-item" data-page="master/procurement" onclick="navigate('master/procurement')" id="sbItemProcurement" style="display:none;">
+        <button class="sb-sub-item" data-page="materials/procurement" onclick="navigate('materials/procurement')" id="sbItemProcurement" style="display:none;">
           <i class="ti ti-file-invoice"></i><span>발주 관리</span>
         </button>
-        <button class="sb-sub-item" data-page="master/stock" onclick="navigate('master/stock')" id="sbItemStock" style="display:none;">
+        <button class="sb-sub-item" data-page="materials/stock" onclick="navigate('materials/stock')" id="sbItemStock" style="display:none;">
           <i class="ti ti-building-warehouse"></i><span>재고 관리</span>
         </button>
-        <button class="sb-sub-item" data-page="master/use-stock" onclick="navigate('master/use-stock')" id="sbItemUseStock">
+        <button class="sb-sub-item" data-page="materials/use-stock" onclick="navigate('materials/use-stock')" id="sbItemUseStock">
           <i class="ti ti-clipboard-check"></i><span>사용처리</span>
         </button>
         <div class="sb-divider"></div>
-        <button class="sb-sub-item" data-page="master/material-stats" onclick="navigate('master/material-stats')" id="sbItemMaterialStats">
+        <button class="sb-sub-item" data-page="materials/material-stats" onclick="navigate('materials/material-stats')" id="sbItemMaterialStats">
           <i class="ti ti-chart-bar"></i><span>자재 통계</span>
         </button>
       </div>
@@ -142,11 +142,11 @@ const MENU_META = {
   'qc/data':             { app: '정도관리', page: '데이터 입력' },
   'master/org':             { app: '마스터 관리', page: '의원·부서·사용자' },
   'master/supply':          { app: '마스터 관리', page: '자재·거래처' },
-  'master/purchase-request':{ app: '자재관리', page: '발주요청' },
-  'master/use-stock':       { app: '자재관리', page: '사용처리' },
-  'master/procurement':     { app: '자재관리', page: '발주 관리' },
-  'master/stock':           { app: '자재관리', page: '재고 관리' },
-  'master/material-stats':  { app: '자재관리', page: '자재 통계' },
+  'materials/purchase-request':{ app: '자재관리', page: '발주요청' },
+  'materials/use-stock':       { app: '자재관리', page: '사용처리' },
+  'materials/procurement':     { app: '자재관리', page: '발주 관리' },
+  'materials/stock':           { app: '자재관리', page: '재고 관리' },
+  'materials/material-stats':  { app: '자재관리', page: '자재 통계' },
 };
 
 /* ── Flyout 서브메뉴 ── */
@@ -245,13 +245,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     const ROLE_BASE_PAGES = [
       'equipment/dashboard', 'equipment/list', 'equipment/detail',
       'qc/items', 'qc/data',
-      'master/purchase-request', 'master/use-stock', 'master/material-stats',
+      'materials/purchase-request', 'materials/use-stock', 'materials/material-stats',
     ];
     const ROLE_DEFAULT_PAGES = {
       user:    [...ROLE_BASE_PAGES],
       edit:    [...ROLE_BASE_PAGES, 'equipment/form'],
-      manager: [...ROLE_BASE_PAGES, 'equipment/form', 'master/procurement', 'master/stock'],
-      admin:   [...ROLE_BASE_PAGES, 'equipment/form', 'master/procurement', 'master/stock', 'master/org', 'master/supply'],
+      manager: [...ROLE_BASE_PAGES, 'equipment/form', 'materials/procurement', 'materials/stock'],
+      admin:   [...ROLE_BASE_PAGES, 'equipment/form', 'materials/procurement', 'materials/stock', 'master/org', 'master/supply'],
     };
     const allowedPages = user.allowed_pages && user.allowed_pages.length
       ? user.allowed_pages
