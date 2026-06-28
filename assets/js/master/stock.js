@@ -68,10 +68,12 @@ function initTabs() {
           receipt:   { api: '_gridReceiptPo', id: 'receiptPoGrid', init: initReceiptPoGrid, load: loadReceiptPoList },
           dispatch:  { api: '_gridDispatchPo', id: 'dispatchPoGrid',
             init: function() {
-              initDispatchPoGrid();
-              setTimeout(function() { if (!_gridDispatchItem) initDispatchItemGrid(); }, 50);
+              setTimeout(function() {
+                initDispatchPoGrid();
+                if (!_gridDispatchItem) initDispatchItemGrid();
+              }, 80);
             },
-            load: loadDispatchPoList
+            load: function() { setTimeout(loadDispatchPoList, 100); }
           },
           deptstock: { api: '_gridDeptStock', id: 'deptStockGrid', init: initDeptStockGrid, load: function(){loadDeptStock(1);} },
         };
@@ -990,7 +992,7 @@ async function loadDispatchPoList() {
       });
     });
     if(!_gridDispatchPo) initDispatchPoGrid();
-    _gridDispatchPo.setGridOption('rowData',rows);
+    if(_gridDispatchPo) _gridDispatchPo.setGridOption('rowData',rows);
     var cnt=document.getElementById('dispatchPoCount'); if(cnt) cnt.textContent=rows.length+'건';
   } catch(e){alert('발주서 목록 조회 실패: '+e.message);
   } finally{hideGlobalLoading();}
