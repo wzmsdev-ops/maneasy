@@ -241,45 +241,64 @@ async function loadLedgerData(page, f) {
     if (cr) deptFilter = msState.deptRows.filter(function(d){return d.clinic_id===cr.id;}).map(function(d){return d.id;});
   }
 
-  // 기초재고 (기간 시작 이전)
-  var openingMap = {};
-  itemIds.forEach(function(id){openingMap[id]=0;});
+  // 기초재고 (기간 시작 이전) — 수량과 함께, 그 거래 시점의 실제 단가(LOT 단가)로 금액도 같이 누적
+  // (전체조회일 때 입고/사용 중복집계 방지 원리는 아래 본문 집계와 동일)
+  var openingMap = {}, openingAmtMap = {};
+  itemIds.forEach(function(id){openingMap[id]=0; openingAmtMap[id]=0;});
   if (f.dateFrom) {
-    var oQ = supabaseClient.from('stock_transactions').select('item_id,tx_type,qty').in('item_id',itemIds).lt('tx_date',f.dateFrom);
+    var oQ = supabaseClient.from('stock_transactions').select('item_id,tx_type,ref_type,qty,unit_price').in('item_id',itemIds).lt('tx_date',f.dateFrom);
     if (deptFilter) oQ = oQ.in('dept_id', deptFilter);
     var { data:oRows } = await oQ;
     (oRows||[]).forEach(function(r){
-      if (r.tx_type==='IN')  openingMap[r.item_id] += (r.qty||0);
-      if (r.tx_type==='OUT') openingMap[r.item_id] -= Math.abs(r.qty||0);
-      if (r.tx_type==='ADJ') openingMap[r.item_id] += (r.qty||0);
+      var amt = (r.qty||0) * (r.unit_price||0);
+      if (r.tx_type==='IN' && (deptFilter || r.ref_type==='receipt')) {
+        openingMap[r.item_id] += (r.qty||0); openingAmtMap[r.item_id] += Math.abs(amt);
+      }
+      if (r.tx_type==='OUT' && (deptFilter || r.ref_type==='use')) {
+        openingMap[r.item_id] -= Math.abs(r.qty||0); openingAmtMap[r.item_id] -= Math.abs(amt);
+      }
+      if (r.tx_type==='ADJ') { openingMap[r.item_id] += (r.qty||0); openingAmtMap[r.item_id] += amt; }
     });
   }
 
-  // 기간 내 집계
-  var inMap={}, outMap={}, adjMap={};
-  var txQ = supabaseClient.from('stock_transactions').select('item_id,tx_type,qty').in('item_id',itemIds);
+  // 기간 내 집계 — 수량과 함께, 거래별 실제 단가(LOT 단가)로 금액도 누적
+  // 부서 필터가 없는 '전체' 조회일 때는 불출/이동/취소가 OUT+IN 한 쌍으로 둘 다 잡혀서
+  // 입고·사용이 내부이동까지 같이 섞여 부풀려짐(잔고는 상쇄돼서 맞지만 입고/사용 자체는 틀림).
+  // 그래서 전체 조회일 때는 입고=진짜 구매입고(receipt)만, 사용=진짜 소비(use)만 잡음.
+  // 부서를 특정해서 볼 때는 반대쪽 다리가 필터에서 자동으로 빠지므로 기존 방식 그대로 둠.
+  var inMap={}, outMap={}, adjMap={}, inAmtMap={}, outAmtMap={}, adjAmtMap={};
+  var txQ = supabaseClient.from('stock_transactions').select('item_id,tx_type,ref_type,qty,unit_price').in('item_id',itemIds);
   if (f.dateFrom) txQ = txQ.gte('tx_date',f.dateFrom);
   if (f.dateTo)   txQ = txQ.lte('tx_date',f.dateTo);
   if (deptFilter) txQ = txQ.in('dept_id',deptFilter);
   var { data:txRows } = await txQ;
   (txRows||[]).forEach(function(r){
-    if (r.tx_type==='IN')  inMap[r.item_id]  = (inMap[r.item_id]  ||0)+(r.qty||0);
-    if (r.tx_type==='OUT') outMap[r.item_id] = (outMap[r.item_id] ||0)+Math.abs(r.qty||0);
-    if (r.tx_type==='ADJ') adjMap[r.item_id] = (adjMap[r.item_id] ||0)+(r.qty||0);
+    var amt = Math.abs(r.qty||0) * (r.unit_price||0); // 거래 당시 실제 단가(LOT) 기준 금액
+    if (r.tx_type==='IN' && (deptFilter || r.ref_type==='receipt')) {
+      inMap[r.item_id]  = (inMap[r.item_id]  ||0)+(r.qty||0);
+      inAmtMap[r.item_id]  = (inAmtMap[r.item_id] ||0)+amt;
+    }
+    if (r.tx_type==='OUT' && (deptFilter || r.ref_type==='use')) {
+      outMap[r.item_id] = (outMap[r.item_id] ||0)+Math.abs(r.qty||0);
+      outAmtMap[r.item_id] = (outAmtMap[r.item_id]||0)+amt;
+    }
+    if (r.tx_type==='ADJ') { adjMap[r.item_id] = (adjMap[r.item_id] ||0)+(r.qty||0);           adjAmtMap[r.item_id] = (adjAmtMap[r.item_id]||0)+(r.qty<0?-amt:amt); }
   });
 
   var rows = itemIds.map(function(id){
     var item = itemMap[id];
     var puQty = item.purchase_unit_qty || 1;
-    var price = item.standard_price || 0;
-    // stock_transactions의 qty는 사용단위(예: 개) 기준이라, 입고단위(예: 박스) 기준으로 보려면
-    // 구매단위 환산수로 나눠야 함 — 그 결과 소수점이 생길 수 있음(예: 23개 ÷ 50개/박스 = 0.46박스)
+    // 수량은 사용단위 합계를 구매단위로 환산(소수점 발생 가능). 금액은 환산할 필요 없음 —
+    // 거래마다 그 시점의 실제 단가(LOT 단가)를 그대로 곱해서 이미 누적해둔 값이라,
+    // 평균/기준단가가 아니라 실제 입고가를 그대로 따라감 (예: 6/1 1,000개@1,000원, 6/28 800개@500원이면
+    // 각각의 실제 입고금액이 그대로 더해짐)
     var o=(openingMap[id]||0)/puQty, i=(inMap[id]||0)/puQty, u=(outMap[id]||0)/puQty, a=(adjMap[id]||0)/puQty;
     var closing = o+i-u+a;
+    var oAmt=openingAmtMap[id]||0, iAmt=inAmtMap[id]||0, uAmt=outAmtMap[id]||0, aAmt=adjAmtMap[id]||0;
     return { item_id:id, item_name:item.item_name, category:item.category||'-',
              purchase_unit:item.purchase_unit||item.use_unit||'',
              opening_qty:o, in_qty:i, out_qty:u, adj_qty:a, closing_qty:closing,
-             opening_amt:o*price, in_amt:i*price, out_amt:u*price, adj_amt:a*price, closing_amt:closing*price };
+             opening_amt:oAmt, in_amt:iAmt, out_amt:uAmt, adj_amt:aAmt, closing_amt:oAmt+iAmt-uAmt+aAmt };
   }).filter(function(r){ return r.in_qty||r.out_qty||r.adj_qty||r.closing_qty||r.opening_qty; });
 
   var total = rows.length;
