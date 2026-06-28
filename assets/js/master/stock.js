@@ -1349,7 +1349,7 @@ async function cancelDispatch(dispatchId) {
         }
       }
       // 2. 중앙창고 원본 LOT 수량 복원
-      var { data: srcLot } = await supabaseClient.from('stock_lots').select('qty').eq('id', d.lot_id).maybeSingle();
+      var { data: srcLot } = await supabaseClient.from('stock_lots').select('qty,unit_price').eq('id', d.lot_id).maybeSingle();
       if (srcLot) {
         await supabaseClient.from('stock_lots').update({ qty: (srcLot.qty || 0) + d.dispatch_qty }).eq('id', d.lot_id);
       }
@@ -1363,10 +1363,11 @@ async function cancelDispatch(dispatchId) {
       }
     }
 
-    // stock_transactions 취소 이력
+    // stock_transactions 취소 이력 — 원래 LOT 단가를 그대로 같이 기록 (조정금액 계산용)
+    var cancelUnitPrice = srcLot?.unit_price || 0;
     var { error: te } = await supabaseClient.from('stock_transactions').insert([
-      { item_id: d.item_id, dept_id: d.dept_id, tx_type:'OUT', tx_date: cancelDate, qty: -d.dispatch_qty, use_unit: d.use_unit, ref_type:'dispatch_cancel', ref_id: d.id, lot_id: d.lot_id||null, created_by: userId },
-      { item_id: d.item_id, dept_id: null,       tx_type:'IN',  tx_date: cancelDate, qty:  d.dispatch_qty, use_unit: d.use_unit, ref_type:'dispatch_cancel', ref_id: d.id, lot_id: d.lot_id||null, created_by: userId },
+      { item_id: d.item_id, dept_id: d.dept_id, tx_type:'OUT', tx_date: cancelDate, qty: -d.dispatch_qty, use_unit: d.use_unit, ref_type:'dispatch_cancel', ref_id: d.id, lot_id: d.lot_id||null, unit_price: cancelUnitPrice, created_by: userId },
+      { item_id: d.item_id, dept_id: null,       tx_type:'IN',  tx_date: cancelDate, qty:  d.dispatch_qty, use_unit: d.use_unit, ref_type:'dispatch_cancel', ref_id: d.id, lot_id: d.lot_id||null, unit_price: cancelUnitPrice, created_by: userId },
     ]);
     if (te) throw new Error('재고 원복 실패: ' + te.message);
     await upsertStockCurrent(d.item_id, -d.dispatch_qty, d.dept_id);
