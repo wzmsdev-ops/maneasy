@@ -531,8 +531,10 @@ function initTransferInfoGrid() {
         headerClass: 'ag-left-header',
         editable: function(p) { return p.data.editable === true; },
         singleClickEdit: true,
-        cellEditor: function(p) { return p.data.editor || 'agTextCellEditor'; },
-        cellEditorParams: function(p) { return p.data.editorParams || {}; },
+        cellEditorSelector: function(p) {
+          if (!p.data.editable) return undefined;
+          return { component: p.data.editor || 'agTextCellEditor', params: p.data.editorParams || {} };
+        },
         cellStyle: function(p) {
           var base = { display:'flex', alignItems:'center', justifyContent:'flex-start' };
           if (p.data.editable) Object.assign(base, { color:'#111827', cursor:'pointer' });
