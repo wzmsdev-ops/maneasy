@@ -622,9 +622,34 @@ async function syncRequestStatus(requestId) {
 /* ══════════════════════════════════════════
    1. 발주 목록 그리드 (createMgGrid 활용)
 ══════════════════════════════════════════ */
+/** 발주목록 체크박스 컬럼의 헤더 — 화면에 보이는 초안 발주를 한 번에 전체선택/해제 */
+function PoSelectAllHeader() {}
+PoSelectAllHeader.prototype.init = function(params) {
+  this.params = params;
+  this.eGui = document.createElement('input');
+  this.eGui.type = 'checkbox';
+  this.eGui.title = '초안 발주 전체선택';
+  this.eGui.style.cssText = 'width:15px;height:15px;cursor:pointer;';
+  _poSelectAllCheckbox = this.eGui;
+  this.eGui.onclick = function() {
+    var checked = _poSelectAllCheckbox.checked;
+    params.api.forEachNode(function(node) {
+      if (node.data.status === 'DRAFT') {
+        if (checked) _selectedDraftPoIds.add(node.data.id);
+        else _selectedDraftPoIds.delete(node.data.id);
+      }
+    });
+    params.api.refreshCells({ force: true, columns: [params.column.getColId()] });
+    updateBulkConfirmBtn();
+  };
+};
+PoSelectAllHeader.prototype.getGui = function() { return this.eGui; };
+var _poSelectAllCheckbox = null;
+
 function initPoListGrid() {
   _poListGrid = createMgGrid('poGrid', [
     { headerName: '', width: 40, sortable: false, suppressMovable: true,
+      headerComponent: PoSelectAllHeader,
       cellStyle: { display:'flex', alignItems:'center', justifyContent:'center' },
       cellRenderer: function(p) {
         if (p.data.status !== 'DRAFT') return '';
@@ -1419,10 +1444,12 @@ function togglePoSelection(id, checked) {
 
 function updateBulkConfirmBtn() {
   var btn = document.getElementById('bulkConfirmPoBtn');
-  if (!btn) return;
-  var n = _selectedDraftPoIds.size;
-  btn.disabled = n === 0;
-  btn.textContent = n > 0 ? '선택 발주 확정 (' + n + '건)' : '선택 발주 확정';
+  if (btn) {
+    var n = _selectedDraftPoIds.size;
+    btn.disabled = n === 0;
+    btn.textContent = n > 0 ? '선택 발주 확정 (' + n + '건)' : '선택 발주 확정';
+  }
+  if (_selectedDraftPoIds.size === 0 && _poSelectAllCheckbox) _poSelectAllCheckbox.checked = false;
 }
 
 /** 체크된 초안 발주들을 한 번에 발주확정(ORDERED) 처리 */
