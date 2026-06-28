@@ -66,7 +66,14 @@ function initTabs() {
       requestAnimationFrame(function() {
         var tabGridMap = {
           receipt:   { api: '_gridReceiptPo', id: 'receiptPoGrid', init: initReceiptPoGrid, load: loadReceiptPoList },
-          dispatch:  { api: '_gridDispatchStock', id: 'dispatchStockGrid', init: initDispatchStockGrid, load: loadDispatchStock },
+          dispatch:  { api: '_gridDispatchStock', id: 'dispatchStockGrid',
+            init: function() {
+              initDispatchStockGrid();
+              // 불출 탭 첫 전환 시 우측 그리드도 같이 초기화
+              setTimeout(function() { if (!_gridDispatchItem) initDispatchItemGrid(); }, 50);
+            },
+            load: loadDispatchStock
+          },
           deptstock: { api: '_gridDeptStock', id: 'deptStockGrid', init: initDeptStockGrid, load: function(){loadDeptStock(1);} },
         };
         var tg = tabGridMap[target];
@@ -1045,7 +1052,8 @@ function initDispatchStockGrid() {
         var btn = document.createElement('button');
         btn.className = 'btn btn-sm btn-primary';
         btn.style.cssText = 'padding:2px 8px;font-size:11px;';
-        var added = _dispatchItems.some(function(i) { return i.item_id === p.data.item_id; });
+        var added = false;
+        if (_gridDispatchItem) _gridDispatchItem.forEachNode(function(n) { if (n.data.item_id === p.data.item_id) added = true; });
         btn.textContent = added ? '추가됨' : '추가';
         if (added) { btn.style.background = '#059669'; btn.style.borderColor = '#059669'; }
         btn.onclick = function() {
@@ -1550,8 +1558,6 @@ async function init() {
   // receipt 탭 기본 활성 → 즉시 초기화
   initReceiptPoGrid();
   initReceiptItemGrid();  // 우측 그리드도 즉시 초기화 (헤더 표시)
-  initDispatchStockGrid();  // 불출 좌측 그리드
-  initDispatchItemGrid();   // 불출 우측 그리드
 
   // 날짜 기본값 추가
   setVal('receiptDate',  todayStr);
