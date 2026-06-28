@@ -344,6 +344,7 @@
           <option value="">전체</option>
           <option value="COMPLETED" selected>입고완료</option>
           <option value="PARTIAL">부분불출</option>
+          <option value="DISPATCHED">불출완료</option>
         </select>
         <div class="pr-divider"></div>
         <input type="date" id="dispatchDateFrom" />
@@ -388,6 +389,11 @@
               <i class="ti ti-truck-delivery"></i> 불출 등록
             </button>
           </div>
+          <div class="panel-head" style="border-top:1px solid #f3f4f6;flex-shrink:0;">
+            <span><i class="ti ti-history" style="color:#9ca3af;"></i> 불출 이력 (취소 가능)</span>
+            <span id="dispatchHistoryCount" style="color:#2563eb;"></span>
+          </div>
+          <div id="dispatchHistoryGrid" class="ag-theme-alpine" style="height:160px;flex-shrink:0;"></div>
         </div>
       </div>
     </div>
