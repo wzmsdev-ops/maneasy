@@ -1231,6 +1231,9 @@ function openAddPo() {
         cats.map(function(c){ return '<option value="' + c + '">' + c + '</option>'; }).join('');
     }
     document.getElementById('po_item_keyword') && (document.getElementById('po_item_keyword').value = '');
+    // 발주 등록 시 거래처 선택 활성화
+    var vSelAdd = document.getElementById('po_vendor_id');
+    if (vSelAdd) vSelAdd.disabled = false;
   }, 50);
 }
 
