@@ -1333,6 +1333,7 @@ async function loadDeptStock(page) {
       .from('stock_current')
       .select('*, items(item_name, use_unit, unit, reorder_point), departments(dept_name)', { count: 'exact' })
       .not('dept_id', 'is', null)
+      .gt('qty', 0)
       .order('last_updated_at', { ascending: false })
       .range(from, to);
 
