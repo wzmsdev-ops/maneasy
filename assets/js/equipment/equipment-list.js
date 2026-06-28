@@ -413,6 +413,10 @@ function renderEquipmentList(items) {
     _gridInstance = null;
   }
 
+  // 1차 추정 rowHeight로 그려진 화면이 2차 보정(onFirstDataRendered)으로 바뀌는 순간이
+  // 사용자 눈에 "줄이 줄어드는 애니메이션"처럼 보이는 원인. 보정이 끝나기 전까지는
+  // 그리드를 안 보이게 숨겨두고, 보정 직후 한 번에 보여줘서 그 깜빡임을 없앤다.
+  el.style.visibility = 'hidden';
 
   var gridOptions = {
     columnDefs: columnDefs,
@@ -433,7 +437,7 @@ function renderEquipmentList(items) {
     },
     onFirstDataRendered: function(params) {
       var viewport = el.querySelector('.ag-body-viewport');
-      if (!viewport) return;
+      if (!viewport) { el.style.visibility = ''; return; }
       var viewH = viewport.clientHeight;
       var correctRowH = Math.floor(viewH / equipmentListState.pageSize);
       correctRowH = Math.max(26, correctRowH);
@@ -444,10 +448,15 @@ function renderEquipmentList(items) {
         params.api.resetRowHeights();
         _gridInstance._rowH = correctRowH;
       }
+      // 보정이 다음 프레임에 실제로 그려진 뒤 보여줘서, 보정 전 모습이 단 한 프레임도 노출되지 않게 함
+      requestAnimationFrame(function() {
+        requestAnimationFrame(function() { el.style.visibility = ''; });
+      });
     }
   };
 
   _gridInstance = agGrid.createGrid(el, gridOptions);
+  setTimeout(function() { el.style.visibility = ''; }, 600); // 안전장치: 위 보정이 어떤 이유로든 안 불려도 결국 보이게 함
   _gridInstance._rowH = rowH;
 
 
