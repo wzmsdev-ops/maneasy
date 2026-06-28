@@ -119,10 +119,12 @@ function renderClinics(rows) {
   if (!window._clinicGrid) {
     window._clinicGrid =
   createMgGrid('clinicList', [
-      { headerName: '코드',   field: 'clinic_code', flex: 1, minWidth: 90 },
-      { headerName: '의원명', field: 'clinic_name', flex: 2, minWidth: 120 },
-      { headerName: '전화',   field: 'phone',       flex: 1, minWidth: 110, valueFormatter: p => p.value || '-' },
-      { headerName: '주소',   field: 'address',     flex: 2, minWidth: 140, valueFormatter: p => p.value || '-' },
+      { headerName: '코드',       field: 'clinic_code',  flex: 1, minWidth: 90 },
+      { headerName: '의원명',     field: 'clinic_name',  flex: 2, minWidth: 120 },
+      { headerName: '사업자번호', field: 'business_no',  width: 130, valueFormatter: p => p.value || '-' },
+      { headerName: '요양기관번호', field: 'care_inst_no', width: 120, valueFormatter: p => p.value || '-' },
+      { headerName: '전화',       field: 'phone',        flex: 1, minWidth: 110, valueFormatter: p => p.value || '-' },
+      { headerName: '주소',       field: 'address',      flex: 2, minWidth: 140, valueFormatter: p => p.value || '-' },
       { headerName: '순서',   field: 'sort_order',  flex: 0, width: 60 },
       { headerName: '상태',   field: 'active',      flex: 0, width: 70,
         cellRenderer: p => { const s = document.createElement('span'); s.innerHTML = badgeActive(p.value); return s; } },
@@ -166,7 +168,7 @@ function syncClinicSelects() {
 
 function openAddClinic() {
   editingClinicId = null;
-  ['c_clinic_code','c_clinic_name','c_address','c_phone'].forEach(id => setVal(id, ''));
+  ['c_clinic_code','c_clinic_name','c_address','c_phone','c_business_no','c_care_inst_no'].forEach(id => setVal(id, ''));
   setVal('c_sort_order', '0');
   setVal('c_active', 'Y');
   document.getElementById('clinicModalTitle').textContent = '의원 추가';
@@ -177,10 +179,12 @@ function openEditClinic(id) {
   const row = clinicCache.find(r => r.id === id);
   if (!row) return;
   editingClinicId = id;
-  setVal('c_clinic_code', row.clinic_code);
-  setVal('c_clinic_name', row.clinic_name);
-  setVal('c_address',     row.address);
-  setVal('c_phone',       row.phone);
+  setVal('c_clinic_code',   row.clinic_code);
+  setVal('c_clinic_name',   row.clinic_name);
+  setVal('c_business_no',   row.business_no   || '');
+  setVal('c_care_inst_no',  row.care_inst_no  || '');
+  setVal('c_address',       row.address);
+  setVal('c_phone',         row.phone);
   setVal('c_sort_order',  row.sort_order ?? 0);
   setVal('c_active',      row.active);
   document.getElementById('clinicModalTitle').textContent = '의원 수정';
@@ -194,9 +198,11 @@ async function saveClinic() {
       const { data } = await supabaseClient.rpc('generate_clinic_code');
       return data || 'CLINIC-' + Date.now().toString().slice(-6);
     })(),
-    clinic_name: val('c_clinic_name'),
-    address:     val('c_address'),
-    phone:       val('c_phone'),
+    clinic_name:  val('c_clinic_name'),
+    business_no:  val('c_business_no')  || '',
+    care_inst_no: val('c_care_inst_no') || '',
+    address:      val('c_address'),
+    phone:        val('c_phone'),
     sort_order:  Number(val('c_sort_order') || 0),
     active:      val('c_active'),
     updated_at:  new Date().toISOString(),
