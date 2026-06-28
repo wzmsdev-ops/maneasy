@@ -456,6 +456,7 @@ async function onReceiptOrderChange() {
 function initReceiptItemGrid() {
   var el = document.getElementById('receiptItemGrid');
   if (!el || typeof agGrid === 'undefined') return;
+  el.style.height = Math.max(200, window.innerHeight - 280) + 'px';
 
   _gridReceiptItem = agGrid.createGrid(el, {
     suppressCellFocus: true,
@@ -900,6 +901,7 @@ var _dispatchRowId    = 0;
 function initDispatchItemGrid() {
   var el = document.getElementById('dispatchItemGrid');
   if (!el || typeof agGrid === 'undefined') return;
+  el.style.height = Math.max(200, window.innerHeight - 280) + 'px';
 
   var colDefs = [
     { headerName: '자재명', field: 'item_name', flex: 2, minWidth: 120,
