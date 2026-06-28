@@ -336,16 +336,16 @@ function initReceiptItemGrid() {
     suppressCellFocus: true,
     suppressPropertyNamesCheck: true,
     columnDefs: [
-      { headerName: '자재명', field: 'item_name', flex: 2,
+      { headerName: '자재명', field: 'item_name', flex: 3,
         headerClass: 'ag-left-header',
         cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-start', fontWeight:600 },
         cellRenderer: function(p) { return ts(p.value || '-'); }
       },
-      { headerName: '입고단위', field: 'purchase_unit', width: 80,
+      { headerName: '단위', field: 'purchase_unit', width: 60,
         cellStyle: { display:'flex', alignItems:'center', justifyContent:'center', background:'#f8fafc', color:'#6b7280' },
         cellRenderer: function(p) { return ts(p.value || '-'); }
       },
-      { headerName: '발주/잔여', width: 90,
+      { headerName: '발주/잔여', width: 80,
         cellStyle: { display:'flex', alignItems:'center', justifyContent:'center', background:'#f8fafc', color:'#6b7280' },
         cellRenderer: function(p) {
           if (p.data.order_qty == null) return '-';
@@ -353,7 +353,7 @@ function initReceiptItemGrid() {
           return Number(p.data.order_qty).toLocaleString('ko-KR') + ' / ' + Number(remain).toLocaleString('ko-KR');
         }
       },
-      { headerName: '입고수량', field: 'qty', width: 90,
+      { headerName: '수량', field: 'qty', width: 70,
         headerClass: 'ag-right-header',
         cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-end' },
         editable: true,
@@ -362,7 +362,7 @@ function initReceiptItemGrid() {
         cellRenderer: function(p) { return Number(p.value || 1).toLocaleString('ko-KR'); },
         onCellValueChanged: function(p) { recalcReceiptFromQtyPrice(p.node); }
       },
-      { headerName: '단가 (공급가)', field: 'unit_price', width: 110,
+      { headerName: '단가', field: 'unit_price', width: 90,
         headerClass: 'ag-right-header',
         cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-end' },
         editable: true,
