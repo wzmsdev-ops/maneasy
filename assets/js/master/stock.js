@@ -1255,11 +1255,14 @@ function initDispatchHistoryGrid() {
       { headerName: '자재명', field: 'item_name', flex: 1, minWidth: 100, headerClass:'ag-left-header',
         cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-start' }
       },
+      { headerName: 'LOT번호', field: 'lot_no', width: 110, headerClass:'ag-left-header',
+        cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-start', color:'#1d4ed8', fontFamily:'Consolas,monospace', fontSize:'11px', paddingLeft:'8px' }
+      },
       { headerName: '부서', field: 'dept_name', width: 80 },
       { headerName: '불출일', field: 'dispatch_date', width: 90,
         cellRenderer: function(p) { return fmtDate(p.value); }
       },
-      { headerName: '수량', field: 'dispatch_qty', width: 80,
+      { headerName: '수량', field: 'dispatch_qty', width: 70,
         cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-end' },
         cellRenderer: function(p) { return fmtN(p.value) + ' ' + ts(p.data.use_unit||''); }
       },
@@ -1286,16 +1289,18 @@ async function loadDispatchHistory(orderId) {
   if (!_gridDispatchHistory) initDispatchHistoryGrid();
   var { data, error } = await supabaseClient
     .from('stock_dispatch')
-    .select('id, dispatch_qty, dispatch_date, use_unit, items(item_name), departments(dept_name)')
+    .select('id, dispatch_qty, dispatch_date, use_unit, lot_no, items(item_name), departments(dept_name)')
     .eq('order_id', orderId)
-    .order('dispatch_date', { ascending: false });
+    .order('dispatch_date', { ascending: false })
+    .order('created_at', { ascending: false });
   if (error) { console.error(error); return; }
   var rows = (data || []).map(function(r) {
-    return { id: r.id, item_name: r.items?.item_name || '-', dept_name: r.departments?.dept_name || '-',
+    return { id: r.id, item_name: r.items?.item_name || '-', lot_no: r.lot_no || '-',
+      dept_name: r.departments?.dept_name || '-',
       dispatch_date: r.dispatch_date, dispatch_qty: r.dispatch_qty, use_unit: r.use_unit };
   });
   if (_gridDispatchHistory) { _gridDispatchHistory.setGridOption('rowData', rows); refitGridColumns(_gridDispatchHistory); }
-  var cnt = document.getElementById('dispatchHistoryCount'); if (cnt) cnt.textContent = rows.length ? rows.length + '건' : '';
+  var cnt = document.getElementById('dispatchHistoryCount'); if (cnt) cnt.textContent = rows.length ? rows.length + '건 (LOT)' : '';
 }
 
 /** 불출 1건 취소 — 재고를 부서에서 다시 중앙창고로 되돌리고, 발주서의 불출수량/상태도 같이 되돌림 */
