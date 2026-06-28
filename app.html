@@ -76,7 +76,7 @@
         <button class="sb-sub-item" data-page="master/use-stock" onclick="navigate('master/use-stock')" id="sbItemUseStock">
           <i class="ti ti-clipboard-check"></i><span>사용처리</span>
         </button>
-        <div style="height:1px;background:#e5e7eb;margin:4px 8px;"></div>
+        <div class="sb-divider"></div>
         <button class="sb-sub-item" data-page="master/material-stats" onclick="navigate('master/material-stats')" id="sbItemMaterialStats">
           <i class="ti ti-chart-bar"></i><span>자재 통계</span>
         </button>
@@ -170,8 +170,12 @@ function showFlyout(btn) {
   const group   = btn.dataset.group;
   const submenu = document.querySelector(`.sb-submenu[data-group="${group}"]`);
   if (!submenu) return;
-  const items = Array.from(submenu.querySelectorAll('.sb-sub-item')).filter(el => el.style.display !== 'none');
-  if (!items.length) return;
+  const children = Array.from(submenu.children).filter(el => {
+    if (el.classList.contains('sb-sub-item')) return el.style.display !== 'none';
+    if (el.classList.contains('sb-divider')) return true;
+    return false;
+  });
+  if (!children.some(el => el.classList.contains('sb-sub-item'))) return;
 
   const fly = document.createElement('div');
   fly.className = 'sb-flyout';
@@ -183,7 +187,13 @@ function showFlyout(btn) {
   lbl.textContent = btn.querySelector('span')?.textContent || '';
   fly.appendChild(lbl);
 
-  items.forEach(item => {
+  children.forEach(item => {
+    if (item.classList.contains('sb-divider')) {
+      const div = document.createElement('div');
+      div.className = 'sb-divider';
+      fly.appendChild(div);
+      return;
+    }
     const fi = document.createElement('button');
     fi.className = 'sb-sub-item' + (item.classList.contains('active') ? ' active' : '');
     fi.innerHTML = item.innerHTML;
