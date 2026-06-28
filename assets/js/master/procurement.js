@@ -923,8 +923,7 @@ function searchPoItems() {
     return matchCat && matchKw && matchVendor;
   });
   if (_poSearchGrid) _poSearchGrid.setGridOption('rowData', filtered);
-  var cnt = document.getElementById('poSearchCount');
-  if (cnt) cnt.textContent = filtered.length ? filtered.length + '건' : '';
+  // 건수 텍스트 표시 제거
 }
 
 function isPoItemAdded(itemId) {
@@ -1266,6 +1265,10 @@ async function openEditPo(id) {
           cats.map(function(c){ return '<option value="' + c + '">' + c + '</option>'; }).join('');
       }
       document.getElementById('po_item_keyword') && (document.getElementById('po_item_keyword').value = '');
+      // 수정 시: 거래처 변경 불가 (품목 섞임 방지) + 해당 업체 자재 자동 조회
+      var vSel = document.getElementById('po_vendor_id');
+      if (vSel) vSel.disabled = true;
+      setTimeout(function() { searchPoItems(); }, 20);
       (items || []).forEach(function(r) {
         addPoItemRow({
           _existingId:   r.id,
