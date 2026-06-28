@@ -824,6 +824,7 @@ async function saveReceipt() {
   var supplyTotal  = rows.reduce(function(sum, r) { return sum + Number(r.supply_price || 0); }, 0);
   var vatAssigned  = 0;
   var touchedOrders = new Set();
+  var receivedQtyMap = {};  // order_item_id → { base, added } — LOT 분리 행 합산용
 
   for (var i = 0; i < rows.length; i++) {
     var r = rows[i];
@@ -893,13 +894,21 @@ async function saveReceipt() {
     // 중앙창고 재고 적립
     await upsertStockCurrent(r.item_id, useQty, null);
 
-    // 발주서 품목별 입고 처리 (부분입고)
+    // 발주서 품목별 입고 처리 — order_item_id별 합산은 루프 후 한 번에 처리
     if (r.order_item_id) {
-      var newReceived = (r.received_qty || 0) + qty;
-      await supabaseClient.from('purchase_order_items')
-        .update({ received_qty: newReceived }).eq('id', r.order_item_id);
+      if (!receivedQtyMap[r.order_item_id]) {
+        receivedQtyMap[r.order_item_id] = { base: r.received_qty || 0, added: 0 };
+      }
+      receivedQtyMap[r.order_item_id].added += qty;
       if (orderId) touchedOrders.add(orderId);
     }
+  }
+
+  // order_item_id별 received_qty 일괄 업데이트 (같은 품목 여러 LOT 입고 시 덮어쓰기 방지)
+  for (var poiId in receivedQtyMap) {
+    var rec = receivedQtyMap[poiId];
+    await supabaseClient.from('purchase_order_items')
+      .update({ received_qty: rec.base + rec.added }).eq('id', poiId);
   }
 
   for (var oid of touchedOrders) {
