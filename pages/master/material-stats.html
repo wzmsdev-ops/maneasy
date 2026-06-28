@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>자재 통계 · 관리이지</title>
+  <link rel="stylesheet" href="../../assets/css/common.css" />
+  <link rel="stylesheet" href="../../assets/css/pages/material-stats.css" />
+  <link rel="stylesheet" href="../../assets/font/tabler-icons/tabler-icons.min.css" />
+  <link rel="stylesheet" href="../../assets/libs/ag-grid/ag-grid.min.css" />
+  <link rel="stylesheet" href="../../assets/libs/ag-grid/ag-theme-alpine.min.css" />
+  <script>
+    if (new URLSearchParams(location.search).get('shell') === '1')
+      document.documentElement.classList.add('in-shell');
+    window.addEventListener('error', function(e) {
+      var d = document.createElement('div');
+      d.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#fee2e2;color:#991b1b;padding:8px 12px;font-size:12px;z-index:99999;';
+      d.textContent = 'ERROR: ' + e.message + ' (' + e.filename.split('/').pop() + ':' + e.lineno + ')';
+      document.body.appendChild(d);
+    });
+    window.addEventListener('unhandledrejection', function(e) {
+      var d = document.createElement('div');
+      d.style.cssText = 'position:fixed;top:40px;left:0;right:0;background:#fef3c7;color:#92400e;padding:8px 12px;font-size:12px;z-index:99999;';
+      d.textContent = 'PROMISE ERROR: ' + (e.reason && e.reason.message ? e.reason.message : String(e.reason));
+      document.body.appendChild(d);
+    });
+  </script>
+  <style>
+    html, body { height: 100%; margin: 0; }
+    body { background: #f0f2f5; }
+
+    .ms-filter-bar, .ms-tabs, .ms-content, .ms-pagination { visibility: hidden; }
+    body.page-ready .ms-filter-bar,
+    body.page-ready .ms-tabs,
+    body.page-ready .ms-content,
+    body.page-ready .ms-pagination { visibility: visible; }
+
+    .ag-theme-alpine {
+      --ag-font-size: 11px !important;
+      --ag-font-family: "Pretendard", "Noto Sans KR", sans-serif !important;
+      --ag-header-background-color: #f8fafc;
+      --ag-header-foreground-color: #4b5563;
+      --ag-border-color: #e5e7eb;
+      --ag-row-border-color: #f0f0f0;
+      --ag-background-color: #fff;
+      --ag-odd-row-background-color: #fff;
+      --ag-row-hover-color: #f0f5ff;
+      --ag-cell-horizontal-padding: 8px;
+    }
+    .ag-theme-alpine .ag-root-wrapper { border-radius: 0; overflow: hidden; border: none; }
+    .ag-theme-alpine .ag-body-viewport { overflow-x: hidden !important; overflow-y: auto !important; height: calc(100% + 1px) !important; }
+    .ag-theme-alpine .ag-body-horizontal-scroll { display: none !important; }
+    .ag-theme-alpine .ag-header { font-size: 11px; }
+    .ag-theme-alpine .ag-cell { font-size: 11px !important; font-family: "Pretendard", "Noto Sans KR", sans-serif !important; border-right: 1px solid #e5e7eb !important; }
+    .ag-theme-alpine .ag-cell:last-child { border-right: none !important; }
+    .ag-theme-alpine .ag-cell * { font-size: 11px !important; }
+    .ag-theme-alpine .ag-header-cell-text { font-size: 11px !important; }
+    .ag-theme-alpine .ag-header-cell-label { justify-content: center; font-weight: 700; }
+    .ag-left-header .ag-header-cell-label { justify-content: flex-start !important; }
+  </style>
+</head>
+<body class="material-stats-page">
+
+  <div class="ms-page">
+
+    <!-- 필터 바 -->
+    <div class="ms-filter-bar">
+      <form id="statsFilterForm" class="ms-filter-form">
+        <div class="ms-filter-keyword">
+          <i class="ti ti-search ms-filter-icon" aria-hidden="true"></i>
+          <input type="text" id="sf_keyword" class="ms-filter-input"
+            placeholder="자재명 검색..."
+            autocomplete="off" />
+        </div>
+        <select id="sf_clinic"   class="ms-filter-select"></select>
+        <select id="sf_dept"     class="ms-filter-select"></select>
+        <select id="sf_category" class="ms-filter-select"></select>
+        <input type="date" id="sf_date_from" class="ms-filter-date" />
+        <span class="ms-filter-sep">~</span>
+        <input type="date" id="sf_date_to"   class="ms-filter-date" />
+        <button type="submit" class="btn btn-primary ms-filter-btn">
+          <i class="ti ti-search" aria-hidden="true"></i> 조회
+        </button>
+        <button type="button" class="btn ms-filter-btn" id="sf_reset">초기화</button>
+      </form>
+    </div>
+
+    <!-- 탭 -->
+    <div class="ms-tabs">
+      <button class="ms-tab is-active" data-tab="receipt">
+        <i class="ti ti-package-import"></i> 입고 데이터
+      </button>
+      <button class="ms-tab" data-tab="use">
+        <i class="ti ti-package-export"></i> 사용 데이터
+      </button>
+      <button class="ms-tab" data-tab="ledger">
+        <i class="ti ti-list-details"></i> 원재료 수불부
+      </button>
+    </div>
+
+    <!-- 콘텐츠 -->
+    <div class="ms-content">
+
+      <!-- 입고 데이터 탭 -->
+      <div id="panel-receipt" class="ms-tab-panel is-active">
+        <div id="grid-receipt" class="ms-grid ag-theme-alpine"></div>
+        <div id="page-receipt" class="ms-pagination"></div>
+      </div>
+
+      <!-- 사용 데이터 탭 -->
+      <div id="panel-use" class="ms-tab-panel">
+        <div id="grid-use" class="ms-grid ag-theme-alpine"></div>
+        <div id="page-use" class="ms-pagination"></div>
+      </div>
+
+      <!-- 원재료 수불부 탭 -->
+      <div id="panel-ledger" class="ms-tab-panel">
+        <div id="grid-ledger" class="ms-grid ag-theme-alpine"></div>
+        <div id="page-ledger" class="ms-pagination"></div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <script src="../../assets/libs/supabase.js"></script>
+  <script src="../../assets/js/core/config.js"></script>
+  <script src="../../assets/js/core/utils.js"></script>
+  <script src="../../assets/js/core/supabase.js"></script>
+  <script src="../../assets/js/core/auth.js"></script>
+  <script src="../../assets/js/core/db.js"></script>
+
+  <div id="globalLoading" aria-hidden="true">
+    <div class="global-loading__dialog">
+      <div class="global-loading__spinner" aria-hidden="true"></div>
+      <div class="global-loading__text" id="globalLoadingText">불러오는 중...</div>
+    </div>
+  </div>
+
+  <script src="../../assets/libs/ag-grid/ag-grid-community.min.js"></script>
+  <script src="../../assets/js/master/material-stats.js"></script>
+</body>
+</html>
