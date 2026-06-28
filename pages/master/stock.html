@@ -354,30 +354,6 @@
 </div>
 
 <!-- ══ 입고 등록 모달 ══ -->
-<div id="receiptModal" class="m-modal">
-  <div class="m-modal-backdrop" onclick="closeModal('receiptModal')"></div>
-  <div class="m-modal-dialog m-modal-dialog--grid">
-    <div class="m-modal-head">
-      <span class="m-modal-title">입고 등록</span>
-      <button class="m-modal-close" onclick="closeModal('receiptModal')"><i class="ti ti-x"></i></button>
-    </div>
-    <div class="m-modal-body" style="padding:12px 14px;gap:8px;">
-      <div class="info-box">
-        발주를 선택하면 미입고 품목이 자동으로 채워집니다. 발주 외 품목은 왼쪽에서 검색해서 추가할 수 있고,
-        입고수량·단가·공급가액은 오른쪽 그리드에서 바로 수정할 수 있습니다.<br>
-        입고된 자재는 중앙창고(자재담당자 보관) 재고로 적립되며, [불출] 탭에서 부서로 전달합니다.
-      </div>
-      <div style="display:flex;gap:8px;align-items:flex-end;flex-shrink:0;">
-        <div class="m-field" style="flex:1;">
-          <label>발주 연결 (선택)</label>
-          <select id="r_order_id"><option value="">발주 없이 직접 입고</option></select>
-        </div>
-        <div class="m-field" style="flex-shrink:0;width:130px;">
-          <label>입고일 <span class="m-req">*</span></label>
-          <input type="date" id="r_receipt_date" />
-        </div>
-      </div>
-
       <!-- 2패널: 자재 검색(좌) + 입고 품목(우) -->
       <div style="display:flex;flex:1;min-height:0;gap:0;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
 
@@ -425,52 +401,6 @@
 </div>
 
 <!-- ══ 불출 등록 모달 ══ -->
-<div id="dispatchModal" class="m-modal">
-  <div class="m-modal-backdrop" onclick="closeModal('dispatchModal')"></div>
-  <div class="m-modal-dialog">
-    <div class="m-modal-head">
-      <span class="m-modal-title">불출 등록</span>
-      <button class="m-modal-close" onclick="closeModal('dispatchModal')"><i class="ti ti-x"></i></button>
-    </div>
-    <div class="m-modal-body">
-      <div class="m-field">
-        <label>자재 <span class="m-req">*</span></label>
-        <select id="d_item_id">
-          <option value="">자재 선택</option>
-        </select>
-      </div>
-      <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:6px;padding:8px 12px;font-size:11px;color:#374151;display:flex;gap:16px;flex-wrap:wrap;">
-        <span>사용단위: <strong id="dUseUnit">-</strong></span>
-        <span>중앙창고 현재고: <strong id="dCurrentQty">-</strong></span>
-      </div>
-      <div class="m-field">
-        <label>받을 부서 <span class="m-req">*</span></label>
-        <select id="d_dept_id">
-          <option value="">부서 선택</option>
-        </select>
-      </div>
-      <div class="m-field-row">
-        <div class="m-field">
-          <label>불출일 <span class="m-req">*</span></label>
-          <input type="date" id="d_dispatch_date" style="height:30px;padding:0 6px;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;outline:none;width:130px;" />
-        </div>
-        <div class="m-field">
-          <label>불출수량 (사용단위) <span class="m-req">*</span></label>
-          <input type="number" id="d_qty" min="1" value="1" />
-        </div>
-      </div>
-      <div class="m-field">
-        <label>메모</label>
-        <textarea id="d_memo" placeholder="메모"></textarea>
-      </div>
-    </div>
-    <div class="m-modal-foot">
-      <button class="btn btn-sm" onclick="closeModal('dispatchModal')">취소</button>
-      <button class="btn btn-sm btn-primary" id="dispatchSaveBtn">불출 등록</button>
-    </div>
-  </div>
-</div>
-
 <div id="globalLoading" aria-hidden="true">
   <div class="global-loading__dialog">
     <div class="global-loading__spinner" aria-hidden="true"></div>
