@@ -74,7 +74,12 @@ function initTabs() {
               }, 80);
             }
           },
-          deptstock: { api: '_gridDeptStock', id: 'deptStockGrid', init: initDeptStockGrid, load: function(){loadDeptStock(1);} },
+          deptstock: { api: '_gridDeptStock', id: 'deptStockGrid',
+            init: function() {
+              initDeptStockGrid();
+              if (!_gridTransferInfo) initTransferInfoGrid();
+            },
+            load: function(){loadDeptStock(1);} },
         };
         var tg = tabGridMap[target];
         if (tg) {
