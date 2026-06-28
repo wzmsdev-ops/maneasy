@@ -340,16 +340,19 @@
 
     <!-- ═══ 불출 탭 (중앙창고 → 부서) ═══ -->
     <div id="tab-dispatch" class="tab-panel">
-      <!-- 상단 필터 + 불출일/부서 -->
+      <!-- 상단 필터바 -->
       <div class="m-filter-bar" style="flex-shrink:0;">
-        <select id="dispatchDeptTarget" style="min-width:120px;">
-          <option value="">불출 대상 부서 선택</option>
+        <select id="dispatchPoStatus" style="min-width:100px;">
+          <option value="">전체</option>
+          <option value="ORDERED" selected>발주완료</option>
+          <option value="PARTIAL">부분불출</option>
         </select>
         <div class="pr-divider"></div>
-        <select id="dispatchCategoryFilter" style="min-width:110px;">
-          <option value="">전체 카테고리</option>
-        </select>
-        <input type="text" id="dispatchKeyword" placeholder="자재명 검색..." style="flex:1;min-width:0;" />
+        <input type="date" id="dispatchDateFrom" />
+        <span style="font-size:11px;color:#9ca3af;flex-shrink:0;">~</span>
+        <input type="date" id="dispatchDateTo" />
+        <div class="pr-divider"></div>
+        <input type="text" id="dispatchKeyword" placeholder="발주번호/거래처 검색..." style="flex:1;min-width:0;" />
         <button class="btn btn-sm btn-primary" id="dispatchSearchBtn"><i class="ti ti-search"></i> 조회</button>
         <div class="pr-divider"></div>
         <label style="font-size:12px;font-weight:600;color:#374151;white-space:nowrap;flex-shrink:0;">불출일 <span style="color:#ef4444;">*</span></label>
@@ -358,37 +361,36 @@
 
       <!-- 2단 패널 -->
       <div class="two-panel">
-        <!-- 좌: 중앙창고 현재고 -->
+        <!-- 좌: 발주서 목록 -->
         <div class="panel-left">
           <div class="panel-head">
-            <span><i class="ti ti-building-warehouse" style="color:#9ca3af;"></i> 중앙창고 현재고</span>
-            <span id="dispatchStockCount" style="color:#2563eb;"></span>
+            <span><i class="ti ti-file-invoice" style="color:#9ca3af;"></i> 발주서 목록</span>
+            <span id="dispatchPoCount" style="color:#2563eb;"></span>
           </div>
-          <div id="dispatchStockGrid" class="panel-grid ag-theme-alpine"></div>
+          <div id="dispatchPoGrid" class="panel-grid ag-theme-alpine"></div>
         </div>
 
-        <!-- 우: 선택된 품목 + 부서별 불출수량 -->
+        <!-- 우: 미불출 품목 -->
         <div class="panel-right">
           <div class="panel-head">
-            <span><i class="ti ti-truck-delivery" style="color:#9ca3af;"></i> 불출 품목 <span id="dispatchItemCount" style="color:#2563eb;font-weight:400;"></span></span>
-            <button class="btn btn-sm" onclick="clearDispatchItems()" style="font-size:11px;">
-              <i class="ti ti-x"></i> 초기화
-            </button>
+            <span><i class="ti ti-truck-delivery" style="color:#9ca3af;"></i> 불출 품목
+              <span id="dispatchSelectedPoLabel" style="color:#2563eb;font-weight:400;font-size:11px;margin-left:4px;"></span>
+            </span>
+            <span id="dispatchItemCount" style="color:#2563eb;"></span>
           </div>
-          <div id="dispatchItemGrid" class="panel-grid ag-theme-alpine"></div>
+          <div id="dispatchItemGrid" class="ag-theme-alpine" style="flex:1;min-height:0;"></div>
           <div class="panel-foot">
             <div class="panel-total">
-              <span id="dispatchSummary" style="color:#6b7280;font-size:11px;">선택된 품목이 없습니다</span>
+              <span id="dispatchSummary" style="color:#6b7280;font-size:11px;">← 왼쪽에서 발주서를 선택하세요</span>
             </div>
             <button class="btn btn-sm btn-primary" id="dispatchSaveBtn" disabled onclick="saveDispatch()">
-              <i class="ti ti-truck-delivery"></i> 일괄 불출
+              <i class="ti ti-truck-delivery"></i> 불출 등록
             </button>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- ═══ 부서별재고 탭 ═══ -->
     <div id="tab-deptstock" class="tab-panel">
       <div class="m-filter-bar">
         <select id="deptStockDeptFilter" style="height:28px;padding:0 8px;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;flex-shrink:0;"><option value="">전체 부서</option></select>
