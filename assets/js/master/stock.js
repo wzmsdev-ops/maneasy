@@ -903,6 +903,31 @@ var _dispatchRowId    = 0;
 var _deptOptions      = [];
 var _selectedDispatchPoId = null;
 
+/** 불출 발주서 목록 체크박스 컬럼의 헤더 — 화면에 보이는 발주서를 한 번에 전체선택/해제 */
+function DispatchSelectAllHeader() {}
+DispatchSelectAllHeader.prototype.init = function(params) {
+  this.eGui = document.createElement('div');
+  this.eGui.style.cssText = 'display:flex;align-items:center;justify-content:center;width:100%;height:100%;';
+  var cb = document.createElement('input');
+  cb.type = 'checkbox';
+  cb.title = '발주서 전체선택';
+  cb.style.cssText = 'width:15px;height:15px;cursor:pointer;margin:0;';
+  this.eGui.appendChild(cb);
+  _dispatchSelectAllCheckbox = cb;
+  cb.onclick = function() {
+    var checked = _dispatchSelectAllCheckbox.checked;
+    params.api.forEachNode(function(node) {
+      if (checked) _selectedDispatchPoIds.add(node.data.id);
+      else _selectedDispatchPoIds.delete(node.data.id);
+    });
+    params.api.refreshCells({ force: true, columns: [params.column.getColId()] });
+    updateBulkDispatchBtn();
+  };
+};
+DispatchSelectAllHeader.prototype.getGui = function() { return this.eGui; };
+var _dispatchSelectAllCheckbox = null;
+var _selectedDispatchPoIds = new Set(); // 일괄불출용 — 체크된 발주서 id 모음
+
 function initDispatchPoGrid() {
   var el = document.getElementById('dispatchPoGrid');
   if (!el || typeof agGrid === 'undefined') return;
@@ -913,6 +938,18 @@ function initDispatchPoGrid() {
   _gridDispatchPo = agGrid.createGrid(el, {
     suppressCellFocus:true, suppressPropertyNamesCheck:true,
     columnDefs: [
+      { headerName: '', width: 36, sortable: false, suppressMovable: true,
+        headerComponent: DispatchSelectAllHeader,
+        cellStyle: { display:'flex', alignItems:'center', justifyContent:'center' },
+        cellRenderer: function(p) {
+          var cb = document.createElement('input');
+          cb.type = 'checkbox';
+          cb.style.cssText = 'width:15px;height:15px;cursor:pointer;';
+          cb.checked = _selectedDispatchPoIds.has(p.data.id);
+          cb.onclick = function(e) { e.stopPropagation(); toggleDispatchPoSelection(p.data.id, cb.checked); };
+          return cb;
+        }
+      },
       { headerName:'발주번호', field:'order_no', width:130, headerClass:'ag-left-header',
         cellStyle:{display:'flex',alignItems:'center',justifyContent:'flex-start'},
         cellRenderer:function(p){return '<code style="font-size:11px;">'+ts(p.value||'-')+'</code>';}
@@ -948,6 +985,8 @@ async function loadDispatchPoList() {
   var status=document.getElementById('dispatchPoStatus')?.value||'';
   var dFrom=document.getElementById('dispatchDateFrom')?.value||'';
   var dTo=document.getElementById('dispatchDateTo')?.value||'';
+  _selectedDispatchPoIds.clear();
+  updateBulkDispatchBtn();
   showGlobalLoading('발주서 목록을 불러오는 중...');
   try {
     var q=supabaseClient.from('purchase_orders')
@@ -1074,6 +1113,104 @@ function updateDispatchSummary() {
   if(sum) sum.textContent=items>0?items+'개 품목, 총 '+total+'개 불출 예정':'불출 수량을 입력하세요';
   var btn=document.getElementById('dispatchSaveBtn'); if(btn) btn.disabled=items===0;
 }
+
+/** 불출 발주서 체크박스 선택/해제 */
+function toggleDispatchPoSelection(id, checked) {
+  if (checked) _selectedDispatchPoIds.add(id);
+  else _selectedDispatchPoIds.delete(id);
+  updateBulkDispatchBtn();
+}
+
+function updateBulkDispatchBtn() {
+  var btn = document.getElementById('bulkDispatchBtn');
+  if (btn) {
+    var n = _selectedDispatchPoIds.size;
+    btn.disabled = n === 0;
+    btn.textContent = n > 0 ? '선택 일괄불출 (' + n + '건)' : '선택 일괄불출';
+  }
+  if (_selectedDispatchPoIds.size === 0 && _dispatchSelectAllCheckbox) _dispatchSelectAllCheckbox.checked = false;
+}
+
+/** 체크된 발주서들을 한 번에 — 각 발주서의 미불출 품목 전량을, 그 발주서에 연결된
+ *  요청부서로 일괄 불출 처리 (발주확정과 동일한 일괄처리 패턴) */
+async function bulkDispatchSelectedPo() {
+  var ids = Array.from(_selectedDispatchPoIds);
+  if (!ids.length) return;
+  var dispatchDate = val('dispatchDate');
+  if (!dispatchDate) { alert('불출일을 입력하세요.'); return; }
+  if (!confirm(ids.length + '건의 발주서를 각 요청부서로 일괄 불출(전량) 하시겠습니까?')) return;
+
+  var btn = document.getElementById('bulkDispatchBtn');
+  if (btn) btn.disabled = true;
+  showGlobalLoading('일괄 불출 처리 중...');
+  var okCount = 0;
+  var failed = [];
+  try {
+    var session = await supabaseClient.auth.getSession();
+    var userId = session.data?.session?.user?.id || null;
+
+    for (var i = 0; i < ids.length; i++) {
+      var orderId = ids[i];
+      try {
+        var { data: poData } = await supabaseClient.from('purchase_orders')
+          .select('request_id,purchase_requests(dept_id,departments(dept_name))')
+          .eq('id', orderId).single();
+        var deptId = poData?.purchase_requests?.dept_id || null;
+        if (!deptId) { failed.push(orderId); continue; }
+
+        var { data: items } = await supabaseClient
+          .from('purchase_order_items')
+          .select('id,item_id,order_qty,dispatched_qty,purchase_unit_qty,use_unit')
+          .eq('order_id', orderId);
+        var openItems = (items || []).filter(function(r) { return (r.dispatched_qty || 0) < r.order_qty; });
+        if (!openItems.length) continue;
+
+        for (var j = 0; j < openItems.length; j++) {
+          var r = openItems[j];
+          var qty = r.order_qty - (r.dispatched_qty || 0); // 미불출 전량
+          var useQty = qty * (r.purchase_unit_qty || 1);
+          var dispatchNo = await genDocNo('SD');
+          var { data: newDispatch, error: de } = await supabaseClient.from('stock_dispatch').insert({
+            dispatch_no: dispatchNo, item_id: r.item_id, dept_id: deptId,
+            dispatch_date: dispatchDate, dispatch_qty: qty, use_unit: r.use_unit, created_by: userId,
+          }).select('id').single();
+          if (de) throw new Error(de.message);
+          var { error: te } = await supabaseClient.from('stock_transactions').insert([
+            { item_id: r.item_id, dept_id: null,   tx_type:'OUT', tx_date: dispatchDate, qty: -useQty, use_unit: r.use_unit, ref_type:'dispatch', ref_id: newDispatch.id, created_by: userId },
+            { item_id: r.item_id, dept_id: deptId, tx_type:'IN',  tx_date: dispatchDate, qty:  useQty, use_unit: r.use_unit, ref_type:'dispatch', ref_id: newDispatch.id, created_by: userId },
+          ]);
+          if (te) throw new Error(te.message);
+          await upsertStockCurrent(r.item_id, -useQty, null);
+          await upsertStockCurrent(r.item_id,  useQty, deptId);
+          await supabaseClient.from('purchase_order_items').update({ dispatched_qty: (r.dispatched_qty || 0) + qty }).eq('id', r.id);
+        }
+
+        var { data: allItems } = await supabaseClient.from('purchase_order_items').select('order_qty,dispatched_qty').eq('order_id', orderId);
+        var allDone = (allItems || []).every(function(it) { return (it.dispatched_qty || 0) >= it.order_qty; });
+        await supabaseClient.from('purchase_orders').update({ status: allDone ? 'COMPLETED' : 'PARTIAL' }).eq('id', orderId);
+        okCount++;
+      } catch(innerErr) {
+        failed.push(orderId);
+      }
+    }
+
+    _selectedDispatchPoIds.clear();
+    _selectedDispatchPoId = null;
+    if (_gridDispatchItem) _gridDispatchItem.setGridOption('rowData', []);
+    var lbl = document.getElementById('dispatchSelectedPoLabel'); if (lbl) lbl.textContent = '';
+    var sum = document.getElementById('dispatchSummary'); if (sum) sum.textContent = '← 왼쪽에서 발주서를 선택하세요';
+    await loadDispatchPoList();
+    if (failed.length) alert(okCount + '건 처리 완료, ' + failed.length + '건은 실패했습니다. (요청부서 미연결 또는 오류)');
+    else alert(okCount + '건이 일괄 불출 처리됐습니다.');
+  } catch(e) {
+    alert('일괄불출 실패: ' + e.message);
+  } finally {
+    if (btn) btn.disabled = false;
+    hideGlobalLoading();
+  }
+}
+window.toggleDispatchPoSelection = toggleDispatchPoSelection;
+window.bulkDispatchSelectedPo = bulkDispatchSelectedPo;
 
 async function saveDispatch() {
   if(!_selectedDispatchPoId){alert('발주서를 선택하세요.');return;}
