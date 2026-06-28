@@ -543,7 +543,7 @@ function initReceiptItemGrid() {
     suppressScrollOnNewData: true,
     stopEditingWhenCellsLoseFocus: true,
     singleClickEdit: true,
-    overlayNoRowsTemplate: '<span style="color:#9ca3af;font-size:12px;">발주를 선택하거나 왼쪽에서 검색해서 자재를 추가하세요.</span>',
+    overlayNoRowsTemplate: '<span style="color:#9ca3af;font-size:12px;">← 왼쪽에서 발주서를 클릭하면 품목이 자동으로 채워집니다.</span>',
     onGridReady: function(params) { if (el.offsetWidth > 0) params.api.sizeColumnsToFit(); },
   });
 }
