@@ -403,7 +403,7 @@ function renderEquipmentList(items) {
     defaultColDef: defaultColDef,
     rowData: items,
     rowHeight: 36,
-    headerHeight: 51,
+    headerHeight: 35,
     suppressPaginationPanel: true,
     suppressScrollOnNewData: true,
     suppressHorizontalScroll: true,
