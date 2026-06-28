@@ -892,18 +892,23 @@ function initDispatchItemGrid() {
   el.style.height=Math.max(200,window.innerHeight-200)+'px';
   _gridDispatchItem=agGrid.createGrid(el,{
     suppressPropertyNamesCheck:true,
+    suppressCellFocus:false,
     columnDefs:[
       {headerName:'자재명',field:'item_name',flex:2,minWidth:120,headerClass:'ag-left-header',
+        suppressCellFocus:true,
         cellStyle:{display:'flex',alignItems:'center',justifyContent:'flex-start',fontWeight:600}
       },
       {headerName:'입고단위',field:'purchase_unit',width:80,
+        suppressCellFocus:true,
         cellStyle:{display:'flex',alignItems:'center',justifyContent:'center',color:'#6b7280'}
       },
       {headerName:'발주',field:'order_qty',width:65,
+        suppressCellFocus:true,
         cellStyle:{display:'flex',alignItems:'center',justifyContent:'flex-end'},
         valueFormatter:function(p){return Number(p.value||0).toLocaleString('ko-KR');}
       },
       {headerName:'기불출',field:'dispatched_qty',width:65,
+        suppressCellFocus:true,
         cellStyle:{display:'flex',alignItems:'center',justifyContent:'flex-end',color:'#6b7280'},
         valueFormatter:function(p){return Number(p.value||0).toLocaleString('ko-KR');}
       },
