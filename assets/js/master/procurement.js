@@ -399,7 +399,7 @@ async function openRvDetail(id) {
         if (!_rvSplitGrid) initRvSplitGrid();
         if (_rvSplitGrid) {
           _rvSplitGrid.setGridOption('rowData', gridRows);
-          _rvSplitGrid.sizeColumnsToFit();
+          refitGridColumns(_rvSplitGrid);
         }
       }, 50);
 
@@ -906,7 +906,7 @@ function initPoSearchGrid() {
       cellStyle: { display:'flex', alignItems:'center', justifyContent:'center' },
     },
     suppressHorizontalScroll: true,
-    overlayNoRowsTemplate: '<span style="color:#9ca3af;font-size:12px;">카테고리/자재명을 입력해 검색하세요.</span>',
+    overlayNoRowsTemplate: '<span style="color:#9ca3af;font-size:12px;">거래처를 먼저 선택한 뒤 검색하세요.</span>',
     onGridReady: function(params) {
       setTimeout(function() { if (el.offsetWidth > 0) params.api.sizeColumnsToFit(); }, 0);
     },
@@ -914,17 +914,35 @@ function initPoSearchGrid() {
 }
 
 function searchPoItems() {
-  var kw       = (document.getElementById('po_item_keyword')?.value || '').toLowerCase();
-  var cat      = document.getElementById('po_item_category')?.value || '';
   var vendorId = val('po_vendor_id');
+  if (!vendorId) {
+    alert('거래처를 먼저 선택해주세요. (발주서는 한 거래처 단위로 작성됩니다)');
+    if (_poSearchGrid) _poSearchGrid.setGridOption('rowData', []);
+    return;
+  }
+  var kw  = (document.getElementById('po_item_keyword')?.value || '').toLowerCase();
+  var cat = document.getElementById('po_item_category')?.value || '';
   var filtered = itemCache.filter(function(i) {
-    var matchCat    = !cat      || i.category  === cat;
-    var matchKw     = !kw       || i.item_name.toLowerCase().includes(kw) || (i.item_code||'').toLowerCase().includes(kw);
-    var matchVendor = !vendorId || i.vendor_id === vendorId;
+    var matchCat    = !cat || i.category === cat;
+    var matchKw     = !kw  || i.item_name.toLowerCase().includes(kw) || (i.item_code||'').toLowerCase().includes(kw);
+    var matchVendor = i.vendor_id === vendorId;
     return matchCat && matchKw && matchVendor;
   });
-  if (_poSearchGrid) _poSearchGrid.setGridOption('rowData', filtered);
+  if (_poSearchGrid) { _poSearchGrid.setGridOption('rowData', filtered); refitGridColumns(_poSearchGrid); }
   // 건수 텍스트 표시 제거
+}
+
+/** 거래처가 선택되지 않으면 품목 검색 자체를 막음 — 발주서는 거래처 단위로 분리되므로,
+ *  거래처 없이 검색/추가하면 나중에 거래처별로 다시 갈라줄 방법이 없어짐 */
+function updatePoItemSearchBtnState() {
+  var vendorId = val('po_vendor_id');
+  var btn = document.getElementById('poItemSearchBtn');
+  var kwInput = document.getElementById('po_item_keyword');
+  var catSel  = document.getElementById('po_item_category');
+  if (btn)     btn.disabled = !vendorId;
+  if (kwInput) kwInput.disabled = !vendorId;
+  if (catSel)  catSel.disabled = !vendorId;
+  if (!vendorId && _poSearchGrid) _poSearchGrid.setGridOption('rowData', []);
 }
 
 function isPoItemAdded(itemId) {
@@ -1116,6 +1134,7 @@ function addPoItemRow(preset) {
   if (_poItemGrid) {
     _poItemGrid.applyTransaction({ add: [row] });
     refreshPoTotal();
+    refitGridColumns(_poItemGrid);
   }
 }
 
@@ -1235,6 +1254,7 @@ function openAddPo() {
     // 발주 등록 시 거래처 선택 활성화
     var vSelAdd = document.getElementById('po_vendor_id');
     if (vSelAdd) vSelAdd.disabled = false;
+    updatePoItemSearchBtnState();
   }, 50);
 }
 
@@ -1277,7 +1297,8 @@ async function openEditPo(id) {
       var filteredItems = itemCache.filter(function(i) {
         return !editVendorId || i.vendor_id === editVendorId;
       });
-      if (_poSearchGrid) _poSearchGrid.setGridOption('rowData', filteredItems);
+      if (_poSearchGrid) { _poSearchGrid.setGridOption('rowData', filteredItems); refitGridColumns(_poSearchGrid); }
+      updatePoItemSearchBtnState();
       (items || []).forEach(function(r) {
         addPoItemRow({
           _existingId:   r.id,
@@ -1406,7 +1427,7 @@ async function openPoDetail(id) {
       if (!_poDetailGrid) initPoDetailGrid();
       if (_poDetailGrid) {
         _poDetailGrid.setGridOption('rowData', gridRows);
-        _poDetailGrid.sizeColumnsToFit();
+        refitGridColumns(_poDetailGrid);
       }
     }, 50);
 
@@ -1566,6 +1587,7 @@ async function init() {
   // 발주목록 검색
   document.getElementById('poSearchBtn')?.addEventListener('click', function() { loadPoList(1); });
   document.getElementById('po_item_keyword')?.addEventListener('keydown', function(e) { if (e.key === 'Enter') searchPoItems(); });
+  document.getElementById('po_vendor_id')?.addEventListener('change', updatePoItemSearchBtnState);
   document.getElementById('poKeyword')?.addEventListener('keydown', function(e) { if (e.key === 'Enter') loadPoList(1); });
 initRvStatusTabs();
   initRvListGrid();   // review 탭이 기본 활성 → 즉시 초기화
