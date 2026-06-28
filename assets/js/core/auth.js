@@ -215,10 +215,11 @@ window.auth = (function () {
 
       // user_profiles 이름 업데이트 (트리거가 생성하지만 user_name은 비어있을 수 있음)
       if (data.user) {
-        await supabaseClient
+        const { error: profileErr } = await supabaseClient
           .from('user_profiles')
           .update({ user_name: name, active: 'N', role: 'user' })
           .eq('id', data.user.id);
+        if (profileErr) console.warn('[signup] 프로필 업데이트 실패 (DB 기본값으로 안전하게 비활성 처리됨):', profileErr.message);
       }
 
       // 자동 로그인 방지
