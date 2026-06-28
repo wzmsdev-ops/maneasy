@@ -221,17 +221,17 @@
     <!-- 필터 바 -->
     <div class="ms-filter-bar">
       <form id="statsFilterForm" class="ms-filter-form">
-        <div class="ms-filter-keyword">
-          <i class="ti ti-search ms-filter-icon" aria-hidden="true"></i>
-          <input type="text" id="sf_keyword" class="ms-filter-input"
-            placeholder="자재명 검색..." autocomplete="off" />
-        </div>
         <select id="sf_clinic"   class="ms-filter-select"></select>
         <select id="sf_dept"     class="ms-filter-select"></select>
         <select id="sf_category" class="ms-filter-select"></select>
         <input type="date" id="sf_date_from" class="ms-filter-date" />
         <span class="ms-filter-sep">~</span>
         <input type="date" id="sf_date_to"   class="ms-filter-date" />
+        <div class="ms-filter-keyword">
+          <i class="ti ti-search ms-filter-icon" aria-hidden="true"></i>
+          <input type="text" id="sf_keyword" class="ms-filter-input"
+            placeholder="자재명 검색..." autocomplete="off" />
+        </div>
         <button type="submit" class="btn btn-primary ms-filter-btn">
           <i class="ti ti-search" aria-hidden="true"></i> 조회
         </button>
