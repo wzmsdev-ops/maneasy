@@ -24,6 +24,7 @@ var rvState = {
 };
 
 var _poListGrid   = null;   // 발주 목록 그리드
+var _selectedDraftPoIds = new Set(); // 일괄 발주확정용 — 초안 상태에서 체크된 발주 id 모음
 var _poItemGrid   = null;   // 발주 등록/수정 모달 품목 그리드
 var _poDetailGrid = null;   // 발주 상세 모달 품목 그리드
 var _rvListGrid   = null;   // 발주요청 목록 그리드
@@ -623,6 +624,18 @@ async function syncRequestStatus(requestId) {
 ══════════════════════════════════════════ */
 function initPoListGrid() {
   _poListGrid = createMgGrid('poGrid', [
+    { headerName: '', width: 40, sortable: false, suppressMovable: true,
+      cellStyle: { display:'flex', alignItems:'center', justifyContent:'center' },
+      cellRenderer: function(p) {
+        if (p.data.status !== 'DRAFT') return '';
+        var cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.style.cssText = 'width:15px;height:15px;cursor:pointer;';
+        cb.checked = _selectedDraftPoIds.has(p.data.id);
+        cb.onclick = function() { togglePoSelection(p.data.id, cb.checked); };
+        return cb;
+      }
+    },
     { headerName: '발주번호', field: 'order_no', width: 140,
       headerClass: 'ag-left-header',
       cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-start' },
@@ -699,6 +712,8 @@ async function loadPoList(page) {
   if (poState.loading) return;
   poState.loading = true;
   page = page || poState.page;
+  _selectedDraftPoIds.clear();
+  updateBulkConfirmBtn();
   showGlobalLoading('발주 목록을 불러오는 중...');
   try {
     var from = (page - 1) * poState.pageSize;
@@ -1394,6 +1409,51 @@ async function openPoDetail(id) {
   }
 }
 window.openPoDetail = openPoDetail;
+
+/** 발주목록 체크박스 선택/해제 — 일괄 발주확정 대상 관리 */
+function togglePoSelection(id, checked) {
+  if (checked) _selectedDraftPoIds.add(id);
+  else _selectedDraftPoIds.delete(id);
+  updateBulkConfirmBtn();
+}
+
+function updateBulkConfirmBtn() {
+  var btn = document.getElementById('bulkConfirmPoBtn');
+  if (!btn) return;
+  var n = _selectedDraftPoIds.size;
+  btn.disabled = n === 0;
+  btn.textContent = n > 0 ? '선택 발주 확정 (' + n + '건)' : '선택 발주 확정';
+}
+
+/** 체크된 초안 발주들을 한 번에 발주확정(ORDERED) 처리 */
+async function bulkConfirmSelectedPo() {
+  var ids = Array.from(_selectedDraftPoIds);
+  if (!ids.length) return;
+  if (!confirm(ids.length + '건을 한 번에 발주 확정 하시겠습니까?')) return;
+
+  showGlobalLoading('일괄 발주확정 처리 중...');
+  var failed = [];
+  try {
+    for (var i = 0; i < ids.length; i++) {
+      var id = ids[i];
+      var { error } = await supabaseClient.from('purchase_orders')
+        .update({ status: 'ORDERED', updated_at: new Date().toISOString() }).eq('id', id);
+      if (error) { failed.push(id); continue; }
+      await syncLinkedRequestStatuses(id);
+    }
+    _selectedDraftPoIds.clear();
+    await loadPoList(poState.page);
+    await refreshReviewBadge();
+    if (failed.length) alert(failed.length + '건은 처리에 실패했습니다. 다시 시도해주세요.');
+    else alert(ids.length + '건이 발주확정 처리됐습니다.');
+  } catch(e) {
+    alert('일괄 발주확정 실패: ' + e.message);
+  } finally {
+    hideGlobalLoading();
+  }
+}
+window.togglePoSelection = togglePoSelection;
+window.bulkConfirmSelectedPo = bulkConfirmSelectedPo;
 
 async function changePoStatus(id, status) {
   if (!confirm(STATUS_LABEL[status] + ' 처리하시겠습니까?')) return;
