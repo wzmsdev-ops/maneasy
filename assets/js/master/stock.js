@@ -928,31 +928,25 @@ function initDispatchItemGrid() {
   el.style.height = Math.max(200, window.innerHeight - 280) + 'px';
 
   var colDefs = [
-    { headerName: '자재명', field: 'item_name', flex: 2, minWidth: 120,
+    { headerName: '자재명', field: 'item_name', width: 130,
       headerClass: 'ag-left-header',
       cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-start', fontWeight:600 }
     },
-    { headerName: '불출부서', field: 'dept_name', width: 110,
+    { headerName: '부서별 수량', field: 'alloc_summary', flex: 2, minWidth: 140,
       headerClass: 'ag-left-header',
-      editable: true, singleClickEdit: true,
-      cellEditor: 'agSelectCellEditor',
-      cellEditorParams: function() {
-        return { values: _deptOptions.map(function(d){ return d.name; }) };
-      },
-      cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-start', color:'#2563eb' },
+      cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-start', color:'#2563eb', fontSize:'11px' },
       cellRenderer: function(p) {
-        return p.value ? '<span style="color:#2563eb;">' + p.value + '</span>'
-                       : '<span style="color:#d1d5db;">부서 선택</span>';
-      },
-      onCellValueChanged: function(p) {
-        var dept = _deptOptions.find(function(d){ return d.name === p.newValue; });
-        if (dept) p.node.setDataValue('dept_id', dept.id);
+        return p.value ? ts(p.value) : '<span style="color:#d1d5db;">부서 미지정</span>';
       }
     },
-    { headerName: '단위', field: 'use_unit', width: 60,
-      cellStyle: { display:'flex', alignItems:'center', justifyContent:'center', color:'#6b7280' }
+    { headerName: '합계', field: 'qty', width: 80,
+      cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-end' },
+      cellRenderer: function(p) {
+        var over = p.value > (p.data.current_qty||0);
+        return '<span style="color:' + (over?'#dc2626':'#059669') + ';font-weight:700;">' + Number(p.value||0).toLocaleString('ko-KR') + '</span>';
+      }
     },
-    { headerName: '재고', field: 'current_qty', width: 90,
+    { headerName: '재고', field: 'current_qty', width: 80,
       cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-end' },
       cellRenderer: function(p) {
         var color = (p.data.qty || 0) > p.value ? '#dc2626' : '#059669';
@@ -1106,14 +1100,12 @@ function initDispatchStockGrid() {
         btn.style.cssText = 'padding:2px 8px;font-size:11px;';
         var added = false;
         if (_gridDispatchItem) _gridDispatchItem.forEachNode(function(n) { if (n.data.item_id === p.data.item_id) added = true; });
-        btn.textContent = added ? '추가됨' : '추가';
+        btn.textContent = added ? '수정' : '추가';
         if (added) { btn.style.background = '#059669'; btn.style.borderColor = '#059669'; }
         btn.onclick = function() {
           if (!p.data.qty || p.data.qty <= 0) { alert('현재고가 없습니다.'); return; }
           addDispatchItem(p.data);
-          btn.textContent = '추가됨';
-          btn.style.background = '#059669';
-          btn.style.borderColor = '#059669';
+          // 버튼 상태 갱신은 confirmDispatchPopup 후 refreshCells에서 처리
         };
         return btn;
       }
@@ -1181,8 +1173,191 @@ async function loadDispatchStock() {
   }
 }
 
+/* ══ 불출 부서별 수량 팝업 ══ */
+var _popupStockRow = null;
+
 function addDispatchItem(stockRow) {
-  addDispatchItemRow(stockRow);
+  _popupStockRow = stockRow;
+  openDispatchPopup(stockRow);
+}
+
+function openDispatchPopup(stockRow) {
+  // 기존 팝업 제거
+  var existing = document.getElementById('dispatchPopupOverlay');
+  if (existing) existing.remove();
+
+  var totalStock = stockRow.qty;
+  var useUnit    = stockRow.use_unit || '';
+
+  // 이미 추가된 항목의 기존 배분 불러오기
+  var existingAllocs = [];
+  if (_gridDispatchItem) {
+    _gridDispatchItem.forEachNode(function(n) {
+      if (n.data.item_id === stockRow.item_id) {
+        (n.data.allocs || []).forEach(function(a) { existingAllocs.push({dept_id: a.dept_id, dept_name: a.dept_name, qty: a.qty}); });
+      }
+    });
+  }
+  if (!existingAllocs.length) existingAllocs.push({ dept_id: '', dept_name: '', qty: 1 });
+
+  var deptOpts = _deptOptions.map(function(d) {
+    return '<option value="' + d.id + '">' + d.name + '</option>';
+  }).join('');
+
+  function buildRows(allocs) {
+    return allocs.map(function(a, idx) {
+      return '<div class="dispatch-dept-row" data-idx="' + idx + '">' +
+        '<select class="dp-dept-sel" data-idx="' + idx + '">' +
+          '<option value="">부서 선택</option>' + deptOpts +
+        '</select>' +
+        '<input type="number" class="dp-qty-inp" data-idx="' + idx + '" min="1" value="' + (a.qty||1) + '" />' +
+        '<span class="dispatch-dept-row-unit">' + useUnit + '</span>' +
+        '<button class="dispatch-dept-row-remove" onclick="removePopupRow(' + idx + ')">×</button>' +
+      '</div>';
+    }).join('');
+  }
+
+  var overlay = document.createElement('div');
+  overlay.id = 'dispatchPopupOverlay';
+  overlay.className = 'dispatch-popup-overlay';
+  overlay.innerHTML =
+    '<div class="dispatch-popup">' +
+      '<div class="dispatch-popup-head">' +
+        '<div>' +
+          '<div>' + ts(stockRow.item_name) + '</div>' +
+          '<div class="dispatch-popup-sub">재고: ' + Number(totalStock).toLocaleString('ko-KR') + ' ' + useUnit + '</div>' +
+        '</div>' +
+        '<button onclick="closeDispatchPopup()" style="background:none;border:none;color:#fff;font-size:20px;cursor:pointer;line-height:1;">×</button>' +
+      '</div>' +
+      '<div class="dispatch-popup-body">' +
+        '<div class="dispatch-dept-rows" id="dpDeptRows">' + buildRows(existingAllocs) + '</div>' +
+        '<button class="dispatch-popup-add-btn" onclick="addPopupRow()">+ 부서 추가</button>' +
+        '<div class="dispatch-popup-total" id="dpTotal"></div>' +
+      '</div>' +
+      '<div class="dispatch-popup-foot">' +
+        '<button class="btn btn-sm" onclick="closeDispatchPopup()">취소</button>' +
+        '<button class="btn btn-sm btn-primary" id="dpConfirmBtn" onclick="confirmDispatchPopup()">확인</button>' +
+      '</div>' +
+    '</div>';
+
+  document.body.appendChild(overlay);
+
+  // 기존 배분 부서 선택값 복원
+  existingAllocs.forEach(function(a, idx) {
+    var sel = overlay.querySelector('.dp-dept-sel[data-idx="' + idx + '"]');
+    if (sel && a.dept_id) sel.value = a.dept_id;
+  });
+
+  // 이벤트
+  overlay.querySelectorAll('.dp-dept-sel, .dp-qty-inp').forEach(function(el) {
+    el.addEventListener('input', updatePopupTotal);
+  });
+  updatePopupTotal();
+}
+
+function addPopupRow() {
+  var rows = document.getElementById('dpDeptRows');
+  if (!rows) return;
+  var idx = rows.children.length;
+  var deptOpts = _deptOptions.map(function(d) {
+    return '<option value="' + d.id + '">' + d.name + '</option>';
+  }).join('');
+  var div = document.createElement('div');
+  div.className = 'dispatch-dept-row';
+  div.dataset.idx = idx;
+  div.innerHTML =
+    '<select class="dp-dept-sel" data-idx="' + idx + '"><option value="">부서 선택</option>' + deptOpts + '</select>' +
+    '<input type="number" class="dp-qty-inp" data-idx="' + idx + '" min="1" value="1" />' +
+    '<span class="dispatch-dept-row-unit">' + (_popupStockRow?.use_unit||'') + '</span>' +
+    '<button class="dispatch-dept-row-remove" onclick="removePopupRow(' + idx + ')">×</button>';
+  rows.appendChild(div);
+  div.querySelectorAll('.dp-dept-sel, .dp-qty-inp').forEach(function(el) {
+    el.addEventListener('input', updatePopupTotal);
+  });
+  updatePopupTotal();
+}
+
+function removePopupRow(idx) {
+  var rows = document.getElementById('dpDeptRows');
+  if (!rows) return;
+  var row = rows.querySelector('[data-idx="' + idx + '"]');
+  if (row) { row.remove(); updatePopupTotal(); }
+}
+
+function updatePopupTotal() {
+  var totalStock = _popupStockRow?.qty || 0;
+  var useUnit    = _popupStockRow?.use_unit || '';
+  var rows = document.getElementById('dpDeptRows');
+  var total = 0;
+  if (rows) {
+    rows.querySelectorAll('.dp-qty-inp').forEach(function(inp) {
+      total += Number(inp.value) || 0;
+    });
+  }
+  var el = document.getElementById('dpTotal');
+  if (el) {
+    var over = total > totalStock;
+    el.innerHTML = '합계: <strong class="' + (over?'over':'') + '">' +
+      Number(total).toLocaleString('ko-KR') + ' ' + useUnit + '</strong>' +
+      ' / 재고 ' + Number(totalStock).toLocaleString('ko-KR') + ' ' + useUnit +
+      (over ? ' <span class="over">⚠ 재고 초과</span>' : '');
+    var btn = document.getElementById('dpConfirmBtn');
+    if (btn) btn.disabled = over || total === 0;
+  }
+}
+
+function closeDispatchPopup() {
+  var ov = document.getElementById('dispatchPopupOverlay');
+  if (ov) ov.remove();
+  _popupStockRow = null;
+}
+
+function confirmDispatchPopup() {
+  var rows = document.getElementById('dpDeptRows');
+  if (!rows || !_popupStockRow) return;
+
+  var allocs = [];
+  rows.querySelectorAll('.dispatch-dept-row').forEach(function(row) {
+    var sel = row.querySelector('.dp-dept-sel');
+    var inp = row.querySelector('.dp-qty-inp');
+    var deptId   = sel?.value   || '';
+    var deptName = sel?.options[sel.selectedIndex]?.text || '';
+    var qty      = Number(inp?.value) || 0;
+    if (deptId && qty > 0) allocs.push({ dept_id: deptId, dept_name: deptName, qty: qty });
+  });
+
+  if (!allocs.length) { alert('부서와 수량을 입력해주세요.'); return; }
+
+  var totalQty = allocs.reduce(function(s, a) { return s + a.qty; }, 0);
+  if (totalQty > (_popupStockRow.qty || 0)) { alert('재고를 초과합니다.'); return; }
+
+  // 기존 동일 품목 행 제거 후 재추가
+  if (_gridDispatchItem) {
+    var toRemove = [];
+    _gridDispatchItem.forEachNode(function(n) {
+      if (n.data.item_id === _popupStockRow.item_id) toRemove.push(n.data);
+    });
+    if (toRemove.length) _gridDispatchItem.applyTransaction({ remove: toRemove });
+  }
+
+  // 단일 행으로 추가 (allocs 배열 포함)
+  _dispatchRowId++;
+  var allocSummary = allocs.map(function(a) { return a.dept_name + ' ' + a.qty; }).join(', ');
+  _gridDispatchItem.applyTransaction({ add: [{
+    _rowId:        _dispatchRowId,
+    item_id:       _popupStockRow.item_id,
+    item_name:     _popupStockRow.item_name,
+    use_unit:      _popupStockRow.use_unit,
+    purchase_unit: _popupStockRow.purchase_unit,
+    current_qty:   _popupStockRow.qty,
+    qty:           totalQty,
+    allocs:        allocs,
+    alloc_summary: allocSummary,
+  }]});
+
+  updateDispatchSummary();
+  if (_gridDispatchStock) _gridDispatchStock.refreshCells({ force: true });
+  closeDispatchPopup();
 }
 
 function renderDispatchRight() {
@@ -1258,29 +1433,38 @@ async function saveDispatch() {
 
     for (var i = 0; i < _dispatchItems.length; i++) {
       var item = _dispatchItems[i];
+      var allocs = item.allocs || [];
 
-      // stock_dispatch 기록
-      var dispatchNo = await genDocNo('SD');
-      var itemDeptId = item.dept_id || deptId;
-      if (!itemDeptId) throw new Error(item.item_name + '의 불출 부서를 선택해주세요.');
-      var { data: newDispatch, error: de } = await supabaseClient.from('stock_dispatch').insert({
-        dispatch_no:   dispatchNo,
-        item_id:       item.item_id,
-        dept_id:       itemDeptId,
-        dispatch_date: dispatchDate,
-        dispatch_qty:  item.qty,
-        use_unit:      item.use_unit,
-        created_by:    userId,
-      }).select().single();
-      if (de) throw new Error('불출 기록 실패: ' + de.message);
+      if (!allocs.length) throw new Error(item.item_name + '의 불출 부서가 지정되지 않았습니다.');
 
-      // stock_transactions (중앙창고 OUT + 부서 IN)
-      var txs = [
-        { item_id: item.item_id, dept_id: null,       tx_type:'OUT', tx_date: dispatchDate, qty: -item.qty, use_unit: item.use_unit, ref_type:'dispatch', ref_id: newDispatch.id, created_by: userId },
-        { item_id: item.item_id, dept_id: itemDeptId, tx_type:'IN',  tx_date: dispatchDate, qty:  item.qty, use_unit: item.use_unit, ref_type:'dispatch', ref_id: newDispatch.id, created_by: userId },
-      ];
-      var { error: te } = await supabaseClient.from('stock_transactions').insert(txs);
-      if (te) throw new Error('재고 이동 실패: ' + te.message);
+      for (var j = 0; j < allocs.length; j++) {
+        var alloc = allocs[j];
+        var dispatchNo = await genDocNo('SD');
+        var { data: newDispatch, error: de } = await supabaseClient.from('stock_dispatch').insert({
+          dispatch_no:   dispatchNo,
+          item_id:       item.item_id,
+          dept_id:       alloc.dept_id,
+          dispatch_date: dispatchDate,
+          dispatch_qty:  alloc.qty,
+          use_unit:      item.use_unit,
+          created_by:    userId,
+        }).select().single();
+        if (de) throw new Error('불출 기록 실패: ' + de.message);
+
+        var txs = [
+          { item_id: item.item_id, dept_id: null,          tx_type:'OUT', tx_date: dispatchDate, qty: -alloc.qty, use_unit: item.use_unit, ref_type:'dispatch', ref_id: newDispatch.id, created_by: userId },
+          { item_id: item.item_id, dept_id: alloc.dept_id, tx_type:'IN',  tx_date: dispatchDate, qty:  alloc.qty, use_unit: item.use_unit, ref_type:'dispatch', ref_id: newDispatch.id, created_by: userId },
+        ];
+        var { error: te } = await supabaseClient.from('stock_transactions').insert(txs);
+        if (te) throw new Error('재고 이동 실패: ' + te.message);
+      }
+
+      // 중앙창고 재고 차감 (총 수량)
+      await upsertStockCurrent(item.item_id, -item.qty, null);
+      // 부서별 재고 적립
+      for (var k = 0; k < allocs.length; k++) {
+        await upsertStockCurrent(item.item_id, allocs[k].qty, allocs[k].dept_id);
+      }
     }
 
     var cnt = _dispatchItems.length;
