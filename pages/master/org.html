@@ -60,6 +60,31 @@
       display: flex; flex-direction: column;
       box-shadow: 0 20px 60px rgba(0,0,0,0.16); border: 1px solid #e5e7eb; overflow: hidden;
     }
+    .m-modal-dialog--wide { width: 820px; }
+    .u-modal-split { display:flex; gap:0; flex:1; min-height:0; }
+    .u-modal-left  { width:320px; flex-shrink:0; padding:14px; overflow-y:auto; border-right:1px solid #f3f4f6; }
+    .u-modal-right { flex:1; min-width:0; display:flex; flex-direction:column; overflow:hidden; }
+    .u-perm-head {
+      display:flex; align-items:center; justify-content:space-between; gap:8px;
+      padding:10px 14px; background:#f8fafc; border-bottom:1px solid #f3f4f6; flex-shrink:0;
+    }
+    .u-perm-head-title { font-size:12px; font-weight:700; color:#374151; }
+    .u-perm-body { flex:1; min-height:0; overflow-y:auto; padding:10px 14px; }
+    .u-perm-app { margin-bottom:14px; }
+    .u-perm-app:last-child { margin-bottom:0; }
+    .u-perm-app-title {
+      font-size:11px; font-weight:700; color:#6b7280; margin-bottom:6px;
+      display:flex; align-items:center; gap:6px;
+    }
+    .u-perm-pages { display:flex; flex-direction:column; gap:4px; padding-left:4px; }
+    .u-perm-page-row {
+      display:flex; align-items:center; gap:8px; font-size:12px; color:#374151;
+      padding:4px 6px; border-radius:6px;
+    }
+    .u-perm-page-row:hover { background:#f8fafc; }
+    .u-perm-page-row input[type=checkbox] { width:15px; height:15px; cursor:pointer; }
+    .u-perm-page-row.is-disabled { opacity:0.45; }
+    .u-perm-switch-label { font-size:11px; color:#9ca3af; display:flex; align-items:center; gap:6px; cursor:pointer; }
     .m-modal-head {
       display: flex; align-items: center; justify-content: space-between;
       padding: 10px 14px; background: #0b1630; flex-shrink: 0;
@@ -291,61 +316,76 @@
 <!-- ── 사용자 모달 ── -->
 <div id="userModal" class="m-modal">
   <div class="m-modal-backdrop" onclick="closeModal('userModal')"></div>
-  <div class="m-modal-dialog">
+  <div class="m-modal-dialog m-modal-dialog--wide">
     <div class="m-modal-head">
       <span class="m-modal-title" id="userModalTitle">사용자 수정</span>
       <button class="m-modal-close" onclick="closeModal('userModal')"><i class="ti ti-x"></i></button>
     </div>
-    <div class="m-modal-body">
-      <div class="m-field">
-        <label>이메일</label>
-        <input type="text" id="u_email" placeholder="이메일" readonly
-          style="background:#f9fafb;color:#6b7280;cursor:default;" />
-      </div>
-      <div class="m-field-row">
+    <div class="u-modal-split">
+      <!-- 좌: 기본 정보 -->
+      <div class="u-modal-left">
         <div class="m-field">
-          <label>이름</label>
-          <input type="text" id="u_user_name" placeholder="이름" />
+          <label>이메일</label>
+          <input type="text" id="u_email" placeholder="이메일" readonly
+            style="background:#f9fafb;color:#6b7280;cursor:default;" />
         </div>
-        <div class="m-field">
-          <label>전화번호</label>
-          <input type="text" id="u_phone" placeholder="010-0000-0000" />
+        <div class="m-field-row" style="margin-top:8px;">
+          <div class="m-field">
+            <label>이름</label>
+            <input type="text" id="u_user_name" placeholder="이름" />
+          </div>
+          <div class="m-field">
+            <label>전화번호</label>
+            <input type="text" id="u_phone" placeholder="010-0000-0000" />
+          </div>
         </div>
-      </div>
-      <div class="m-field">
-        <label>역할</label>
-        <select id="u_role">
-          <option value="admin">admin (전체 관리자)</option>
-          <option value="edit">edit (편집)</option>
-          <option value="manager">manager (담당자)</option>
-          <option value="user">user (일반)</option>
-        </select>
-      </div>
-      <!-- 의원 선택 → 부서 자동 연동 -->
-      <div class="m-field">
-        <label>소속 의원</label>
-        <select id="u_clinic_select">
-          <option value="">선택 안 함</option>
-        </select>
-      </div>
-      <div class="m-field">
-        <label>소속 부서</label>
-        <select id="u_dept_select">
-          <option value="">선택 안 함</option>
-        </select>
-      </div>
-      <div class="m-field-row">
-        <div class="m-field">
-          <label>부서 (직접입력)</label>
-          <input type="text" id="u_department" placeholder="세부 부서명 (선택)" />
-        </div>
-        <div class="m-field">
-          <label>상태</label>
-          <select id="u_active">
-            <option value="Y">활성</option>
-            <option value="N">비활성</option>
+        <div class="m-field" style="margin-top:8px;">
+          <label>역할</label>
+          <select id="u_role" onchange="onUserRoleChange()">
+            <option value="admin">admin (전체 관리자)</option>
+            <option value="edit">edit (편집)</option>
+            <option value="manager">manager (담당자)</option>
+            <option value="user">user (일반)</option>
           </select>
         </div>
+        <!-- 의원 선택 → 부서 자동 연동 -->
+        <div class="m-field" style="margin-top:8px;">
+          <label>소속 의원</label>
+          <select id="u_clinic_select">
+            <option value="">선택 안 함</option>
+          </select>
+        </div>
+        <div class="m-field" style="margin-top:8px;">
+          <label>소속 부서</label>
+          <select id="u_dept_select">
+            <option value="">선택 안 함</option>
+          </select>
+        </div>
+        <div class="m-field-row" style="margin-top:8px;">
+          <div class="m-field">
+            <label>부서 (직접입력)</label>
+            <input type="text" id="u_department" placeholder="세부 부서명 (선택)" />
+          </div>
+          <div class="m-field">
+            <label>상태</label>
+            <select id="u_active">
+              <option value="Y">활성</option>
+              <option value="N">비활성</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- 우: 앱 접근 권한 -->
+      <div class="u-modal-right">
+        <div class="u-perm-head">
+          <span class="u-perm-head-title"><i class="ti ti-shield-lock"></i> 앱 접근 권한</span>
+          <label class="u-perm-switch-label">
+            <input type="checkbox" id="u_perm_useDefault" onchange="onUserPermUseDefaultChange()" />
+            역할(<span id="u_perm_roleLabel">-</span>) 기본값 사용
+          </label>
+        </div>
+        <div class="u-perm-body" id="userPermBody"></div>
       </div>
     </div>
     <div class="m-modal-foot">
