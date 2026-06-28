@@ -502,6 +502,71 @@ function onReceiptVatInput() {
 
 
 /* ── 재고 이동 ── */
+var _gridTransferInfo = null;
+
+function initTransferInfoGrid() {
+  var el = document.getElementById('transferInfoGrid');
+  if (!el || typeof agGrid === 'undefined') return;
+  el.style.height = Math.max(200, window.innerHeight - 250) + 'px';
+
+  _gridTransferInfo = agGrid.createGrid(el, {
+    suppressPropertyNamesCheck: true,
+    suppressCellFocus: false,
+    columnDefs: [
+      { headerName: '항목', field: 'label', width: 90, flex: 0,
+        headerClass: 'ag-left-header',
+        cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-start',
+                     fontWeight:600, color:'#6b7280', fontSize:'11px', background:'#f8fafc' },
+        suppressCellFocus: true,
+      },
+      { headerName: '값', field: 'value', flex: 1,
+        headerClass: 'ag-left-header',
+        editable: function(p) { return p.data.editable === true; },
+        singleClickEdit: true,
+        cellEditor: function(p) { return p.data.editor || 'agTextCellEditor'; },
+        cellEditorParams: function(p) { return p.data.editorParams || {}; },
+        cellStyle: function(p) {
+          var base = { display:'flex', alignItems:'center', justifyContent:'flex-start' };
+          if (p.data.editable) Object.assign(base, { color:'#111827', cursor:'pointer' });
+          else Object.assign(base, { color:'#374151' });
+          if (p.data.key === 'from') Object.assign(base, { color:'#2563eb', fontWeight:700 });
+          if (p.data.key === 'qty') Object.assign(base, { fontWeight:700, color:'#059669' });
+          return base;
+        },
+        cellRenderer: function(p) {
+          if (p.data.key === 'to' && !p.value) return '<span style="color:#d1d5db;">도착 부서 클릭하여 선택</span>';
+          if (p.data.key === 'qty') return p.value + ' ' + (_selectedTransferItem?.use_unit||'') + '<span style="color:#9ca3af;font-size:10px;margin-left:6px;">최대 ' + (_selectedTransferItem?.qty||0) + '</span>';
+          if (p.data.key === 'history') return p.value || '<span style="color:#9ca3af;">이동 이력 없음</span>';
+          return ts(p.value || '-');
+        },
+        onCellValueChanged: function(p) {
+          if (p.data.key === 'to') {
+            var dept = _deptOptions.find(function(d) { return d.name === p.newValue; });
+            _selectedTransferItem._toDeptId   = dept?.id   || '';
+            _selectedTransferItem._toDeptName = dept?.name || '';
+          }
+          if (p.data.key === 'qty') {
+            var max = _selectedTransferItem?.qty || 0;
+            if (Number(p.newValue) > max) {
+              alert('현재고(' + max + ')를 초과합니다.');
+              p.node.setDataValue('value', max);
+            }
+          }
+        }
+      },
+    ],
+    rowData: [],
+    rowHeight: 38, headerHeight: 0,  // 헤더 숨김
+    suppressHorizontalScroll: true,
+    stopEditingWhenCellsLoseFocus: true,
+    defaultColDef: { sortable:false, resizable:false, suppressMovable:true },
+    overlayNoRowsTemplate: '<span style="color:#9ca3af;font-size:12px;">← 왼쪽에서 품목을 클릭하세요</span>',
+    onGridReady: function(params) {
+      setTimeout(function() { if (el.offsetWidth > 0) params.api.sizeColumnsToFit(); }, 0);
+    },
+  });
+}
+
 function selectTransferItem(row) {
   _selectedTransferItem = {
     item_id:        row.item_id,
@@ -510,71 +575,85 @@ function selectTransferItem(row) {
     qty:            row.qty,
     from_dept_id:   row.dept_id || null,
     from_dept_name: row.departments?.dept_name || '중앙창고',
+    _toDeptId:      '',
+    _toDeptName:    '',
   };
 
-  // 우측 패널 채우기
   var lbl = document.getElementById('transferItemLabel');
   if (lbl) lbl.textContent = _selectedTransferItem.item_name;
 
-  var fromEl = document.getElementById('transferFromDept');
-  if (fromEl) fromEl.textContent = _selectedTransferItem.from_dept_name;
+  var sum = document.getElementById('transferSummary');
+  if (sum) sum.textContent = _selectedTransferItem.from_dept_name + ' · 현재고 ' +
+    Number(_selectedTransferItem.qty).toLocaleString('ko-KR') + ' ' + _selectedTransferItem.use_unit;
 
-  var unitEl = document.getElementById('transferUnit');
-  if (unitEl) unitEl.textContent = _selectedTransferItem.use_unit;
+  var deptNames = _deptOptions
+    .filter(function(d) { return d.id !== _selectedTransferItem.from_dept_id; })
+    .map(function(d) { return d.name; });
 
-  var maxLbl = document.getElementById('transferMaxLabel');
-  if (maxLbl) maxLbl.textContent = '(최대 ' + Number(_selectedTransferItem.qty).toLocaleString('ko-KR') + ')';
+  if (!_gridTransferInfo) initTransferInfoGrid();
 
-  var qtyEl = document.getElementById('transferQty');
-  if (qtyEl) { qtyEl.value = 1; qtyEl.max = _selectedTransferItem.qty; }
-
-  // 도착 부서에서 출발 부서 제외
-  var toSel = document.getElementById('transferToDept');
-  if (toSel) {
-    toSel.innerHTML = '<option value="">도착 부서 선택</option>' +
-      _deptOptions.filter(function(d) { return d.id !== _selectedTransferItem.from_dept_id; })
-        .map(function(d) { return '<option value="' + d.id + '">' + d.name + '</option>'; }).join('');
-  }
-
-  // 이동 이력 로드
-  loadTransferHistory(_selectedTransferItem.item_id);
+  _gridTransferInfo.setGridOption('rowData', [
+    { key:'from',    label:'출발 부서', value: _selectedTransferItem.from_dept_name, editable:false },
+    { key:'to',      label:'도착 부서', value: '', editable:true,
+      editor:'agSelectCellEditor', editorParams:{ values: deptNames } },
+    { key:'qty',     label:'이동 수량', value: 1,  editable:true,
+      editor:'agNumberCellEditor', editorParams:{ min:1, max:_selectedTransferItem.qty } },
+    { key:'history', label:'최근 이력', value: '불러오는 중...', editable:false },
+  ]);
 
   var btn = document.getElementById('transferSaveBtn');
   if (btn) btn.disabled = false;
+
+  // 이동 이력 비동기 로드
+  loadTransferHistory(_selectedTransferItem.item_id);
 }
 
 async function loadTransferHistory(itemId) {
-  var el = document.getElementById('transferHistoryList');
-  if (!el) return;
-  el.textContent = '불러오는 중...';
-
   var { data } = await supabaseClient
     .from('stock_transfers')
-    .select('transfer_no, transfer_date, qty, use_unit, from_dept_id, to_dept_id, departments!stock_transfers_from_dept_id_fkey(dept_name), departments!stock_transfers_to_dept_id_fkey(dept_name)')
+    .select('transfer_date, qty, use_unit, from_dept_id, to_dept_id')
     .eq('item_id', itemId)
     .order('created_at', { ascending: false })
-    .limit(5);
+    .limit(3);
 
-  if (!data || !data.length) {
-    el.textContent = '이동 이력이 없습니다.';
-    return;
+  if (!_gridTransferInfo) return;
+  var histText = '이동 이력 없음';
+  if (data && data.length) {
+    // 부서명 별도 조회
+    var deptIds = [...new Set([
+      ...(data.map(function(r){return r.from_dept_id;}).filter(Boolean)),
+      ...(data.map(function(r){return r.to_dept_id;}).filter(Boolean)),
+    ])];
+    var deptNameMap = {};
+    if (deptIds.length) {
+      var { data:depts } = await supabaseClient.from('departments').select('id,dept_name').in('id',deptIds);
+      (depts||[]).forEach(function(d){ deptNameMap[d.id] = d.dept_name; });
+    }
+    histText = data.map(function(r) {
+      var from = r.from_dept_id ? (deptNameMap[r.from_dept_id]||'?') : '중앙창고';
+      var to   = r.to_dept_id   ? (deptNameMap[r.to_dept_id]||'?')   : '중앙창고';
+      return (r.transfer_date||'').slice(0,10) + '  ' + from + ' → ' + to +
+             '  ' + Number(r.qty).toLocaleString('ko-KR') + (r.use_unit||'');
+    }).join(' | ');
   }
 
-  el.innerHTML = data.map(function(r) {
-    var from = r['departments!stock_transfers_from_dept_id_fkey']?.dept_name || '중앙창고';
-    var to   = r['departments!stock_transfers_to_dept_id_fkey']?.dept_name   || '중앙창고';
-    return '<div style="padding:6px 0;border-bottom:1px solid #f3f4f6;display:flex;gap:8px;">' +
-      '<span style="color:#9ca3af;flex-shrink:0;">' + (r.transfer_date||'').slice(0,10) + '</span>' +
-      '<span>' + from + ' → ' + to + '</span>' +
-      '<span style="margin-left:auto;font-weight:700;">' + Number(r.qty).toLocaleString('ko-KR') + ' ' + (r.use_unit||'') + '</span>' +
-    '</div>';
-  }).join('');
+  // history 행 업데이트
+  _gridTransferInfo.forEachNode(function(node) {
+    if (node.data.key === 'history') node.setDataValue('value', histText);
+  });
 }
 
 async function saveTransfer() {
   if (!_selectedTransferItem) { alert('이동할 품목을 선택하세요.'); return; }
-  var toDeptId    = val('transferToDept');
-  var qty         = Number(document.getElementById('transferQty')?.value || 0);
+  // 그리드에서 값 읽기
+  var toDeptId = _selectedTransferItem._toDeptId || '';
+  var qty = 1;
+  if (_gridTransferInfo) {
+    _gridTransferInfo.forEachNode(function(node) {
+      if (node.data.key === 'to')  toDeptId = _selectedTransferItem._toDeptId || '';
+      if (node.data.key === 'qty') qty = Number(node.data.value) || 1;
+    });
+  }
   var transferDate = val('transferDate');
   var memo        = val('transferMemo');
 
