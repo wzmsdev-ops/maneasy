@@ -45,41 +45,24 @@ const PAGE_GROUPS = [
   ]},
 ];
 
-// 역할별 기본 page_perms (페이지키: 최소접근등급)
+// 역할별 기본 page_perms
+// role: admin = 전체 의원 조회 / user = 소속 의원만
+// 접근권한: 접근불가 / user / edit / manager / admin
 const ROLE_DEFAULT_PAGES = {
   user: {
     'equipment/dashboard':      'user',
     'equipment/list':           'user',
     'equipment/detail':         'user',
+    'equipment/form':           '접근불가',
     'qc/items':                 'user',
     'qc/data':                  'user',
     'master/purchase-request':  'user',
     'master/use-stock':         'user',
+    'master/procurement':       '접근불가',
+    'master/stock':             '접근불가',
     'master/material-stats':    'user',
-  },
-  edit: {
-    'equipment/dashboard':      'user',
-    'equipment/list':           'user',
-    'equipment/detail':         'user',
-    'equipment/form':           'edit',
-    'qc/items':                 'user',
-    'qc/data':                  'user',
-    'master/purchase-request':  'user',
-    'master/use-stock':         'user',
-    'master/material-stats':    'user',
-  },
-  manager: {
-    'equipment/dashboard':      'user',
-    'equipment/list':           'user',
-    'equipment/detail':         'user',
-    'equipment/form':           'edit',
-    'qc/items':                 'user',
-    'qc/data':                  'user',
-    'master/purchase-request':  'user',
-    'master/use-stock':         'user',
-    'master/procurement':       'manager',
-    'master/stock':             'manager',
-    'master/material-stats':    'user',
+    'master/org':               '접근불가',
+    'master/supply':            '접근불가',
   },
   admin: {
     'equipment/dashboard':      'user',
@@ -569,17 +552,33 @@ function renderUserPermBody(pagePerms, disabled) {
       headerClass: 'ag-left-header',
       cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-start', fontSize:'12px' },
     },
-    { headerName: '접근 권한', field: 'level', width: 150,
-      editable: !disabled,
-      cellEditor: 'agSelectCellEditor',
-      cellEditorParams: { values: PERM_LEVELS },
+    { headerName: '접근 권한', field: 'level', width: 160,
+      editable: false,
       cellRenderer: function(p) {
-        const v = p.value || '접근불가';
-        const color = PERM_COLORS[v] || '#6b7280';
-        return `<span style="display:inline-flex;align-items:center;gap:5px;">
-          <span style="width:8px;height:8px;border-radius:50%;background:${color};flex-shrink:0;"></span>
-          <span style="color:${color};font-weight:600;font-size:11px;">${v}</span>
-        </span>`;
+        if (disabled) {
+          const v = p.value || '접근불가';
+          const color = PERM_COLORS[v] || '#6b7280';
+          return `<span style="display:inline-flex;align-items:center;gap:5px;">
+            <span style="width:8px;height:8px;border-radius:50%;background:${color};flex-shrink:0;"></span>
+            <span style="color:${color};font-weight:600;font-size:11px;">${v}</span>
+          </span>`;
+        }
+        // 드롭다운 select 렌더링 (인라인, 셀 클릭 없이 바로 변경)
+        const sel = document.createElement('select');
+        sel.style.cssText = 'height:26px;padding:0 6px;border:1px solid #e5e7eb;border-radius:5px;font-size:11px;font-weight:600;outline:none;cursor:pointer;background:#fff;';
+        PERM_LEVELS.forEach(lv => {
+          const opt = document.createElement('option');
+          opt.value = lv;
+          opt.textContent = lv;
+          if (lv === (p.value || '접근불가')) opt.selected = true;
+          sel.appendChild(opt);
+        });
+        sel.style.color = PERM_COLORS[p.value || '접근불가'] || '#6b7280';
+        sel.addEventListener('change', function() {
+          p.node.setDataValue('level', sel.value);
+          sel.style.color = PERM_COLORS[sel.value] || '#6b7280';
+        });
+        return sel;
       },
     },
   ];
@@ -595,10 +594,10 @@ function renderUserPermBody(pagePerms, disabled) {
     rowData: rows,
     rowHeight: 34,
     headerHeight: 34,
-    suppressCellFocus: false,
+    suppressCellFocus: true,
     suppressHorizontalScroll: false,
     stopEditingWhenCellsLoseFocus: true,
-    singleClickEdit: true,
+    singleClickEdit: false,
     defaultColDef: {
       sortable: false, resizable: true, suppressMovable: true,
       cellStyle: { display:'flex', alignItems:'center', justifyContent:'center' },
@@ -626,6 +625,7 @@ function onUserRoleChange() {
   const role = val('u_role') || 'user';
   document.getElementById('u_perm_roleLabel').textContent = role;
   if (document.getElementById('u_perm_useDefault')?.checked) {
+    _gridUserPerm = null;
     renderUserPermBody(ROLE_DEFAULT_PAGES[role] || {}, true);
   }
 }
