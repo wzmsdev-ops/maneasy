@@ -19,6 +19,45 @@ let clinicCache = [];   // { id, clinic_code, clinic_name, ... }
 let deptCache   = [];   // { id, clinic_id, dept_code, dept_name, ... }
 let userCache   = [];   // user_profiles rows
 
+/* ── 앱별 권한 ─────────────────────────────────
+   app.html MENU_META / 사이드바 노출 로직과 동일한 페이지 키 사용 */
+const PAGE_GROUPS = [
+  { app: '의료장비 관리', pages: [
+    { key: 'equipment/dashboard', label: '대시보드' },
+    { key: 'equipment/list',      label: '장비 목록' },
+    { key: 'equipment/form',      label: '장비 등록·수정' },
+    { key: 'equipment/detail',    label: '장비 상세' },
+  ]},
+  { app: '정도관리', pages: [
+    { key: 'qc/items', label: '검사항목 관리' },
+    { key: 'qc/data',  label: '데이터 입력' },
+  ]},
+  { app: '자재관리', pages: [
+    { key: 'master/purchase-request', label: '발주요청' },
+    { key: 'master/use-stock',        label: '사용처리' },
+    { key: 'master/procurement',      label: '발주 관리' },
+    { key: 'master/stock',            label: '재고 관리' },
+    { key: 'master/material-stats',   label: '자재 통계' },
+  ]},
+  { app: '마스터 관리', pages: [
+    { key: 'master/org',    label: '의원·부서·사용자' },
+    { key: 'master/supply', label: '자재·거래처' },
+  ]},
+];
+
+// app.html의 기존 role 기반 사이드바 노출 로직과 동일한 기본값
+const ROLE_BASE_PAGES = [
+  'equipment/dashboard', 'equipment/list', 'equipment/detail',
+  'qc/items', 'qc/data',
+  'master/purchase-request', 'master/use-stock', 'master/material-stats',
+];
+const ROLE_DEFAULT_PAGES = {
+  user:    [...ROLE_BASE_PAGES],
+  edit:    [...ROLE_BASE_PAGES, 'equipment/form'],
+  manager: [...ROLE_BASE_PAGES, 'equipment/form', 'master/procurement', 'master/stock'],
+  admin:   [...ROLE_BASE_PAGES, 'equipment/form', 'master/procurement', 'master/stock', 'master/org', 'master/supply'],
+};
+
 /* ── 유틸 ─────────────────────────────────── */
 function ts(v) {
   return String(v == null ? '' : v)
@@ -436,6 +475,51 @@ async function approveUser(id) {
 }
 window.approveUser = approveUser;
 
+/** 앱 접근 권한 체크박스 목록 렌더링 */
+function renderUserPermBody(checkedKeys, disabled) {
+  const body = document.getElementById('userPermBody');
+  if (!body) return;
+  body.innerHTML = PAGE_GROUPS.map(group => `
+    <div class="u-perm-app">
+      <div class="u-perm-app-title">${ts(group.app)}</div>
+      <div class="u-perm-pages">
+        ${group.pages.map(p => `
+          <label class="u-perm-page-row${disabled ? ' is-disabled' : ''}">
+            <input type="checkbox" class="u-perm-checkbox" value="${p.key}"
+              ${checkedKeys.includes(p.key) ? 'checked' : ''} ${disabled ? 'disabled' : ''} />
+            ${ts(p.label)}
+          </label>
+        `).join('')}
+      </div>
+    </div>
+  `).join('');
+}
+
+/** 역할 select가 바뀌면 — "기본값 사용" 체크 상태일 때만 그 역할의 기본 권한으로 미리보기 갱신 */
+function onUserRoleChange() {
+  const roleLabelMap = { admin: 'admin', edit: 'edit', manager: 'manager', user: 'user' };
+  const role = val('u_role') || 'user';
+  document.getElementById('u_perm_roleLabel').textContent = roleLabelMap[role] || role;
+  if (document.getElementById('u_perm_useDefault')?.checked) {
+    renderUserPermBody(ROLE_DEFAULT_PAGES[role] || [], true);
+  }
+}
+window.onUserRoleChange = onUserRoleChange;
+
+/** "역할 기본값 사용" 토글 — 켜면 체크박스를 역할 기본값으로 되돌리고 비활성화, 끄면 직접 선택 가능 */
+function onUserPermUseDefaultChange() {
+  const useDefault = document.getElementById('u_perm_useDefault')?.checked;
+  const role = val('u_role') || 'user';
+  if (useDefault) {
+    renderUserPermBody(ROLE_DEFAULT_PAGES[role] || [], true);
+  } else {
+    // 직접 선택 모드로 전환 — 지금 보이는(역할 기본값) 체크 상태를 그대로 시작점으로 둠
+    const checked = Array.from(document.querySelectorAll('.u-perm-checkbox:checked')).map(el => el.value);
+    renderUserPermBody(checked, false);
+  }
+}
+window.onUserPermUseDefaultChange = onUserPermUseDefaultChange;
+
 function openEditUser(id) {
   const row = userCache.find(r => r.id === id);
   if (!row) return;
@@ -456,6 +540,12 @@ function openEditUser(id) {
   const dept = deptCache.find(d => d.dept_code === row.team_code);
   fillDeptSelect('u_dept_select', '선택 안 함', clinic?.id || null, dept?.id || null);
 
+  // 앱 접근 권한 — allowed_pages가 null이면 역할 기본값 사용 모드
+  const useDefault = !row.allowed_pages;
+  document.getElementById('u_perm_useDefault').checked = useDefault;
+  document.getElementById('u_perm_roleLabel').textContent = row.role || '-';
+  renderUserPermBody(useDefault ? (ROLE_DEFAULT_PAGES[row.role] || []) : (row.allowed_pages || []), useDefault);
+
   document.getElementById('userModalTitle').textContent = '사용자 수정';
   openModal('userModal');
 }
@@ -474,6 +564,11 @@ async function saveUser() {
   const team_code = deptOpt?.dataset.code || '';
   const team_name = deptOpt?.dataset.name || '';
 
+  const useDefault = document.getElementById('u_perm_useDefault')?.checked;
+  const allowed_pages = useDefault
+    ? null
+    : Array.from(document.querySelectorAll('.u-perm-checkbox:checked')).map(el => el.value);
+
   const payload = {
     user_name:   val('u_user_name'),
     phone:       val('u_phone'),
@@ -484,6 +579,7 @@ async function saveUser() {
     team_name,
     department:  val('u_department'),
     active:      val('u_active'),
+    allowed_pages,
     updated_at:  new Date().toISOString(),
   };
   const { error } = await supabaseClient.from('user_profiles').update(payload).eq('id', editingUserId);
