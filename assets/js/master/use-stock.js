@@ -126,7 +126,7 @@ function searchStockItems() {
     var matchKw  = !kw  || (item.item_name || '').toLowerCase().includes(kw);
     return matchCat && matchKw;
   });
-  if (_gridStockSearch) _gridStockSearch.setGridOption('rowData', filtered);
+  if (_gridStockSearch) { _gridStockSearch.setGridOption('rowData', filtered); refitGridColumns(_gridStockSearch); }
 }
 
 async function loadMyStock() {
@@ -248,6 +248,7 @@ function addUseItem(stockRow) {
   if (_gridUseItem) {
     _gridUseItem.applyTransaction({ add: [row] });
     updateUseItemCount();
+    refitGridColumns(_gridUseItem);
   }
 }
 
@@ -408,7 +409,7 @@ async function loadUseLog(page) {
     useTotalPages = Math.max(1, Math.ceil((count || 0) / usePageSize));
 
     if (!_gridUse) initUseGrid();
-    if (_gridUse) _gridUse.setGridOption('rowData', data || []);
+    if (_gridUse) { _gridUse.setGridOption('rowData', data || []); refitGridColumns(_gridUse); }
     renderPagination('usePagination', { page: usePage, totalPages: useTotalPages }, loadUseLog);
   } catch(e) {
     alert('이력 로드 실패: ' + e.message);
