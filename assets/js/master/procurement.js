@@ -627,12 +627,15 @@ async function syncRequestStatus(requestId) {
 function PoSelectAllHeader() {}
 PoSelectAllHeader.prototype.init = function(params) {
   this.params = params;
-  this.eGui = document.createElement('input');
-  this.eGui.type = 'checkbox';
-  this.eGui.title = '초안 발주 전체선택';
-  this.eGui.style.cssText = 'width:15px;height:15px;cursor:pointer;';
-  _poSelectAllCheckbox = this.eGui;
-  this.eGui.onclick = function() {
+  this.eGui = document.createElement('div');
+  this.eGui.style.cssText = 'display:flex;align-items:center;justify-content:center;width:100%;height:100%;';
+  var cb = document.createElement('input');
+  cb.type = 'checkbox';
+  cb.title = '초안 발주 전체선택';
+  cb.style.cssText = 'width:15px;height:15px;cursor:pointer;margin:0;';
+  this.eGui.appendChild(cb);
+  _poSelectAllCheckbox = cb;
+  cb.onclick = function() {
     var checked = _poSelectAllCheckbox.checked;
     params.api.forEachNode(function(node) {
       if (node.data.status === 'DRAFT') {
