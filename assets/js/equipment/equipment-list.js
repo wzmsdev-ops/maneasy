@@ -393,37 +393,17 @@ function renderEquipmentList(items) {
     cellStyle: { display: 'flex', alignItems: 'center', justifyContent: 'center' },
   };
 
-  // rowHeight 계산 — 먼저 계산 후 기존 인스턴스와 비교
-  // Math.floor로 행 높이를 보수적으로 계산하고,
-  // 남는 픽셀(remainder)은 headerHeight에 흡수시켜 하단 여백/잘림 방지
-  var gridH   = el.clientHeight || 761;
-  var baseH   = 34;
-  var dataH   = gridH - baseH;
-  var rowH    = Math.floor(dataH / equipmentListState.pageSize);
-  rowH = Math.max(26, rowH);
-  var remainder = dataH - (rowH * equipmentListState.pageSize);
-  var headerH = baseH + remainder;  // 남는 픽셀을 헤더에 흡수
-
   if (_gridInstance) {
-    if (_gridInstance._rowH === rowH) {
-      _gridInstance.setGridOption('rowData', items);
-      return;
-    }
-    _gridInstance.destroy();
-    _gridInstance = null;
+    _gridInstance.setGridOption('rowData', items);
+    return;
   }
-
-  // 1차 추정 rowHeight로 그려진 화면이 2차 보정(onFirstDataRendered)으로 바뀌는 순간이
-  // 사용자 눈에 "줄이 줄어드는 애니메이션"처럼 보이는 원인. 보정이 끝나기 전까지는
-  // 그리드를 안 보이게 숨겨두고, 보정 직후 한 번에 보여줘서 그 깜빡임을 없앤다.
-  el.style.visibility = 'hidden';
 
   var gridOptions = {
     columnDefs: columnDefs,
     defaultColDef: defaultColDef,
     rowData: items,
-    rowHeight: rowH,
-    headerHeight: headerH,
+    rowHeight: 34,
+    headerHeight: 51,
     suppressPaginationPanel: true,
     suppressScrollOnNewData: true,
     suppressHorizontalScroll: true,
@@ -434,30 +414,10 @@ function renderEquipmentList(items) {
       window.addEventListener('resize', function() {
         if (_gridInstance) _gridInstance.sizeColumnsToFit();
       });
-    },
-    onFirstDataRendered: function(params) {
-      var viewport = el.querySelector('.ag-body-viewport');
-      if (!viewport) { el.style.visibility = ''; return; }
-      var viewH = viewport.clientHeight;
-      var correctRowH = Math.floor(viewH / equipmentListState.pageSize);
-      correctRowH = Math.max(26, correctRowH);
-      var rem = viewH - (correctRowH * equipmentListState.pageSize);
-      if (correctRowH !== params.api.getGridOption('rowHeight')) {
-        params.api.setGridOption('rowHeight', correctRowH);
-        params.api.setGridOption('headerHeight', baseH + rem);
-        params.api.resetRowHeights();
-        _gridInstance._rowH = correctRowH;
-      }
-      // 보정이 다음 프레임에 실제로 그려진 뒤 보여줘서, 보정 전 모습이 단 한 프레임도 노출되지 않게 함
-      requestAnimationFrame(function() {
-        requestAnimationFrame(function() { el.style.visibility = ''; });
-      });
     }
   };
 
   _gridInstance = agGrid.createGrid(el, gridOptions);
-  setTimeout(function() { el.style.visibility = ''; }, 600); // 안전장치: 위 보정이 어떤 이유로든 안 불려도 결국 보이게 함
-  _gridInstance._rowH = rowH;
 
 
 }
