@@ -402,8 +402,8 @@ function renderEquipmentList(items) {
     columnDefs: columnDefs,
     defaultColDef: defaultColDef,
     rowData: items,
-    rowHeight: 34,
-    headerHeight: 51,
+    rowHeight: 35,
+    headerHeight: 35,
     suppressPaginationPanel: true,
     suppressScrollOnNewData: true,
     suppressHorizontalScroll: true,
@@ -563,10 +563,11 @@ async function loadEquipmentList(nextPage) {
   if (equipmentListState.loading) return;
 
   equipmentListState.loading = true;
+  var _showingOverlay = !!equipmentListState._initialLoad;
 
   try {
     if (typeof clearMessage === 'function') clearMessage();
-    if (typeof showGlobalLoading === 'function') {
+    if (typeof showGlobalLoading === 'function' && _showingOverlay) {
       showGlobalLoading('장비 목록을 불러오는 중...');
     }
 
@@ -656,7 +657,7 @@ async function loadEquipmentList(nextPage) {
     }
   } finally {
     equipmentListState.loading = false;
-    if (typeof hideGlobalLoading === 'function') {
+    if (typeof hideGlobalLoading === 'function' && _showingOverlay) {
       hideGlobalLoading();
     }
   }
