@@ -47,7 +47,7 @@ function fmtDate(v)    { return v ? String(v).slice(0, 10) : '-'; }
 function calcVat(s)    { return Math.round((s || 0) * 0.1); }
 
 // VAT 입력칸을 사용자가 직접 수정했는지 추적 — 수정했으면 품목이 바뀌어도 자동계산으로 덮어쓰지 않음
-var _poVatTouched = false;
+// (발주 단계 부가세는 항상 자동계산 — 별도 보정 플래그 불필요)
 
 var STATUS_LABEL = { DRAFT:'초안', ORDERED:'발주완료', PARTIAL:'부분입고', COMPLETED:'완료', CANCELLED:'취소' };
 var STATUS_BADGE = { DRAFT:'badge-draft', ORDERED:'badge-ordered', PARTIAL:'badge-partial', COMPLETED:'badge-completed', CANCELLED:'badge-cancelled' };
@@ -1043,21 +1043,16 @@ function refreshPoTotal() {
       supplyTotal += Number(node.data.supply_price || 0);
     });
   }
-  var vatInput = document.getElementById('poTotalVat');
-  // 사용자가 VAT를 직접 보정하지 않았으면 공급가액 합계 기준 자동계산값으로 채움
-  if (vatInput && !_poVatTouched) vatInput.value = calcVat(supplyTotal);
-  var vat   = Number(vatInput?.value || 0);
+  // 발주 단계에서는 부가세를 항상 공급가액의 10%로 자동계산 — 세금계산서와 다르면
+  // 입고 등록 단계에서 보정하면 되므로 여기서는 직접 수정 입력칸을 두지 않음
+  var vat   = calcVat(supplyTotal);
   var total = supplyTotal + vat;
   var s = document.getElementById('poTotalSupply');
+  var v = document.getElementById('poTotalVat');
   var t = document.getElementById('poTotalAmount');
   if (s) s.textContent = fmtN(supplyTotal);
+  if (v) v.textContent = fmtN(vat);
   if (t) t.textContent = fmtN(total);
-}
-
-/** VAT 입력칸을 사용자가 직접 수정했을 때 — 이후 품목 변경으로 자동계산되어 덮어써지지 않도록 표시 */
-function onPoVatInput() {
-  _poVatTouched = true;
-  refreshPoTotal();
 }
 
 var _rowIdCounter = 0;
@@ -1173,8 +1168,6 @@ function openAddPo() {
   setVal('po_expected_date', '');
   setVal('po_vendor_id',     '');
   setVal('po_memo',          '');
-  _poVatTouched = false;
-  setVal('poTotalVat', '0');
   document.getElementById('poModalTitle').textContent = '발주 등록';
   openModal('poModal');
   // 모달 표시 후 그리드 초기화 (display:block 상태에서 height 확보)
@@ -1210,16 +1203,6 @@ async function openEditPo(id) {
     setVal('po_expected_date', po.expected_date || '');
     setVal('po_vendor_id',     po.vendor_id);
     setVal('po_memo',          po.memo);
-    // 기존에 저장된 VAT가 실제 값(0이 아님)이면 사용자가 보정해둔 값으로 보고 그대로 유지.
-    // 저장된 값이 0/null이면(아직 계산된 적 없는 옛 데이터 등) 자동계산이 다시 동작하도록 둠 —
-    // 그래야 품목을 불러올 때 공급가액의 10%가 미리 계산되어 표시되고, 필요하면 그 자리에서 보정 가능
-    if (po.vat_amount) {
-      setVal('poTotalVat', po.vat_amount);
-      _poVatTouched = true;
-    } else {
-      setVal('poTotalVat', '0');
-      _poVatTouched = false;
-    }
 
     document.getElementById('poModalTitle').textContent = '발주 수정';
     openModal('poModal');
@@ -1285,7 +1268,8 @@ async function savePo() {
   });
   if (!itemRows.length) throw new Error('품목을 1개 이상 추가해주세요.');
 
-  var vatAmount = Number(val('poTotalVat') || 0);
+  // 부가세는 항상 공급가액의 10% — 발주 단계에서는 직접 보정하지 않고, 필요하면 입고 단계에서 보정
+  var vatAmount = calcVat(supplyTotal);
 
   var poPayload = {
     vendor_id:     vendorId,
