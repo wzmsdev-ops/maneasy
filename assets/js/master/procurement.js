@@ -1424,7 +1424,7 @@ async function genDocNo(prefix) {
 async function loadCaches() {
   var results = await Promise.all([
     supabaseClient.from('vendors').select('id, vendor_name').eq('active', 'Y').order('vendor_name'),
-    supabaseClient.from('items').select('id, item_name, purchase_unit, use_unit, purchase_unit_qty, standard_price, vendor_id').eq('active', 'Y').order('item_name'),
+    supabaseClient.from('items').select('id, item_name, category, purchase_unit, use_unit, purchase_unit_qty, standard_price, vendor_id').eq('active', 'Y').order('item_name'),
   ]);
   vendorCache = results[0].data || [];
   itemCache   = results[1].data || [];
