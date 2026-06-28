@@ -723,7 +723,7 @@ async function loadDispatchPoList() {
   try {
     var q=supabaseClient.from('purchase_orders')
       .select('id,order_no,order_date,status,request_id,vendors(vendor_name),purchase_requests(dept_id,departments(dept_name))')
-      .in('status',status?[status]:['ORDERED','PARTIAL'])
+      .in('status',status?[status]:['COMPLETED','PARTIAL'])
       .order('order_date',{ascending:false});
     if(dFrom) q=q.gte('order_date',dFrom);
     if(dTo) q=q.lte('order_date',dTo);
