@@ -424,5 +424,18 @@ function createMgGrid(containerId, colDefs, rows, options) {
 
 
 function updateMgGrid(api, rows) {
-  if (api && rows) api.setGridOption('rowData', rows);
+  if (api && rows) {
+    api.setGridOption('rowData', rows);
+    refitGridColumns(api);
+  }
+}
+
+/** rowData가 바뀌어서 스크롤바가 새로 생기거나 없어지는 경우, 컬럼폭을 다시 맞춰서
+ *  마지막 컬럼(보통 버튼)이 스크롤바에 가려 잘리는 걸 막는다.
+ *  agGrid.createGrid()로 직접 만든 그리드에서 setGridOption('rowData', ...) 직후 호출. */
+function refitGridColumns(api) {
+  if (!api) return;
+  setTimeout(function() {
+    try { api.sizeColumnsToFit(); } catch(e) { /* 그리드가 이미 제거된 경우 무시 */ }
+  }, 0);
 }
