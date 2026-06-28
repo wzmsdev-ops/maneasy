@@ -1265,10 +1265,15 @@ async function openEditPo(id) {
           cats.map(function(c){ return '<option value="' + c + '">' + c + '</option>'; }).join('');
       }
       document.getElementById('po_item_keyword') && (document.getElementById('po_item_keyword').value = '');
-      // 수정 시: 거래처 변경 불가 (품목 섞임 방지) + 해당 업체 자재 자동 조회
+      // 수정 시: 거래처 변경 불가 + 해당 업체 자재 자동 조회
       var vSel = document.getElementById('po_vendor_id');
       if (vSel) vSel.disabled = true;
-      setTimeout(function() { searchPoItems(); }, 20);
+      // vendor_id로 직접 필터링 (val() 대신 po.vendor_id 사용)
+      var editVendorId = po.vendor_id || '';
+      var filteredItems = itemCache.filter(function(i) {
+        return !editVendorId || i.vendor_id === editVendorId;
+      });
+      if (_poSearchGrid) _poSearchGrid.setGridOption('rowData', filteredItems);
       (items || []).forEach(function(r) {
         addPoItemRow({
           _existingId:   r.id,
