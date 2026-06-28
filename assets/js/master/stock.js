@@ -371,7 +371,7 @@ function initReceiptItemGrid() {
         cellRenderer: function(p) { return Number(p.value || 0).toLocaleString('ko-KR') + '원'; },
         onCellValueChanged: function(p) { recalcReceiptFromQtyPrice(p.node); }
       },
-      { headerName: '공급가액', field: 'supply_price', width: 120,
+      { headerName: '공급가액', field: 'supply_price', width: 90,
         headerClass: 'ag-right-header',
         cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-end' },
         editable: true,
