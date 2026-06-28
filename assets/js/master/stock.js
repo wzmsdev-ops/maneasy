@@ -1135,47 +1135,6 @@ async function saveDispatch() {
   } finally{hideGlobalLoading();if(saveBtn) saveBtn.disabled=false;}
 }
 
-async function loadDispatches(page) {
-  var st = stState.dispatch;
-  if (st.loading) return;
-  st.loading = true;
-  page = page || st.page;
-  showGlobalLoading('불출 목록을 불러오는 중...');
-  try {
-    var from = (page - 1) * st.pageSize;
-    var to   = from + st.pageSize - 1;
-    var deptId   = val('dispatchDeptFilter');
-    var dateFrom = val('dispatchDateFrom');
-    var dateTo   = val('dispatchDateTo');
-
-    var q = supabaseClient
-      .from('stock_dispatch')
-      .select('*, items(item_name), departments(dept_name)', { count: 'exact' })
-      .order('dispatch_date', { ascending: false })
-      .range(from, to);
-
-    var dispatchKw = (document.getElementById('dispatchKeyword')?.value || '').trim();
-    if (deptId)      q = q.eq('dept_id', deptId);
-    if (dateFrom)    q = q.gte('dispatch_date', dateFrom);
-    if (dateTo)      q = q.lte('dispatch_date', dateTo);
-    if (dispatchKw)  q = q.ilike('dispatch_no', '%' + dispatchKw + '%');
-
-    var { data, error, count } = await q;
-    if (error) throw new Error(error.message);
-
-    st.page       = page;
-    st.totalPages = Math.max(1, Math.ceil((count || 0) / st.pageSize));
-    if (!_gridDispatch) initDispatchGrid();
-    if (_gridDispatch) _gridDispatch.setGridOption('rowData', data || []);
-    renderPagination('dispatchPagination', st, loadDispatches);
-  } catch(e) {
-    alert('불출 목록 로드 실패: ' + e.message);
-  } finally {
-    st.loading = false;
-    hideGlobalLoading();
-  }
-}
-
 function openAddDispatch() {
   setVal('d_item_id', '');
   setVal('d_dept_id', '');
@@ -1378,7 +1337,7 @@ function bindSaveBtn(btnId, saveFn, modalId, refreshFn) {
 /* ── 검색 이벤트 ── */
 function initSearch() {
   document.getElementById('receiptSearchBtn')?.addEventListener('click',  function() { loadReceipts(1); });
-  document.getElementById('dispatchSearchBtn')?.addEventListener('click', function() { loadDispatches(1); });
+  document.getElementById('dispatchSearchBtn')?.addEventListener('click', function() { loadDispatchPoList(); });
   document.getElementById('deptStockSearchBtn')?.addEventListener('click', function() { loadDeptStock(1); });
   document.getElementById('deptStockKeyword')?.addEventListener('keydown', function(e) { if (e.key==='Enter') loadDeptStock(1); });
 
