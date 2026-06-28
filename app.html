@@ -76,6 +76,10 @@
         <button class="sb-sub-item" data-page="master/use-stock" onclick="navigate('master/use-stock')" id="sbItemUseStock">
           <i class="ti ti-clipboard-check"></i><span>사용처리</span>
         </button>
+        <div style="height:1px;background:#e5e7eb;margin:4px 8px;"></div>
+        <button class="sb-sub-item" data-page="master/material-stats" onclick="navigate('master/material-stats')" id="sbItemMaterialStats">
+          <i class="ti ti-chart-bar"></i><span>자재 통계</span>
+        </button>
       </div>
 
       <!-- 마스터 관리 -->
@@ -142,6 +146,7 @@ const MENU_META = {
   'master/use-stock':       { app: '자재관리', page: '사용처리' },
   'master/procurement':     { app: '자재관리', page: '발주 관리' },
   'master/stock':           { app: '자재관리', page: '재고 관리' },
+  'master/material-stats':  { app: '자재관리', page: '자재 통계' },
 };
 
 /* ── Flyout 서브메뉴 ── */
