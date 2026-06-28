@@ -24,6 +24,19 @@ var msState = {
   gridInited: { receipt: false, use: false, ledger: false },
 };
 
+/* ── 날짜 기본값 세팅 (일주일 전 ~ 오늘) ─────────── */
+function setDefaultDates() {
+  var today   = new Date();
+  var weekAgo = new Date(today);
+  weekAgo.setDate(today.getDate() - 7);
+  var todayStr   = today.toISOString().slice(0, 10);
+  var weekAgoStr = weekAgo.toISOString().slice(0, 10);
+  var fromEl = document.getElementById('sf_date_from');
+  var toEl   = document.getElementById('sf_date_to');
+  if (fromEl) fromEl.value = weekAgoStr;
+  if (toEl)   toEl.value   = todayStr;
+}
+
 /* ── 유틸 ──────────────────────────────────────────── */
 function msVal(id) {
   var el = document.getElementById(id);
@@ -484,15 +497,8 @@ async function initFilters() {
       }).join('');
   }
 
-  // 기본 기간: 당월 1일 ~ 오늘
-  var today = new Date();
-  var y = today.getFullYear();
-  var m = String(today.getMonth() + 1).padStart(2, '0');
-  var d = String(today.getDate()).padStart(2, '0');
-  var fromEl = document.getElementById('sf_date_from');
-  var toEl   = document.getElementById('sf_date_to');
-  if (fromEl) fromEl.value = y + '-' + m + '-01';
-  if (toEl)   toEl.value   = y + '-' + m + '-' + d;
+  // 기본 기간: 일주일 전 ~ 오늘
+  setDefaultDates();
 }
 
 /* ── 이벤트 바인딩 ────────────────────────────────── */
@@ -519,13 +525,7 @@ function bindEvents() {
       document.getElementById('sf_clinic').value    = '';
       document.getElementById('sf_dept').value      = '';
       document.getElementById('sf_category').value  = '';
-      // 기간 당월 초기화
-      var today = new Date();
-      var y = today.getFullYear();
-      var m = String(today.getMonth() + 1).padStart(2, '0');
-      var d = String(today.getDate()).padStart(2, '0');
-      document.getElementById('sf_date_from').value = y + '-' + m + '-01';
-      document.getElementById('sf_date_to').value   = y + '-' + m + '-' + d;
+      setDefaultDates();
       loadTab(msState.activeTab, true);
     });
   }
