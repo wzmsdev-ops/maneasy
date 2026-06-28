@@ -119,7 +119,7 @@ function initUseGrid() {
       { headerName:'사용일',   field:'tx_date',    width:100, cellRenderer:function(p){return fmtDate(p.value);} },
       { headerName:'자재구분', field:'category',   width:90,  valueGetter:function(p){return p.data.items?.category||'-';} },
       { headerName:'자재명',   field:'item_name',  flex:2,    headerClass:'ag-left-header', cellStyle:{display:'flex',alignItems:'center',justifyContent:'flex-start'}, valueGetter:function(p){return p.data.items?.item_name||'-';} },
-      { headerName:'사용수량', field:'qty',        width:90,  cellRenderer:function(p){return fmtNum(p.value);} },
+      { headerName:'사용수량', field:'qty',        width:90,  cellRenderer:function(p){return fmtNum(Math.abs(p.value));} },
       { headerName:'단위',     field:'use_unit',   width:70 },
       { headerName:'부서',     field:'dept_name',  width:110, valueGetter:function(p){return p.data.departments?.dept_name||'-';} },
       { headerName:'의원',     field:'clinic_name',width:110, valueGetter:function(p){return p.data.departments?.clinics?.clinic_name||'-';} },
@@ -237,7 +237,7 @@ async function loadLedgerData(page, f) {
     var { data:oRows } = await oQ;
     (oRows||[]).forEach(function(r){
       if (r.tx_type==='IN')  openingMap[r.item_id] += (r.qty||0);
-      if (r.tx_type==='OUT') openingMap[r.item_id] -= (r.qty||0);
+      if (r.tx_type==='OUT') openingMap[r.item_id] -= Math.abs(r.qty||0);
       if (r.tx_type==='ADJ') openingMap[r.item_id] += (r.qty||0);
     });
   }
@@ -251,7 +251,7 @@ async function loadLedgerData(page, f) {
   var { data:txRows } = await txQ;
   (txRows||[]).forEach(function(r){
     if (r.tx_type==='IN')  inMap[r.item_id]  = (inMap[r.item_id]  ||0)+(r.qty||0);
-    if (r.tx_type==='OUT') outMap[r.item_id] = (outMap[r.item_id] ||0)+(r.qty||0);
+    if (r.tx_type==='OUT') outMap[r.item_id] = (outMap[r.item_id] ||0)+Math.abs(r.qty||0);
     if (r.tx_type==='ADJ') adjMap[r.item_id] = (adjMap[r.item_id] ||0)+(r.qty||0);
   });
 
