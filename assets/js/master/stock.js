@@ -454,7 +454,7 @@ function addReceiptRow(preset) {
     item_name:     '',
     purchase_unit: '',
     use_unit:      '',
-    qty:           1,
+    qty:           0,
     unit_price:    0,
     supply_price:  0,
     memo:          '',
@@ -795,8 +795,8 @@ async function saveReceipt() {
   _gridReceiptItem.forEachNode(function(node) { rows.push(node.data); });
   if (!rows.length) { alert('입고할 품목을 1개 이상 추가해주세요.'); return; }
 
-  var invalid = rows.find(function(r) { return !r.qty || r.qty < 1; });
-  if (invalid) { alert(invalid.item_name + '의 입고수량은 1 이상이어야 합니다.'); return; }
+  var invalid = rows.find(function(r) { return !r.qty || Number(r.qty) <= 0; });
+  if (invalid) { alert('[' + invalid.item_name + '] 수량을 1 이상 입력해 주세요.'); return; }
 
   var receiptDate = val('receiptDate');
   if (!receiptDate) { alert('입고일을 입력해주세요.'); return; }
