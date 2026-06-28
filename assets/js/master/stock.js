@@ -68,12 +68,15 @@ function initTabs() {
           receipt:   { api: '_gridReceiptPo', id: 'receiptPoGrid', init: initReceiptPoGrid, load: loadReceiptPoList },
           dispatch:  { api: '_gridDispatchPo', id: 'dispatchPoGrid',
             init: function() {
-              setTimeout(function() {
-                initDispatchPoGrid();
-                if (!_gridDispatchItem) initDispatchItemGrid();
-              }, 80);
+              // dispatch 탭은 별도 처리 — 아래 tg.load에서 직접 처리
             },
-            load: function() { setTimeout(loadDispatchPoList, 100); }
+            load: function() {
+              setTimeout(function() {
+                if (!_gridDispatchPo) initDispatchPoGrid();
+                if (!_gridDispatchItem) initDispatchItemGrid();
+                setTimeout(loadDispatchPoList, 50);
+              }, 80);
+            }
           },
           deptstock: { api: '_gridDeptStock', id: 'deptStockGrid', init: initDeptStockGrid, load: function(){loadDeptStock(1);} },
         };
@@ -932,7 +935,10 @@ var _selectedDispatchPoId = null;
 function initDispatchPoGrid() {
   var el = document.getElementById('dispatchPoGrid');
   if (!el || typeof agGrid === 'undefined') return;
-  el.style.height = Math.max(200, window.innerHeight - 200) + 'px';
+  var parentH = el.closest('.panel-left')?.clientHeight || 0;
+  var headH   = el.closest('.panel-left')?.querySelector('.panel-head')?.offsetHeight || 40;
+  var h = parentH > 100 ? parentH - headH : Math.max(200, window.innerHeight - 200);
+  el.style.height = h + 'px';
   _gridDispatchPo = agGrid.createGrid(el, {
     suppressCellFocus:true, suppressPropertyNamesCheck:true,
     columnDefs: [
