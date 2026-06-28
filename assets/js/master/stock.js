@@ -1316,7 +1316,6 @@ async function cancelDispatch(dispatchId) {
     var session = await supabaseClient.auth.getSession();
     var userId  = session.data?.session?.user?.id || null;
 
-    var cancelDate = new Date().toISOString().slice(0,10);
 
     // lot_id가 있으면 LOT 단위 원복, 없으면 구버전 데이터 — stock_lots 없이 stock_current만 원복
     if (d.lot_id) {
@@ -1363,12 +1362,11 @@ async function cancelDispatch(dispatchId) {
       }
     }
 
-    // stock_transactions 취소 이력 — 원래 LOT 단가를 그대로 같이 기록 (조정금액 계산용)
-    var cancelUnitPrice = srcLot?.unit_price || 0;
-    var { error: te } = await supabaseClient.from('stock_transactions').insert([
-      { item_id: d.item_id, dept_id: d.dept_id, tx_type:'OUT', tx_date: cancelDate, qty: -d.dispatch_qty, use_unit: d.use_unit, ref_type:'dispatch_cancel', ref_id: d.id, lot_id: d.lot_id||null, unit_price: cancelUnitPrice, created_by: userId },
-      { item_id: d.item_id, dept_id: null,       tx_type:'IN',  tx_date: cancelDate, qty:  d.dispatch_qty, use_unit: d.use_unit, ref_type:'dispatch_cancel', ref_id: d.id, lot_id: d.lot_id||null, unit_price: cancelUnitPrice, created_by: userId },
-    ]);
+    // 원래 불출 때 생긴 거래기록 자체를 삭제 — 취소 거래를 새로 추가하는 게 아니라
+    // '없었던 일'로 만든다 (어차피 이 재고는 나중에 다른 부서로 다시 불출되거나 사용될 수 있어서,
+    // 조정으로 남겨두는 것보다 그냥 깨끗하게 지우는 게 맞음)
+    var { error: te } = await supabaseClient.from('stock_transactions')
+      .delete().eq('ref_type', 'dispatch').eq('ref_id', d.id);
     if (te) throw new Error('재고 원복 실패: ' + te.message);
     await upsertStockCurrent(d.item_id, -d.dispatch_qty, d.dept_id);
     await upsertStockCurrent(d.item_id,  d.dispatch_qty, null);
