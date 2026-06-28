@@ -1091,29 +1091,29 @@ function initDispatchItemGrid() {
     suppressPropertyNamesCheck:true,
     suppressCellFocus:false,
     columnDefs:[
-      {headerName:'자재명',field:'item_name',flex:2,minWidth:120,headerClass:'ag-left-header',
+      {headerName:'자재명',field:'item_name',flex:1,minWidth:100,headerClass:'ag-left-header',
         suppressCellFocus:true,
         cellStyle:{display:'flex',alignItems:'center',justifyContent:'flex-start',fontWeight:600}
       },
-      {headerName:'LOT번호',field:'lot_no',width:120,headerClass:'ag-left-header',
+      {headerName:'LOT번호',field:'lot_no',width:130,headerClass:'ag-left-header',
         suppressCellFocus:true,
-        cellStyle:{display:'flex',alignItems:'center',justifyContent:'flex-start',color:'#1d4ed8',fontFamily:'Consolas,monospace',fontSize:'11px'}
+        cellStyle:{display:'flex',alignItems:'center',justifyContent:'flex-start',color:'#1d4ed8',fontFamily:'Consolas,monospace',fontSize:'11px',paddingLeft:'8px'}
       },
-      {headerName:'입고일',field:'receipt_date',width:90,
+      {headerName:'입고일',field:'receipt_date',width:85,
         suppressCellFocus:true,
         cellRenderer:function(p){return p.value?String(p.value).slice(0,10):'-';}
       },
-      {headerName:'단가',field:'unit_price',width:80,
+      {headerName:'단가',field:'unit_price',width:75,
         suppressCellFocus:true,
         cellStyle:{display:'flex',alignItems:'center',justifyContent:'flex-end'},
         cellRenderer:function(p){return Number(p.value||0).toLocaleString('ko-KR')+'원';}
       },
-      {headerName:'중앙창고재고',field:'qty',width:90,
+      {headerName:'중앙재고',field:'qty',width:80,
         suppressCellFocus:true,
         cellStyle:{display:'flex',alignItems:'center',justifyContent:'flex-end',color:'#059669',fontWeight:700},
         valueFormatter:function(p){return Number(p.value||0).toLocaleString('ko-KR');}
       },
-      {headerName:'불출수량',field:'dispatch_qty',width:90,
+      {headerName:'불출수량',field:'dispatch_qty',width:80,
         editable:true, singleClickEdit:true,
         cellEditor:'agNumberCellEditor', cellEditorParams:{min:0},
         valueFormatter:function(p){return Number(p.value||0).toLocaleString('ko-KR');},
