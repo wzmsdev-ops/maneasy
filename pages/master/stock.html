@@ -353,6 +353,9 @@
         <input type="text" id="dispatchKeyword" placeholder="발주번호/거래처 검색..." style="flex:1;min-width:0;" />
         <button class="btn btn-sm btn-primary" id="dispatchSearchBtn"><i class="ti ti-search"></i> 조회</button>
         <div class="pr-divider"></div>
+        <button class="btn btn-sm" id="bulkDispatchBtn" disabled
+          onclick="bulkDispatchSelectedPo()"><i class="ti ti-truck-delivery"></i> 선택 일괄불출</button>
+        <div class="pr-divider"></div>
         <label style="font-size:12px;font-weight:600;color:#374151;white-space:nowrap;flex-shrink:0;">불출일 <span style="color:#ef4444;">*</span></label>
         <input type="date" id="dispatchDate" style="flex-shrink:0;" />
       </div>
