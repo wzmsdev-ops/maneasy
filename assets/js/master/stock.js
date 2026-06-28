@@ -380,21 +380,51 @@ function initReceiptItemGrid() {
         cellRenderer: function(p) { return '<strong>' + Number(p.value || 0).toLocaleString('ko-KR') + '원</strong>'; },
         onCellValueChanged: function(p) { recalcReceiptFromSupply(p.node); }
       },
+      { headerName: 'LOT번호', field: 'lot_no', width: 130,
+        headerClass: 'ag-left-header',
+        cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-start', color:'#1d4ed8', fontFamily:'Consolas,monospace' },
+        editable: true,
+        cellRenderer: function(p) {
+          if (!p.value) return '<span style="color:#d1d5db;">LOT번호 입력</span>';
+          return ts(p.value);
+        }
+      },
       { headerName: '메모', field: 'memo', flex: 1,
         headerClass: 'ag-left-header',
         cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-start' },
         editable: true,
         cellRenderer: function(p) { return ts(p.value || ''); }
       },
-      { headerName: '', width: 44, sortable: false,
-        cellStyle: { display:'flex', alignItems:'center', justifyContent:'center', padding:'0' },
+      { headerName: '', width: 60, sortable: false,
+        cellStyle: { display:'flex', alignItems:'center', justifyContent:'center', gap:'2px', padding:'0 2px' },
         cellRenderer: function(p) {
-          var btn = document.createElement('button');
-          btn.className = 'tbl-btn tbl-btn--danger';
-          btn.style.cssText = 'width:28px;height:22px;padding:0;display:flex;align-items:center;justify-content:center;';
-          btn.innerHTML = '✕';
-          btn.onclick = function() { removeReceiptRow(p.node.data._rowId); };
-          return btn;
+          var wrap = document.createElement('div');
+          wrap.style.cssText = 'display:flex;gap:2px;';
+          // + 버튼: 같은 자재를 다른 LOT로 추가
+          var addBtn = document.createElement('button');
+          addBtn.className = 'tbl-btn';
+          addBtn.style.cssText = 'width:24px;height:22px;padding:0;display:flex;align-items:center;justify-content:center;color:#2563eb;';
+          addBtn.innerHTML = '+';
+          addBtn.title = '같은 자재 LOT 분리 추가';
+          addBtn.onclick = function() {
+            addReceiptRow({
+              item_id: p.data.item_id, item_name: p.data.item_name,
+              purchase_unit: p.data.purchase_unit, purchase_unit_qty: p.data.purchase_unit_qty,
+              use_unit: p.data.use_unit, order_item_id: p.data.order_item_id,
+              order_qty: p.data.order_qty, received_qty: p.data.received_qty,
+              qty: 0, unit_price: p.data.unit_price, supply_price: 0,
+              lot_no: '', memo: '',
+            });
+          };
+          // ✕ 버튼
+          var delBtn = document.createElement('button');
+          delBtn.className = 'tbl-btn tbl-btn--danger';
+          delBtn.style.cssText = 'width:24px;height:22px;padding:0;display:flex;align-items:center;justify-content:center;';
+          delBtn.innerHTML = '✕';
+          delBtn.onclick = function() { removeReceiptRow(p.node.data._rowId); };
+          wrap.appendChild(addBtn);
+          wrap.appendChild(delBtn);
+          return wrap;
         }
       },
     ],
@@ -789,23 +819,41 @@ async function saveReceipt() {
       receipt_qty:       qty,
       unit_price:        price,
       vat_amount:        vatShare,
+      lot_no:            r.lot_no || '',
       memo:              r.memo || '',
     }).select('id');
     if (error) throw new Error('[' + r.item_name + '] ' + error.message);
     var newReceiptId = newReceiptArr?.[0]?.id || null;
 
-    // stock_transactions에 IN 기록 (중앙창고, dept_id=NULL)
+    // stock_lots 생성 (중앙창고 LOT)
     var useQty = qty * (r.purchase_unit_qty || 1);
+    var { data: newLotArr, error: le } = await supabaseClient.from('stock_lots').insert({
+      item_id:      r.item_id,
+      receipt_id:   newReceiptId,
+      lot_no:       r.lot_no || receiptNo,
+      receipt_date: receiptDate,
+      unit_price:   price,
+      purchase_unit: r.purchase_unit || '',
+      use_unit:     r.use_unit || '',
+      dept_id:      null,
+      qty:          useQty,
+    }).select('id');
+    if (le) throw new Error('[' + r.item_name + '] LOT 생성 실패: ' + le.message);
+    var newLotId = newLotArr?.[0]?.id || null;
+
+    // stock_transactions에 IN 기록 (중앙창고, dept_id=NULL)
     var { error: te } = await supabaseClient.from('stock_transactions').insert({
-      item_id:  r.item_id,
-      dept_id:  null,
-      tx_type:  'IN',
-      tx_date:  receiptDate,
-      qty:      useQty,
-      use_unit: r.use_unit || '',
-      ref_type: 'receipt',
-      ref_id:   newReceiptId,
-      memo:     r.memo || '',
+      item_id:    r.item_id,
+      dept_id:    null,
+      tx_type:    'IN',
+      tx_date:    receiptDate,
+      qty:        useQty,
+      use_unit:   r.use_unit || '',
+      ref_type:   'receipt',
+      ref_id:     newReceiptId,
+      lot_id:     newLotId,
+      unit_price: price,
+      memo:       r.memo || '',
     });
     if (te) throw new Error('[' + r.item_name + '] 이력 기록 실패: ' + te.message);
 
@@ -1047,18 +1095,22 @@ function initDispatchItemGrid() {
         suppressCellFocus:true,
         cellStyle:{display:'flex',alignItems:'center',justifyContent:'flex-start',fontWeight:600}
       },
-      {headerName:'입고단위',field:'purchase_unit',width:80,
+      {headerName:'LOT번호',field:'lot_no',width:120,headerClass:'ag-left-header',
         suppressCellFocus:true,
-        cellStyle:{display:'flex',alignItems:'center',justifyContent:'center',color:'#6b7280'}
+        cellStyle:{display:'flex',alignItems:'center',justifyContent:'flex-start',color:'#1d4ed8',fontFamily:'Consolas,monospace',fontSize:'11px'}
       },
-      {headerName:'발주',field:'order_qty',width:65,
+      {headerName:'입고일',field:'receipt_date',width:90,
+        suppressCellFocus:true,
+        cellRenderer:function(p){return p.value?String(p.value).slice(0,10):'-';}
+      },
+      {headerName:'단가',field:'unit_price',width:80,
         suppressCellFocus:true,
         cellStyle:{display:'flex',alignItems:'center',justifyContent:'flex-end'},
-        valueFormatter:function(p){return Number(p.value||0).toLocaleString('ko-KR');}
+        cellRenderer:function(p){return Number(p.value||0).toLocaleString('ko-KR')+'원';}
       },
-      {headerName:'기불출',field:'dispatched_qty',width:65,
+      {headerName:'중앙창고재고',field:'qty',width:90,
         suppressCellFocus:true,
-        cellStyle:{display:'flex',alignItems:'center',justifyContent:'flex-end',color:'#6b7280'},
+        cellStyle:{display:'flex',alignItems:'center',justifyContent:'flex-end',color:'#059669',fontWeight:700},
         valueFormatter:function(p){return Number(p.value||0).toLocaleString('ko-KR');}
       },
       {headerName:'불출수량',field:'dispatch_qty',width:90,
@@ -1066,13 +1118,12 @@ function initDispatchItemGrid() {
         cellEditor:'agNumberCellEditor', cellEditorParams:{min:0},
         valueFormatter:function(p){return Number(p.value||0).toLocaleString('ko-KR');},
         cellStyle:function(p){
-          var remain=(p.data.order_qty||0)-(p.data.dispatched_qty||0);
-          var over=(p.value||0)>remain;
+          var over=(p.value||0)>(p.data.qty||0);
           return {display:'flex',alignItems:'center',justifyContent:'flex-end',color:over?'#dc2626':'#111827',fontWeight:'600'};
         },
         onCellValueChanged:function(p){
-          var remain=(p.data.order_qty||0)-(p.data.dispatched_qty||0);
-          if(Number(p.newValue)>remain){alert('잔여수량('+remain+')을 초과할 수 없습니다.');p.node.setDataValue('dispatch_qty',remain);}
+          var max=p.data.qty||0;
+          if(Number(p.newValue)>max){alert('LOT 재고('+max+')를 초과할 수 없습니다.');p.node.setDataValue('dispatch_qty',max);}
           updateDispatchSummary();
         }
       },
@@ -1089,26 +1140,55 @@ async function selectDispatchPo(po) {
   _selectedDispatchPoId=po.id;
   var label=document.getElementById('dispatchSelectedPoLabel');
   if(label) label.textContent=po.order_no+' · '+po._vendorName+(po._deptName!=='-'?' · '+po._deptName:'');
+
+  // 발주서 품목 조회 (아직 불출 잔여분이 있는 것만)
   var {data:items,error}=await supabaseClient
     .from('purchase_order_items')
-    .select('id,item_id,order_qty,received_qty,dispatched_qty,purchase_unit,purchase_unit_qty,use_unit,memo,items(item_name)')
+    .select('id,item_id,order_qty,received_qty,dispatched_qty,purchase_unit,purchase_unit_qty,use_unit,items(item_name)')
     .eq('order_id',po.id);
   if(error){alert('품목 조회 실패: '+error.message);return;}
   var openItems=(items||[]).filter(function(r){return (r.dispatched_qty||0)<r.order_qty;});
+  if(!openItems.length){
+    if(!_gridDispatchItem) initDispatchItemGrid();
+    _gridDispatchItem.setGridOption('rowData',[]);
+    var btn=document.getElementById('dispatchSaveBtn'); if(btn) btn.disabled=true;
+    loadDispatchHistory(po.id);
+    return;
+  }
+
+  // 해당 품목들의 중앙창고 LOT 목록 조회
+  var itemIds=openItems.map(function(r){return r.item_id;});
+  var {data:lots,error:le}=await supabaseClient
+    .from('stock_lots')
+    .select('id,item_id,lot_no,receipt_date,unit_price,purchase_unit,use_unit,qty,items(item_name)')
+    .in('item_id',itemIds)
+    .is('dept_id',null)   // 중앙창고
+    .gt('qty',0)          // 잔여수량 있는 것만
+    .order('receipt_date',{ascending:true}); // 입고일 오름차순
+  if(le){alert('LOT 조회 실패: '+le.message);return;}
+
   if(!_gridDispatchItem) initDispatchItemGrid();
-  _gridDispatchItem.setGridOption('rowData',openItems.map(function(r){
+  _gridDispatchItem.setGridOption('rowData',(lots||[]).map(function(l){
+    var poi=openItems.find(function(r){return r.item_id===l.item_id;})||{};
     return {
-      _poiId:r.id, item_id:r.item_id,
-      item_name:r.items?.item_name||'-',
-      purchase_unit:r.purchase_unit||'', purchase_unit_qty:r.purchase_unit_qty||1,
-      use_unit:r.use_unit||'', order_qty:r.order_qty,
-      received_qty:r.received_qty||0, dispatched_qty:r.dispatched_qty||0,
-      dispatch_qty:r.order_qty-(r.dispatched_qty||0),
+      _lotId:         l.id,
+      _poiId:         poi.id,
+      item_id:        l.item_id,
+      item_name:      l.items?.item_name||'-',
+      lot_no:         l.lot_no||'-',
+      receipt_date:   l.receipt_date,
+      unit_price:     l.unit_price||0,
+      purchase_unit:  l.purchase_unit||'',
+      use_unit:       l.use_unit||'',
+      qty:            l.qty,         // 중앙창고 LOT 잔여수량
+      dispatch_qty:   0,
+      dispatched_qty: poi.dispatched_qty||0,
+      order_qty:      poi.order_qty||0,
     };
   }));
   refitGridColumns(_gridDispatchItem);
-  var cnt=document.getElementById('dispatchItemCount'); if(cnt) cnt.textContent=openItems.length?openItems.length+'건':'';
-  var btn=document.getElementById('dispatchSaveBtn'); if(btn) btn.disabled=!openItems.length;
+  var cnt=document.getElementById('dispatchItemCount'); if(cnt) cnt.textContent=(lots||[]).length+'건 (LOT)';
+  var btn=document.getElementById('dispatchSaveBtn'); if(btn) btn.disabled=false;
   loadDispatchHistory(po.id);
   updateDispatchSummary();
 }
@@ -1346,32 +1426,71 @@ async function saveDispatch() {
   try {
     var session=await supabaseClient.auth.getSession();
     var userId=session.data?.session?.user?.id||null;
+    // LOT별로 처리 — 1행 = 1LOT
     for(var i=0;i<rows.length;i++){
       var r=rows[i];
       var qty=Number(r.dispatch_qty);
-      var useQty=qty*(r.purchase_unit_qty||1);
+
+      // 1. 중앙창고 LOT 잔여수량 차감
+      var {error:lotOutErr}=await supabaseClient.from('stock_lots')
+        .update({qty: r.qty - qty})
+        .eq('id',r._lotId);
+      if(lotOutErr) throw new Error('LOT 차감 실패: '+lotOutErr.message);
+
+      // 2. 부서 LOT 생성 (단가 승계)
+      var {data:newDeptLot,error:lotInErr}=await supabaseClient.from('stock_lots').insert({
+        item_id:      r.item_id,
+        receipt_id:   null,
+        lot_no:       r.lot_no,
+        receipt_date: r.receipt_date,
+        unit_price:   r.unit_price,
+        purchase_unit: r.purchase_unit||'',
+        use_unit:     r.use_unit||'',
+        dept_id:      deptId,
+        qty:          qty,
+      }).select('id').single();
+      if(lotInErr) throw new Error('부서 LOT 생성 실패: '+lotInErr.message);
+
+      // 3. stock_dispatch 기록
       var dispatchNo=await genDocNo('SD');
       var {data:newDispatch,error:de}=await supabaseClient.from('stock_dispatch').insert({
-        dispatch_no:dispatchNo,item_id:r.item_id,dept_id:deptId,
-        order_id:_selectedDispatchPoId,order_item_id:r._poiId,
-        dispatch_date:dispatchDate,dispatch_qty:qty,use_unit:r.use_unit,created_by:userId,
+        dispatch_no:  dispatchNo,
+        item_id:      r.item_id,
+        dept_id:      deptId,
+        order_id:     _selectedDispatchPoId,
+        order_item_id: r._poiId||null,
+        dispatch_date: dispatchDate,
+        dispatch_qty:  qty,
+        use_unit:     r.use_unit,
+        lot_no:       r.lot_no,
+        lot_id:       r._lotId,
+        created_by:   userId,
       }).select('id').single();
       if(de) throw new Error('불출 기록 실패: '+de.message);
+
+      // 4. stock_transactions (중앙창고 OUT + 부서 IN), 단가 포함
       var {error:te}=await supabaseClient.from('stock_transactions').insert([
-        {item_id:r.item_id,dept_id:null,  tx_type:'OUT',tx_date:dispatchDate,qty:-useQty,use_unit:r.use_unit,ref_type:'dispatch',ref_id:newDispatch.id,created_by:userId},
-        {item_id:r.item_id,dept_id:deptId,tx_type:'IN', tx_date:dispatchDate,qty: useQty,use_unit:r.use_unit,ref_type:'dispatch',ref_id:newDispatch.id,created_by:userId},
+        {item_id:r.item_id,dept_id:null,  tx_type:'OUT',tx_date:dispatchDate,qty:-qty,use_unit:r.use_unit,ref_type:'dispatch',ref_id:newDispatch.id,lot_id:r._lotId,unit_price:r.unit_price,created_by:userId},
+        {item_id:r.item_id,dept_id:deptId,tx_type:'IN', tx_date:dispatchDate,qty: qty,use_unit:r.use_unit,ref_type:'dispatch',ref_id:newDispatch.id,lot_id:newDeptLot.id,unit_price:r.unit_price,created_by:userId},
       ]);
       if(te) throw new Error('재고 이동 실패: '+te.message);
-      await upsertStockCurrent(r.item_id,-useQty,null);
-      await upsertStockCurrent(r.item_id, useQty,deptId);
-      await supabaseClient.from('purchase_order_items').update({dispatched_qty:(r.dispatched_qty||0)+qty}).eq('id',r._poiId);
+
+      // 5. stock_current 갱신
+      await upsertStockCurrent(r.item_id,-qty,null);
+      await upsertStockCurrent(r.item_id, qty,deptId);
+
+      // 6. 발주서 품목 불출수량 갱신
+      if(r._poiId){
+        await supabaseClient.from('purchase_order_items')
+          .update({dispatched_qty:(r.dispatched_qty||0)+qty}).eq('id',r._poiId);
+      }
     }
     var {data:allItems}=await supabaseClient.from('purchase_order_items').select('order_qty,dispatched_qty').eq('order_id',_selectedDispatchPoId);
     var allDone=(allItems||[]).every(function(i){return (i.dispatched_qty||0)>=i.order_qty;});
     var anyDone=(allItems||[]).some(function(i){return (i.dispatched_qty||0)>0;});
     await supabaseClient.from('purchase_orders').update({status:allDone?'COMPLETED':(anyDone?'PARTIAL':'ORDERED')}).eq('id',_selectedDispatchPoId);
-    alert('불출 완료! ('+deptName+'에 '+rows.length+'개 품목)');
-    var doneOrderId = _selectedDispatchPoId;
+    alert('불출 완료! ('+deptName+'에 '+rows.length+'개 LOT)');
+    var doneOrderId=_selectedDispatchPoId;
     _selectedDispatchPoId=null;
     if(_gridDispatchItem) _gridDispatchItem.setGridOption('rowData',[]);
     var lbl=document.getElementById('dispatchSelectedPoLabel'); if(lbl) lbl.textContent='';
