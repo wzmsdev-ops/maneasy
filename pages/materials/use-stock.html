@@ -124,19 +124,23 @@
 
 <div class="us-page">
 
-  <!-- 헤더 -->
-  <div class="us-header">
-    <div class="us-title"><i class="ti ti-clipboard-check"></i> 사용처리</div>
-    <div id="deptBadge" class="us-dept-badge" style="display:none;">
-      <i class="ti ti-building"></i>
-      <span id="deptBadgeText">-</span>
-    </div>
-  </div>
-
   <!-- 메인 탭 -->
   <div class="us-main-tabs">
     <button class="tab-btn active" data-maintab="entry">사용처리 작성</button>
     <button class="tab-btn" data-maintab="history">사용처리 이력</button>
+  </div>
+
+  <!-- 액션바 (작성 탭 전용) -->
+  <div id="us-actionbar" class="us-actionbar" style="display:flex;align-items:center;gap:8px;padding:6px 12px;background:#f8fafc;border-bottom:1px solid #e5e7eb;flex-shrink:0;">
+    <div id="deptBadge" class="us-dept-badge" style="display:none;">
+      <i class="ti ti-building"></i>
+      <span id="deptBadgeText">-</span>
+    </div>
+    <div style="flex:1;"></div>
+    <button class="btn btn-sm" onclick="clearUseItemGrid()">전체 비우기</button>
+    <button class="btn btn-sm btn-primary" id="useSubmitBtn" onclick="submitUseItems()">
+      <i class="ti ti-check"></i> 사용처리 확정
+    </button>
   </div>
 
   <div class="us-main-content">
@@ -172,13 +176,6 @@
           <div id="useItemGrid" class="ag-theme-alpine" style="flex:1;min-height:0;"></div>
         </div>
 
-      </div>
-
-      <div class="us-entry-footer">
-        <button class="btn btn-sm" onclick="clearUseItemGrid()">전체 비우기</button>
-        <button class="btn btn-sm btn-primary" id="useSubmitBtn" onclick="submitUseItems()">
-          <i class="ti ti-check"></i> 사용처리 확정
-        </button>
       </div>
     </div>
 
