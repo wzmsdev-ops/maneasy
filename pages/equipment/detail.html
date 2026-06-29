@@ -34,79 +34,124 @@
 
   <div id="messageBox" class="message-box"></div>
 
-  <!-- ── 메인 레이아웃 (3열) ── -->
-  <div class="det-body">
+  <!-- ── 탭 ── -->
+  <div class="det-tabs">
+    <button class="det-tab active" data-tab="info">
+      <i class="ti ti-info-circle"></i> 장비 정보
+    </button>
+    <button class="det-tab" data-tab="qc" id="detTabQc">
+      <i class="ti ti-chart-line"></i> 정도관리
+    </button>
+  </div>
 
-    <!-- 1열: 기본정보 (1단) -->
-    <div class="det-col-info">
-      <div class="det-card det-card--info">
-        <div class="det-card-head">
-          <span class="det-card-title">기본 정보</span>
-        </div>
-        <div id="detailInfoGrid" class="info-tile-grid">
-          <div class="empty-box">불러오는 중...</div>
-        </div>
-      </div>
-    </div><!-- /det-col-info -->
+  <!-- ── 탭 패널: 장비 정보 ── -->
+  <div class="det-tab-panel active" id="detPanel-info">
+    <div class="det-body">
 
-    <!-- 2열: 수리/점검 이력 + 재고조사 이력 -->
-    <div class="det-col-history">
-      <div class="det-card">
-        <div class="det-card-head">
-          <span class="det-card-title">수리 / 점검 이력</span>
-          <div class="det-card-actions">
-            <span class="det-card-count" id="historyCountText"></span>
-            <button type="button" id="addHistoryBtn" class="btn btn-sm" style="display:none;">+ 등록</button>
+      <!-- 1열: 기본정보 -->
+      <div class="det-col-info">
+        <div class="det-card det-card--info">
+          <div class="det-card-head">
+            <span class="det-card-title">기본 정보</span>
           </div>
-        </div>
-        <div id="historyArea">
-          <div class="empty-box">불러오는 중...</div>
-        </div>
-      </div>
-      <div class="det-card">
-        <div class="det-card-head">
-          <span class="det-card-title">재고조사 이력</span>
-          <div class="det-card-actions">
-            <span class="det-card-count" id="inventoryCountText"></span>
-            <button type="button" id="addInventoryBtn" class="btn btn-sm" style="display:none;">+ 등록</button>
-          </div>
-        </div>
-        <div id="inventoryArea">
-          <div class="empty-box">불러오는 중...</div>
-        </div>
-      </div>
-    </div><!-- /det-col-history -->
-
-    <!-- 3열: 장비사진 + QR코드 -->
-    <div class="det-col-media">
-      <div class="det-card det-card--photo">
-        <div class="det-card-head">
-          <span class="det-card-title">장비 사진</span>
-          <div class="det-card-actions">
-            <button type="button" id="photoOpenBtn"   class="btn btn-sm" style="display:none;">새 창</button>
-            <button type="button" id="photoDeleteBtn" class="btn btn-sm btn-danger" style="display:none;">삭제</button>
-          </div>
-        </div>
-        <div id="detailPhotoWrap" class="det-photo-wrap">
-          <img id="detailPhotoImage" class="det-photo-img is-hidden" alt="장비 사진" />
-          <div id="detailPhotoEmpty" class="det-photo-empty">등록된 사진이 없습니다.</div>
-        </div>
-      </div>
-
-      <div class="det-card det-card--qr">
-        <div class="det-card-head">
-          <span class="det-card-title">QR 코드</span>
-        </div>
-        <div class="det-qr-panel">
-          <div id="qrBox" class="det-qr-box">
+          <div id="detailInfoGrid" class="info-tile-grid">
             <div class="empty-box">불러오는 중...</div>
           </div>
-          <div id="qrText" class="det-qr-text">—</div>
         </div>
       </div>
-    </div><!-- /det-col-media -->
 
-  </div><!-- /det-body -->
+      <!-- 2열: 수리/점검 이력 + 재고조사 이력 -->
+      <div class="det-col-history">
+        <div class="det-card">
+          <div class="det-card-head">
+            <span class="det-card-title">수리 / 점검 이력</span>
+            <div class="det-card-actions">
+              <span class="det-card-count" id="historyCountText"></span>
+              <button type="button" id="addHistoryBtn" class="btn btn-sm" style="display:none;">+ 등록</button>
+            </div>
+          </div>
+          <div id="historyArea">
+            <div class="empty-box">불러오는 중...</div>
+          </div>
+        </div>
+        <div class="det-card">
+          <div class="det-card-head">
+            <span class="det-card-title">재고조사 이력</span>
+            <div class="det-card-actions">
+              <span class="det-card-count" id="inventoryCountText"></span>
+              <button type="button" id="addInventoryBtn" class="btn btn-sm" style="display:none;">+ 등록</button>
+            </div>
+          </div>
+          <div id="inventoryArea">
+            <div class="empty-box">불러오는 중...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3열: 장비사진 + QR코드 -->
+      <div class="det-col-media">
+        <div class="det-card det-card--photo">
+          <div class="det-card-head">
+            <span class="det-card-title">장비 사진</span>
+            <div class="det-card-actions">
+              <button type="button" id="photoOpenBtn"   class="btn btn-sm" style="display:none;">새 창</button>
+              <button type="button" id="photoDeleteBtn" class="btn btn-sm btn-danger" style="display:none;">삭제</button>
+            </div>
+          </div>
+          <div id="detailPhotoWrap" class="det-photo-wrap">
+            <img id="detailPhotoImage" class="det-photo-img is-hidden" alt="장비 사진" />
+            <div id="detailPhotoEmpty" class="det-photo-empty">등록된 사진이 없습니다.</div>
+          </div>
+        </div>
+        <div class="det-card det-card--qr">
+          <div class="det-card-head">
+            <span class="det-card-title">QR 코드</span>
+          </div>
+          <div class="det-qr-panel">
+            <div id="qrBox" class="det-qr-box">
+              <div class="empty-box">불러오는 중...</div>
+            </div>
+            <div id="qrText" class="det-qr-text">—</div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /det-body -->
+  </div><!-- /detPanel-info -->
+
+  <!-- ── 탭 패널: 정도관리 ── -->
+  <div class="det-tab-panel" id="detPanel-qc">
+    <div class="det-qc-wrap">
+      <div id="detQcDisabled" class="empty-box" style="display:none;">
+        이 장비는 정도관리가 비활성화되어 있습니다.<br>
+        <button class="btn btn-sm btn-primary" style="margin-top:10px;" id="detQcEnableBtn">정도관리 활성화</button>
+      </div>
+      <div id="detQcContent" style="display:none; height:100%; display:flex; flex-direction:column; gap:8px;">
+        <!-- 검사항목 목록 -->
+        <div class="det-card" style="flex:1;min-height:0;">
+          <div class="det-card-head">
+            <span class="det-card-title">검사항목</span>
+            <div class="det-card-actions">
+              <span class="det-card-count" id="qcItemCountText"></span>
+              <button type="button" id="addQcItemBtn" class="btn btn-sm btn-primary">+ 항목 추가</button>
+            </div>
+          </div>
+          <div id="qcItemGrid" class="ag-theme-alpine" style="height:240px;"></div>
+        </div>
+        <!-- LJ 데이터 입력 -->
+        <div class="det-card" style="flex:1;min-height:0;">
+          <div class="det-card-head">
+            <span class="det-card-title">LJ 데이터</span>
+            <div class="det-card-actions">
+              <span id="qcSelectedItemLabel" style="font-size:11px;color:#6b7280;"></span>
+              <button type="button" id="addLjEntryBtn" class="btn btn-sm btn-primary" disabled>+ 데이터 입력</button>
+            </div>
+          </div>
+          <div id="qcEntryGrid" class="ag-theme-alpine" style="height:240px;"></div>
+        </div>
+      </div>
+    </div>
+  </div><!-- /detPanel-qc -->
 
 </div><!-- /det-page -->
 
