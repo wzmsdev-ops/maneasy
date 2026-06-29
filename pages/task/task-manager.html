@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>업무일정 관리</title>
+  <link rel="stylesheet" href="../../assets/css/common.css" />
+  <link rel="stylesheet" href="../../assets/css/pages/equipment-form.css" />
+  <link rel="stylesheet" href="../../assets/css/pages/task-manager.css" />
+</head>
+<body class="portal-page task-page">
+  <div class="container page-shell equipment-form-shell">
+
+    <!-- 헤더 -->
+    <section class="top-brand-bar portal-topbar equipment-form-topbar">
+      <div class="top-brand-left">
+        <div class="top-brand-logo">+</div>
+        <div class="top-brand-texts">
+          <strong class="top-brand-title">MSO관리팀 업무지원 시스템</strong>
+          <span class="top-brand-sub">업무일정 관리</span>
+        </div>
+      </div>
+      <div class="top-brand-actions portal-top-actions equipment-form-top-actions">
+        <a class="portal-header-btn portal-header-btn--secondary" href="../../portal.html">HOME</a>
+        <button type="button" id="logoutBtn" class="portal-header-btn portal-header-btn--secondary">로그아웃</button>
+      </div>
+    </section>
+
+    <!-- 타이틀 -->
+    <section class="page-hero-simple equipment-form-hero">
+      <div class="equipment-form-hero-copy">
+        <span class="portal-section-kicker">TASK · JOURNAL</span>
+        <h1 class="page-title">업무일정 관리</h1>
+        <p class="page-desc">일별 업무를 등록하고 업무일지를 작성하세요.</p>
+      </div>
+    </section>
+
+    <div id="messageBox" class="message-box"></div>
+
+    <!-- 권한 없음 -->
+    <div id="permissionDenied" class="card" style="display:none;">
+      <div class="empty-state" style="margin:8px 0;">
+        <div style="font-size:48px;margin-bottom:8px;">🔒</div>
+        <p class="empty-state-title">접근 권한이 없습니다</p>
+        <p class="empty-state-desc">관리자에게 task_manager 권한을 요청하세요.</p>
+      </div>
+    </div>
+
+    <!-- 메인 앱 -->
+    <div id="appBody" style="display:none;">
+
+      <!-- 탭 -->
+      <div class="task-tabs">
+        <button class="task-tab-btn active" data-tab="weekly" id="tabWeekly">
+          📅 주간 업무
+        </button>
+        <button class="task-tab-btn" data-tab="journal" id="tabJournal">
+          📝 업무일지
+        </button>
+        <button class="task-tab-btn" id="tabTeam" data-tab="team">
+          👥 팀원 현황
+        </button>
+        <button class="task-tab-btn" data-tab="search" id="tabSearch">
+          🔍 검색
+        </button>
+      </div>
+
+      <!-- ── 공통 주차 네비게이터 ──────────────────────────────── -->
+      <div class="week-nav-shared" id="sharedWeekNav">
+        <button class="week-nav-btn" id="prevWeekBtn" title="이전 주">‹</button>
+
+        <div class="week-nav-label">
+          <button class="week-nav-range-btn" id="weekNavRangeBtn">
+            <span id="weekRangeLabel">-</span>
+          </button>
+          <span class="week-nav-sub" id="weekSubLabel"></span>
+        </div>
+
+        <button class="week-nav-btn" id="nextWeekBtn" title="다음 주">›</button>
+        <button class="week-nav-today" id="todayBtn">오늘</button>
+
+        <!-- ── 월 캘린더 팝업 (week-nav-shared 안에 위치해야 absolute 기준이 맞음) -->
+        <div class="week-calendar-popup" id="weekCalendarPopup">
+          <div class="wcp-head">
+            <button class="wcp-nav" id="wcpPrevMonth">‹</button>
+            <span class="wcp-title" id="wcpMonthTitle">-</span>
+            <button class="wcp-nav" id="wcpNextMonth">›</button>
+          </div>
+          <div class="wcp-dow-row">
+            <span>일</span><span>월</span><span>화</span><span>수</span>
+            <span>목</span><span>금</span><span>토</span>
+          </div>
+          <div class="wcp-grid" id="wcpGrid"></div>
+        </div>
+      </div>
+
+      <!-- ────────────────────────────────────────
+           탭: 주간 업무
+      ──────────────────────────────────────── -->
+      <div id="panelWeekly">
+
+        <div class="task-card">
+
+          <!-- 주간 요약 -->
+          <div class="week-summary-bar">
+            <div class="summary-stat">
+              <span class="summary-stat-num" id="summTotal">0</span>
+              <span class="summary-stat-label">전체</span>
+            </div>
+            <div class="summary-sep"></div>
+            <div class="summary-stat">
+              <span class="summary-stat-num" id="summDone" style="color:#16a34a;">0</span>
+              <span class="summary-stat-label">완료</span>
+            </div>
+            <div class="summary-sep"></div>
+            <div class="summary-stat">
+              <span class="summary-stat-num" id="summInProgress" style="color:#d97706;">0</span>
+              <span class="summary-stat-label">진행중</span>
+            </div>
+            <div class="summary-sep"></div>
+            <div class="summary-stat">
+              <span class="summary-stat-num" id="summHigh" style="color:#dc2626;">0</span>
+              <span class="summary-stat-label">높은중요도</span>
+            </div>
+            <div class="progress-bar-wrap">
+              <div class="progress-bar-fill" id="progressBar" style="width:0%;"></div>
+            </div>
+            <!-- 카테고리 관리 버튼 (manager/admin 전용) -->
+            <button class="category-manage-btn" id="categoryManageBtn" style="display:none;" title="카테고리 관리">
+              ⚙ 카테고리
+            </button>
+          </div>
+
+          <!-- 업무일지 자동 동기화 토글 + 부서원 전체 보기 토글 — 타임라인 위 별도 행 -->
+          <div style="display:flex;align-items:center;justify-content:flex-end;gap:18px;padding:4px 22px 8px;background:#f0f7ff;border-bottom:1.5px solid #dbeafe;">
+            <!-- 부서원 전체 보기 (manager/admin 전용) -->
+            <label id="teamViewToggleWrap"
+              style="display:none;align-items:center;gap:7px;cursor:pointer;user-select:none;"
+              title="켜짐: 부서원이 등록한 업무를 함께 표시합니다. 타인의 업무는 읽기 전용입니다.&#10;꺼짐: 내 업무만 표시합니다.">
+              <span style="font-size:11.5px;color:var(--text-secondary);font-weight:500;">부서원 업무 보기</span>
+              <div style="position:relative;width:36px;height:20px;">
+                <input type="checkbox" id="teamViewToggle"
+                  style="opacity:0;width:0;height:0;position:absolute;">
+                <span id="teamViewSlider"
+                  style="position:absolute;inset:0;border-radius:20px;background:#cbd5e1;transition:background 0.2s;cursor:pointer;">
+                  <span id="teamViewKnob"
+                    style="position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;transition:left 0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.2);"></span>
+                </span>
+              </div>
+            </label>
+
+            <label id="journalAutoSyncWrap"
+              style="display:flex;align-items:center;gap:7px;cursor:pointer;user-select:none;"
+              title="켜짐: 업무 등록/수정 시 업무일지 요약이 자동으로 업데이트됩니다.&#10;꺼짐: 자동 업데이트를 하지 않고 직접 작성합니다.">
+              <span style="font-size:11.5px;color:var(--text-secondary);font-weight:500;">업무일지 자동 동기화</span>
+              <div style="position:relative;width:36px;height:20px;">
+                <input type="checkbox" id="journalAutoSyncToggle"
+                  style="opacity:0;width:0;height:0;position:absolute;"
+                  checked>
+                <span id="journalAutoSyncSlider"
+                  style="position:absolute;inset:0;border-radius:20px;background:#0369a1;transition:background 0.2s;cursor:pointer;">
+                  <span id="journalAutoSyncKnob"
+                    style="position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;transition:left 0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.2);"></span>
+                </span>
+              </div>
+            </label>
+          </div>
+
+          <!-- 요일별 타임라인 -->
+          <div class="week-timeline" id="weekTimeline">
+            <div class="task-empty">
+              <div class="task-empty-icon">📅</div>
+              <div class="task-empty-text">불러오는 중...</div>
+            </div>
+          </div>
+
+
+        </div>
+
+      </div>
+
+      <!-- ────────────────────────────────────────
+           탭: 주간일지
+      ──────────────────────────────────────── -->
+      <div id="panelJournal" style="display:none;">
+
+        <div class="task-card" style="position:relative;">
+          <!-- 일지 로딩 오버레이 (뷰포트 고정) -->
+          <div class="journal-card-loading" id="journalLoading">
+            <div class="task-modal-loading-inner">
+              <div class="task-loading-spinner"></div>
+              <span class="task-modal-loading-text">불러오는 중...</span>
+            </div>
+          </div>
+          <!-- 일지 헤더 -->
+          <div class="task-card-head" style="border-top:1.5px solid #e0e7f2;">
+            <div>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <h2 class="task-card-head-title" style="margin:0;">업무일지</h2>
+                <span class="journal-status-badge journal-status-draft" id="journalStatusBadge">작성중</span>
+              </div>
+              <p class="task-card-head-sub" id="journalStatusText">불러오는 중...</p>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <button class="btn btn-primary" id="journalSaveBtn" style="height:36px;font-size:13px;padding:0 14px;border-radius:10px;display:none;">저장</button>
+              <button class="btn btn-primary" id="journalSubmitBtn" style="height:36px;font-size:13px;padding:0 14px;border-radius:10px;background:#0369a1;border-color:#0369a1;display:none;">제출</button>
+              <button class="btn" id="journalCloseBtn" style="height:36px;font-size:13px;padding:0 14px;border-radius:10px;display:none;">마감</button>
+            </div>
+          </div>
+
+          <!-- 자동 저장 표시 -->
+          <div style="padding:8px 22px;border-bottom:1px solid var(--border-soft);background:#fafbfd;display:flex;align-items:center;justify-content:space-between;">
+            <div class="autosave-indicator" id="autosaveIndicator">
+              <span class="autosave-dot" id="autosaveDot"></span>
+              <span id="autosaveText">-</span>
+            </div>
+          </div>
+
+          <!-- 업무 집계 요약 -->
+          <div class="journal-section" id="journalTaskSummarySection">
+            <div class="journal-section-title"><span class="icon">📊</span> 이번 주 업무 현황</div>
+            <div id="journalTaskSummary" style="display:flex;gap:12px;flex-wrap:wrap;">
+              <div style="font-size:12px;color:var(--text-muted);">업무 데이터를 불러오는 중...</div>
+            </div>
+          </div>
+
+          <!-- 업무 목록 (읽기 전용) -->
+          <div class="journal-section">
+            <div class="journal-section-title"><span class="icon">✅</span> 등록된 업무 목록</div>
+            <div id="journalTaskList" style="font-size:12px;color:var(--text-muted);">-</div>
+          </div>
+
+          <!-- 조출 여부 -->
+          <div class="journal-section">
+            <div class="journal-section-title"><span class="icon">⏰</span> 조출 / 토요근무 여부</div>
+            <div class="early-work-grid">
+              <div class="early-work-week">
+                <div class="early-work-week-label">이번 주</div>
+                <label class="early-work-item">
+                  <input type="checkbox" id="earlyWorkThis" class="early-work-checkbox" />
+                  <span class="early-work-label">조출</span>
+                </label>
+                <label class="early-work-item">
+                  <input type="checkbox" id="satWorkThis" class="early-work-checkbox" />
+                  <span class="early-work-label">토요일 출근</span>
+                </label>
+              </div>
+              <div class="early-work-week">
+                <div class="early-work-week-label">다음 주</div>
+                <label class="early-work-item">
+                  <input type="checkbox" id="earlyWorkNext" class="early-work-checkbox" />
+                  <span class="early-work-label">조출</span>
+                </label>
+                <label class="early-work-item">
+                  <input type="checkbox" id="satWorkNext" class="early-work-checkbox" />
+                  <span class="early-work-label">토요일 출근</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- 근태 특이사항 -->
+          <div class="journal-section">
+            <div class="journal-section-title"><span class="icon">🗓️</span> 근태 특이사항</div>
+            <div class="attendance-grid">
+              <div class="attendance-item">
+                <label>이번 주 근태</label>
+                <input type="text" class="attendance-input" id="attendanceThisWeek"
+                  placeholder="예) 금요일 반차, 목요일 출장 등" />
+              </div>
+              <div class="attendance-item">
+                <label>다음 주 근태 예정</label>
+                <input type="text" class="attendance-input" id="attendanceNextWeek"
+                  placeholder="예) 월요일 연차, 수요일 교육 등" />
+              </div>
+            </div>
+          </div>
+
+          <!-- 주간 요약 -->
+          <div class="journal-section">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+              <div class="journal-section-title" style="margin-bottom:0;"><span class="icon">📋</span> 주간 업무 요약</div>
+              <button id="journalImportTasksBtn" class="btn"
+                style="height:30px;font-size:12px;padding:0 12px;border-radius:8px;display:flex;align-items:center;gap:5px;">
+                📥 업무에서 불러오기
+              </button>
+            </div>
+            <textarea class="journal-textarea" id="journalSummary"
+              placeholder="이번 주 전반적인 업무 현황을 간략히 작성해 주세요." rows="8"></textarea>
+          </div>
+
+          <!-- 차주 계획 -->
+          <div class="journal-section">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+              <div class="journal-section-title" style="margin-bottom:0;"><span class="icon">🎯</span> 차주 업무 계획</div>
+              <button id="journalImportNextTasksBtn" class="btn"
+                style="height:30px;font-size:12px;padding:0 12px;border-radius:8px;display:flex;align-items:center;gap:5px;">
+                📥 업무에서 불러오기
+              </button>
+            </div>
+            <textarea class="journal-textarea" id="journalNextPlan"
+              placeholder="다음 주 업무 계획을 작성해 주세요. 업무 탭에서 등록하면 자동으로 채워집니다."
+              rows="8"></textarea>
+          </div>
+
+          <!-- 이슈 및 건의 -->
+          <div class="journal-section">
+            <div class="journal-section-title"><span class="icon">⚠️</span> 이슈 / 건의사항</div>
+            <textarea class="journal-textarea" id="journalIssues"
+              placeholder="이슈, 지원 요청, 건의사항 등을 작성해 주세요." rows="3"></textarea>
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- ────────────────────────────────────────
+           탭: 팀원 현황 (팀장/admin)
+      ──────────────────────────────────────── -->
+      <div id="panelTeam" style="display:none;">
+
+        <div class="task-card">
+          <div class="task-card-head" style="border-top:1.5px solid #e0e7f2;">
+            <div>
+              <h2 class="task-card-head-title">팀원 주간일지 현황</h2>
+              <p class="task-card-head-sub" id="teamWeekLabel">-</p>
+            </div>
+            <div style="display:flex;gap:8px;">
+              <button class="btn btn-primary" id="mergeViewBtn" style="height:36px;font-size:13px;padding:0 16px;border-radius:10px;">📄 통합 보기</button>
+              <button class="btn" id="exportPdfBtn" style="height:36px;font-size:13px;padding:0 16px;border-radius:10px;">⬇ PDF 다운로드</button>
+              <button class="btn" id="exportJournalBtn" style="height:36px;font-size:13px;padding:0 16px;border-radius:10px;display:none;">⬇ 엑셀 다운로드</button>
+            </div>
+          </div>
+
+          <div class="team-journal-grid" id="teamJournalGrid">
+            <div class="task-empty" style="grid-column:1/-1;">
+              <div class="task-empty-icon">👥</div>
+              <div class="task-empty-text">불러오는 중...</div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /panelTeam -->
+
+      <!-- ────────────────────────────────────────
+           탭: 검색
+      ──────────────────────────────────────── -->
+      <div id="panelSearch" style="display:none;">
+        <div class="task-card">
+
+          <!-- 검색 폼 -->
+          <div class="search-form">
+
+            <!-- 1행: 기간 + 키워드 + 검색버튼 -->
+            <div class="search-main-row">
+              <div class="search-date-group">
+                <label class="search-label">기간</label>
+                <div class="search-date-inputs">
+                  <input type="date" class="form-input search-date-input" id="searchDateFrom" />
+                  <span class="search-range-sep">~</span>
+                  <input type="date" class="form-input search-date-input" id="searchDateTo" />
+                </div>
+              </div>
+              <div class="search-keyword-group">
+                <label class="search-label">키워드 <span style="color:var(--text-muted);font-weight:400;">(제목 · 상세내용)</span></label>
+                <div class="search-keyword-wrap">
+                  <input type="text" class="form-input" id="searchKeyword" placeholder="검색어를 입력하세요" />
+                </div>
+              </div>
+            </div>
+
+            <!-- 2행: 카테고리 / 상태 / 중요도 + 초기화 -->
+            <div class="search-filter-row">
+              <div class="search-field">
+                <label class="search-label">카테고리</label>
+                <select class="form-select search-select" id="searchCategory">
+                  <option value="">전체</option>
+                </select>
+              </div>
+              <div class="search-field">
+                <label class="search-label">상태</label>
+                <select class="form-select search-select" id="searchStatus">
+                  <option value="">전체</option>
+                  <option value="TODO">예정</option>
+                  <option value="IN_PROGRESS">진행중</option>
+                  <option value="DONE">완료</option>
+                </select>
+              </div>
+              <div class="search-field">
+                <label class="search-label">중요도</label>
+                <select class="form-select search-select" id="searchPriority">
+                  <option value="">전체</option>
+                  <option value="HIGH">높음</option>
+                  <option value="MEDIUM">보통</option>
+                  <option value="LOW">낮음</option>
+                </select>
+              </div>
+              <div class="search-filter-btns">
+                <button class="btn btn-primary search-btn" id="searchRunBtn">검색</button>
+                <button class="btn search-reset-btn" id="searchResetBtn">초기화</button>
+              </div>
+            </div>
+
+          </div><!-- /search-form -->
+
+          <!-- 검색 결과 헤더 -->
+          <div class="search-result-head" id="searchResultHead" style="display:none;">
+            <span id="searchResultCount"></span>
+          </div>
+
+          <!-- 검색 결과 목록 -->
+          <div id="searchResultList">
+            <div class="task-empty">
+              <div class="task-empty-icon">🔍</div>
+              <div class="task-empty-text">검색 조건을 입력하고 검색 버튼을 눌러주세요.</div>
+            </div>
+          </div>
+
+        </div>
+      </div><!-- /panelSearch -->
+
+    </div><!-- /appBody -->
+
+  </div><!-- /container -->
+
+  <!-- ────────────────────────────────────────
+       업무 등록/수정 모달
+  ──────────────────────────────────────── -->
+  <div class="task-modal-overlay" id="taskModal">
+    <div class="task-modal">
+      <!-- 저장 중 로딩 오버레이 -->
+      <div class="task-modal-loading" id="taskModalLoading">
+        <div class="task-modal-loading-inner">
+          <div class="task-loading-spinner"></div>
+          <span class="task-modal-loading-text" id="taskModalLoadingText">저장 중...</span>
+        </div>
+      </div>
+      <div class="task-modal-head">
+        <span class="task-modal-title" id="taskModalTitle">업무 등록</span>
+        <button class="task-modal-close" id="taskModalClose">✕</button>
+      </div>
+      <div class="task-modal-body">
+        <!-- 시작일 / 종료일 한 줄 -->
+        <!-- 시작일 / 종료일 한 줄 -->
+        <div class="date-row-grid">
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label">시작일 <span class="required">*</span></label>
+            <input type="date" class="form-input" id="modalStartDate" />
+          </div>
+          <div class="form-group" style="margin-bottom:0;">
+            <div style="display:flex;align-items:center;margin-bottom:6px;">
+              <label class="form-label" style="margin:0;">종료일</label>
+              <label class="single-day-check" style="margin-left:auto;">
+                <input type="checkbox" id="modalSingleDay" checked />
+                <span>단기업무</span>
+              </label>
+            </div>
+            <input type="date" class="form-input" id="modalEndDate" />
+          </div>
+        </div>
+        <!-- 수행 의원 (업무 구분 위) -->
+        <div class="form-group">
+          <label class="form-label">수행 의원 <span style="font-size:11px;color:var(--text-muted);font-weight:400;">(소속과 다른 의원에서 수행한 경우 변경)</span></label>
+          <select class="form-select" id="modalWorkClinic"></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">업무 구분 <span class="required">*</span></label>
+          <select class="form-select" id="modalCategory">
+              <option value="">선택하세요</option>
+            </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">업무 제목 <span class="required">*</span></label>
+          <input type="text" class="form-input" id="modalTitle" placeholder="업무 제목을 입력하세요" maxlength="100" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">상세 내용</label>
+          <textarea class="form-textarea" id="modalDescription" placeholder="업무 상세 내용을 입력하세요" rows="3"></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">중요도 <span class="required">*</span></label>
+          <div class="priority-group">
+            <label class="priority-option" id="priHigh">
+              <input type="radio" name="priority" value="HIGH"> 🔴 높음
+            </label>
+            <label class="priority-option" id="priMedium">
+              <input type="radio" name="priority" value="MEDIUM"> 🟡 보통
+            </label>
+            <label class="priority-option" id="priLow">
+              <input type="radio" name="priority" value="LOW"> 🟢 낮음
+            </label>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">진행 상태</label>
+          <div class="status-group">
+            <label class="status-option" id="stTodo">
+              <input type="radio" name="status" value="TODO"> 예정
+            </label>
+            <label class="status-option" id="stInProgress">
+              <input type="radio" name="status" value="IN_PROGRESS"> 진행중
+            </label>
+            <label class="status-option" id="stDone">
+              <input type="radio" name="status" value="DONE"> 완료
+            </label>
+          </div>
+        </div>
+      </div>
+      <div class="task-modal-footer">
+        <button class="btn" id="taskModalCancelBtn">취소</button>
+        <button class="btn btn-primary" id="taskModalSaveBtn">저장</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 통합 보기 모달 -->
+  <div class="task-modal-overlay" id="mergeViewModal">
+    <div class="task-modal" style="max-width:1360px;width:95vw;">
+      <div class="task-modal-head">
+        <span class="task-modal-title" id="mergeViewTitle">팀원 주간일지 통합 보기</span>
+        <button class="task-modal-close" id="mergeViewClose">✕</button>
+      </div>
+      <div class="task-modal-body" id="mergeViewBody" style="max-height:78vh;overflow-y:auto;padding:0;">
+      </div>
+      <div class="task-modal-footer">
+        <button class="btn" id="mergeViewDismissBtn">닫기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 팀원 일지 보기 모달 -->
+  <div class="task-modal-overlay" id="memberJournalModal">
+    <div class="task-modal" style="max-width:1360px;width:95vw;">
+      <div class="task-modal-head">
+        <span class="task-modal-title" id="memberJournalTitle">팀원 일지 보기</span>
+        <button class="task-modal-close" id="memberJournalClose">✕</button>
+      </div>
+      <div class="task-modal-body" id="memberJournalBody" style="max-height:80vh;">
+        <div class="task-empty"><div class="task-empty-icon">📝</div></div>
+      </div>
+      <div class="task-modal-footer">
+        <button class="btn btn-primary" id="memberJournalCloseActionBtn" style="display:none;">마감 처리</button>
+        <button class="btn" id="memberJournalReopenBtn" style="display:none;border-color:#d97706;color:#d97706;">마감 해제</button>
+        <button class="btn" id="memberJournalDismissBtn">닫기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ────────────────────────────────────────
+       덮어쓰기 확인 모달
+  ──────────────────────────────────────── -->
+  <div class="task-modal-overlay" id="overwriteModal">
+    <div class="task-modal" style="max-width:420px;">
+      <div class="task-modal-head">
+        <span class="task-modal-title">업무일지 덮어쓰기 확인</span>
+      </div>
+      <div class="task-modal-body">
+        <p style="font-size:13px;color:var(--text-secondary);margin:0 0 16px;">
+          <strong id="overwriteWeekLabel"></strong> 주차에 이미
+          <strong id="overwriteStatusLabel"></strong> 상태의 업무일지가 있습니다.
+        </p>
+
+        <div class="overwrite-section overwrite-section--replace">
+          <div class="overwrite-section-head">
+            <span>🔄</span>
+            <span>업무 목록 기반으로 <strong>새로 작성</strong></span>
+          </div>
+          <ul class="overwrite-list">
+            <li>📋 주간 업무 요약</li>
+            <li>🎯 차주 업무 계획</li>
+          </ul>
+        </div>
+
+        <div class="overwrite-section overwrite-section--keep">
+          <div class="overwrite-section-head">
+            <span>🔒</span>
+            <span>기존 내용 <strong>그대로 유지</strong></span>
+          </div>
+          <ul class="overwrite-list">
+            <li>🗓️ 이번 주 / 다음 주 근태 특이사항</li>
+            <li>⚠️ 이슈 / 건의사항</li>
+          </ul>
+        </div>
+      </div>
+      <div class="task-modal-footer">
+        <button class="btn" id="overwriteCancelBtn">취소</button>
+        <button class="btn btn-primary" id="overwriteConfirmBtn" style="background:#0369a1;border-color:#0369a1;">덮어쓰기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ────────────────────────────────────────
+       카테고리 관리 모달 (manager / admin 전용)
+  ──────────────────────────────────────── -->
+  <div class="task-modal-overlay" id="categoryModal">
+    <div class="task-modal" style="max-width:480px;">
+      <div class="task-modal-head">
+        <span class="task-modal-title">업무 카테고리 관리</span>
+        <button class="task-modal-close" id="categoryModalClose">✕</button>
+      </div>
+      <div class="task-modal-body" style="max-height:60vh;">
+
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+          <p style="font-size:12px;color:var(--text-muted);margin:0;">
+            팀 전용 카테고리를 등록하여 사용하세요.
+          </p>
+          <span class="category-source-badge" id="categorySourceBadge"></span>
+        </div>
+
+        <!-- 카테고리 목록 -->
+        <div id="categoryList" style="margin-bottom:16px;"></div>
+
+        <!-- 추가/수정 폼 -->
+        <div class="category-add-form" id="categoryAddForm">
+          <div style="display:flex;gap:8px;align-items:flex-end;">
+            <div style="flex:1;">
+              <label class="form-label">카테고리 이름 <span class="required">*</span></label>
+              <input type="text" class="form-input" id="catInputName"
+                placeholder="예) 원무, 인사, 기획 등" maxlength="20" style="height:38px;" />
+            </div>
+            <div style="width:80px;">
+              <label class="form-label">순서</label>
+              <input type="number" class="form-input" id="catInputOrder"
+                placeholder="1" min="1" style="height:38px;" />
+            </div>
+            <button class="btn btn-primary" id="catAddBtn"
+              style="height:38px;padding:0 14px;font-size:13px;white-space:nowrap;">
+              추가
+            </button>
+          </div>
+          <input type="hidden" id="catEditValue" />
+          <input type="hidden" id="catEditGroup" />
+        </div>
+
+      </div>
+      <div class="task-modal-footer">
+        <p class="category-tip" id="categoryTip"></p>
+        <button class="btn" id="categoryModalDone">닫기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 업무에서 불러오기 모달 ──────────────────────────────── -->
+  <div class="task-modal-overlay" id="importTasksModal">
+    <div class="task-modal" style="max-width:560px;">
+      <div class="task-modal-head">
+        <span class="task-modal-title">📥 업무에서 불러오기</span>
+        <button class="task-modal-close" id="importTasksModalClose">✕</button>
+      </div>
+      <div class="task-modal-body" style="max-height:60vh;">
+        <p style="font-size:13px;color:var(--text-secondary);margin:0 0 14px;">
+          이번 주 등록된 업무 중 요약에 추가할 항목을 선택하세요.
+        </p>
+        <!-- 전체 선택 -->
+        <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--border-soft);margin-bottom:4px;">
+          <input type="checkbox" id="importTasksSelectAll" style="width:15px;height:15px;cursor:pointer;">
+          <label for="importTasksSelectAll" style="font-size:13px;font-weight:600;cursor:pointer;color:var(--text-secondary);">전체 선택</label>
+        </div>
+        <div id="importTasksList" style="max-height:260px;overflow-y:auto;">
+          <div style="padding:20px;text-align:center;color:var(--text-muted);font-size:13px;">불러오는 중...</div>
+        </div>
+        <!-- 적용 방식 -->
+        <div style="display:flex;align-items:center;gap:16px;margin-top:14px;padding-top:14px;border-top:1px solid var(--border-soft);">
+          <span style="font-size:13px;color:var(--text-secondary);font-weight:500;flex-shrink:0;">적용 방식:</span>
+          <label style="display:flex;align-items:center;gap:5px;font-size:13px;cursor:pointer;">
+            <input type="radio" name="importMode" value="append" checked> 기존 내용 뒤에 추가
+          </label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:13px;cursor:pointer;">
+            <input type="radio" name="importMode" value="replace"> 전체 교체
+          </label>
+        </div>
+      </div>
+      <div class="task-modal-footer">
+        <button class="btn" id="importTasksCancelBtn">취소</button>
+        <button class="btn btn-primary" id="importTasksApplyBtn">적용</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ────────────────────────────────────────
+       팀원 업무 상세 보기 모달 (읽기 전용)
+  ──────────────────────────────────────── -->
+  <div class="task-modal-overlay" id="teamTaskModal">
+    <div class="task-modal" style="max-width:620px;width:95vw;">
+      <div class="task-modal-head">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span class="task-modal-title" id="teamTaskModalTitle"></span>
+          <span class="team-modal-owner-badge" id="teamTaskModalOwner"></span>
+        </div>
+        <button class="task-modal-close" id="teamTaskModalClose">✕</button>
+      </div>
+      <div class="task-modal-body">
+
+        <!-- 메타 칩 행 -->
+        <div class="team-modal-meta-row" id="teamTaskModalMetaRow"></div>
+
+        <!-- 날짜 / 수행의원 행 -->
+        <div class="team-modal-info-row">
+          <span class="team-modal-info-item">
+            <span class="team-modal-info-label">날짜</span>
+            <span class="team-modal-info-value" id="teamTaskModalDate"></span>
+          </span>
+          <span class="team-modal-info-sep"></span>
+          <span class="team-modal-info-item">
+            <span class="team-modal-info-label">수행 의원</span>
+            <span class="team-modal-info-value" id="teamTaskModalClinic"></span>
+          </span>
+        </div>
+
+        <!-- 상세 내용 -->
+        <div id="teamTaskModalDescWrap">
+          <div class="form-label" style="margin-bottom:6px;">상세 내용</div>
+          <div class="team-modal-desc" id="teamTaskModalDesc"></div>
+        </div>
+
+        <!-- 읽기 전용 안내 -->
+        <div style="margin-top:10px;text-align:center;">
+          <span class="team-modal-readonly-note">🔒 읽기 전용 — 수정은 본인만 가능합니다.</span>
+        </div>
+
+      </div>
+      <div class="task-modal-footer" style="justify-content:center;">
+        <button class="btn" id="teamTaskModalDismiss" style="min-width:120px;">닫기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 글로벌 로딩 -->
+  <div id="globalLoading" aria-hidden="true">
+    <div class="global-loading__dialog">
+      <div class="global-loading__spinner" aria-hidden="true"></div>
+      <div class="global-loading__text" id="globalLoadingText">불러오는 중...</div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+  <script src="../../assets/libs/supabase.js"></script>
+  <script src="../../assets/js/core/config.js"></script>
+  <script src="../../assets/js/core/utils.js"></script>
+  <script src="../../assets/js/core/supabase.js"></script>
+  <script src="../../assets/js/core/auth.js"></script>
+  <script src="../../assets/js/task/task-manager.js"></script>
+</body>
+</html>
