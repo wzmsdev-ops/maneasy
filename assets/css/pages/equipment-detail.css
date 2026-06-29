@@ -8,7 +8,7 @@
 .det-page {
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  height: 100%;
   overflow: hidden;
   padding: 10px 16px;
   gap: 0;
@@ -575,7 +575,7 @@
   border-radius: var(--radius-md, 8px);
   width: 440px;
   max-width: calc(100vw - 32px);
-  max-height: calc(100vh - 64px);
+  max-height: calc(100% - 64px);
   display: flex;
   flex-direction: column;
   box-shadow: var(--shadow-modal, 0 20px 60px rgba(0,0,0,0.16));
