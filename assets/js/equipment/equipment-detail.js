@@ -1839,7 +1839,7 @@ function _drawChart(item, entries) {
     Number(mean+3*sd).toFixed(dec).length,
     Number(mean-3*sd).toFixed(dec).length
   );
-  var p={t:18, r:16, b:36, l: Math.max(28, 10 + maxLabelLen*5.5)};
+  var p={t:18, r:28, b:36, l: Math.max(28, 10 + maxLabelLen*5.5)};
   var cw=W-p.l-p.r, ch=H-p.t-p.b;
   var yMin=mean-3.5*sd, yMax=mean+3.5*sd;
   function Y(v){return p.t+ch-(v-yMin)/(yMax-yMin)*ch;}
