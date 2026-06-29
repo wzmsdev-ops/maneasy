@@ -1,9 +1,17 @@
 var _gridInstance = null; // AG Grid 인스턴스
 
+// 뷰포트 높이 기준 페이지당 행 수 동적 계산
+function calcPageSize() {
+  var ROW_H   = 35;
+  var FIXED_H = 35 + 40 + 28 + 18 + 8; // header(35) + filterbar(40) + pagination(28) + padding(18) + gap(8)
+  var size = Math.floor((window.innerHeight - FIXED_H) / ROW_H);
+  return Math.max(10, size);
+}
+
 var equipmentListState = {
   user: null,
   page: 1,
-  pageSize: 20,
+  pageSize: calcPageSize(),
   totalCount: 0,
   totalPages: 1,
   hasNext: false,
@@ -403,7 +411,7 @@ function renderEquipmentList(items) {
     columnDefs: columnDefs,
     defaultColDef: defaultColDef,
     rowData: items,
-    rowHeight: 36,
+    rowHeight: 35,
     headerHeight: 35,
     suppressPaginationPanel: true,
     suppressScrollOnNewData: true,
