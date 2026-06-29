@@ -11,7 +11,7 @@
   height: 100vh;
   overflow: hidden;
   padding: 10px 16px;
-  gap: 8px;
+  gap: 0;
   box-sizing: border-box;
 }
 
@@ -871,6 +871,7 @@
 }
 
 /* ── 상세 탭 ── */
+.det-actionbar { margin-bottom: 8px; }
 .det-tabs {
   display: flex;
   gap: 2px;
@@ -878,7 +879,6 @@
   border-radius: 8px;
   padding: 3px;
   flex-shrink: 0;
-  margin-bottom: 8px;
 }
 .det-tabs .tab-btn {
   flex: 1;
@@ -903,9 +903,7 @@
 .det-qc-wrap {
   flex: 1;
   min-height: 0;
-  overflow-y: auto;
-  padding: 4px 0;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
-  gap: 8px;
 }
