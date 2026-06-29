@@ -586,7 +586,7 @@ function renderUserPermBody(pagePerms, disabled) {
         });
         sel.style.color = PERM_COLORS[p.value || '접근불가'] || '#6b7280';
         sel.addEventListener('change', function() {
-          p.node.setDataValue('level', sel.value);
+          p.node.data.level = sel.value;  // 직접 data 수정 (editable:false 환경)
           sel.style.color = PERM_COLORS[sel.value] || '#6b7280';
         });
         return sel;
