@@ -565,7 +565,7 @@ function renderUserPermBody(pagePerms, disabled) {
         }
         // 드롭다운 select 렌더링 (인라인, 셀 클릭 없이 바로 변경)
         const sel = document.createElement('select');
-        sel.style.cssText = 'height:26px;padding:0 6px;border:1px solid #e5e7eb;border-radius:5px;font-size:11px;font-weight:600;outline:none;cursor:pointer;background:#fff;';
+        sel.style.cssText = 'width:100%;height:100%;padding:0 8px;border:none;border-radius:0;font-size:11px;font-weight:600;outline:none;cursor:pointer;background:transparent;box-sizing:border-box;';
         PERM_LEVELS.forEach(lv => {
           const opt = document.createElement('option');
           opt.value = lv;
