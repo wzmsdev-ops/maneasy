@@ -247,6 +247,7 @@ async function init() {
   // 수정 모드 확인
   const params = new URLSearchParams(location.search);
   editingId = params.get('id') || null;
+  const fromList = params.get('from') === 'list';
 
   if (editingId) {
     document.querySelector('h2, .page-title')?.textContent !== undefined &&
@@ -254,7 +255,9 @@ async function init() {
     const btnText = document.getElementById('submitButtonText');
     if (btnText) btnText.textContent = '장비 수정';
     const cancelBtn = qs('#cancelBtn');
-    if (cancelBtn) cancelBtn.innerHTML = '<i class="ti ti-arrow-left"></i> 상세로';
+    if (cancelBtn) cancelBtn.innerHTML = fromList
+      ? '<i class="ti ti-arrow-left"></i> 목록으로'
+      : '<i class="ti ti-arrow-left"></i> 상세로';
     showGlobalLoading('장비 정보를 불러오는 중...');
     try {
       const eq = await loadEquipment(editingId);
@@ -275,7 +278,8 @@ async function init() {
     try {
       const id = await saveEquipment();
       alert(editingId ? '장비 정보가 수정됐습니다.' : '장비가 등록됐습니다.');
-      parent.shellNavigate?.(`equipment/detail?id=${id}`);
+      if (fromList) parent.shellNavigate?.('equipment/list');
+      else parent.shellNavigate?.(`equipment/detail?id=${id}`);
     } catch (e) {
       alert('저장 실패: ' + e.message);
       btn.disabled = false;
@@ -285,7 +289,7 @@ async function init() {
 
   // 취소 버튼
   qs('#cancelBtn')?.addEventListener('click', () => {
-    if (editingId) parent.shellNavigate?.(`equipment/detail?id=${editingId}`);
+    if (editingId && !fromList) parent.shellNavigate?.(`equipment/detail?id=${editingId}`);
     else parent.shellNavigate?.('equipment/list');
   });
 }
