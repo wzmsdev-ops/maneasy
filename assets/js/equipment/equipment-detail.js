@@ -1787,7 +1787,13 @@ function _renderChart(item, entries) {
   }
   var mean=parseFloat(item.mean), sd=parseFloat(item.sd), dec=item.decimal_places||2;
   var W=wrap.clientWidth||400, H=wrap.clientHeight||180;
-  var p={t:18,r:10,b:32,l:48};
+  // 좌측 여백(축 라벨 자리)은 라벨 글자수에 맞춰 동적으로 계산 — 고정값(48px)을 쓰면
+  // 라벨이 짧을 때 왼쪽이 필요 이상으로 넓어져서 그래프가 오른쪽으로 쏠려 보임
+  var maxLabelLen = Math.max(
+    Number(mean+3*sd).toFixed(dec).length,
+    Number(mean-3*sd).toFixed(dec).length
+  );
+  var p={t:18, r:16, b:32, l: Math.max(28, 14 + maxLabelLen*5.6)};
   var cw=W-p.l-p.r, ch=H-p.t-p.b;
   var yMin=mean-3.5*sd, yMax=mean+3.5*sd;
   function Y(v){return p.t+ch-(v-yMin)/(yMax-yMin)*ch;}
