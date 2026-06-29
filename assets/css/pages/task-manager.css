@@ -1,0 +1,2067 @@
+/* =========================================
+ * task-manager.css
+ * 업무일정 관리 / 주간업무일지 — 병원 업무 특화 UI
+ * ========================================= */
+
+/* ── 페이지 히어로 ── */
+.task-page .portal-section-kicker {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 8px;
+  margin-bottom: 6px;
+  border-radius: 6px;
+  background: #e0f2fe;
+  color: #0369a1;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* ── 탭 네비게이션 ── */
+.task-tabs {
+  display: flex;
+  gap: 4px;
+  background: #f1f5f9;
+  border-radius: var(--radius-md);
+  padding: 4px;
+  margin-bottom: 20px;
+}
+
+.task-tab-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 38px;
+  padding: 0 16px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.task-tab-btn.active {
+  background: #fff;
+  color: var(--navy);
+  font-weight: 600;
+  box-shadow: 0 1px 4px rgba(15,23,42,0.10);
+}
+
+.task-tab-btn:hover:not(.active) {
+  background: #e8edf5;
+  color: var(--text-primary);
+}
+
+/* ── 카드 공통 ── */
+.task-card {
+  background: #fff;
+  border: 1.5px solid var(--border-card);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+
+.task-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 22px 16px;
+  background: #f7f9fd;
+  border-bottom: 1.5px solid #e0e7f2;
+}
+
+.task-card-head > div:first-child {
+  position: relative;
+  padding-left: 14px;
+}
+
+.task-card-head > div:first-child::before {
+  content: "";
+  position: absolute;
+  left: 0; top: 2px; bottom: 2px;
+  width: 4px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #0369a1 0%, #38bdf8 100%);
+}
+
+.task-card-head-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 2px;
+}
+
+.task-card-head-sub {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.task-card-body {
+  padding: 20px 22px;
+}
+
+/* ── 공통 주차 네비게이터 ── */
+.week-nav-shared {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 12px 20px;
+  background: #fff;
+  border: 1.5px solid var(--border-card);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-card);
+  margin-bottom: 12px;
+  position: relative;
+}
+
+.week-nav-range-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 16px;
+  border: 1.5px solid var(--border-input);
+  border-radius: var(--radius-sm);
+  background: #f7f9fd;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  min-width: 200px;
+}
+
+.week-nav-range-btn:hover {
+  border-color: var(--blue);
+  background: var(--blue-soft);
+}
+
+.week-nav-range-btn span {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
+/* ── 탭: 주간 업무
+   ── */
+.week-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 14px 22px;
+  background: #f7f9fd;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+/* ── 월 캘린더 팝업 ── */
+.week-calendar-popup {
+  display: none;
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 200;
+  width: 280px;
+  background: #fff;
+  border: 1.5px solid var(--border-card);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-modal);
+  padding: 12px;
+  user-select: none;
+}
+
+.week-calendar-popup.open {
+  display: block;
+  animation: wcp-in 0.15s ease;
+}
+
+@keyframes wcp-in {
+  from { opacity: 0; transform: translateX(-50%) translateY(-6px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+.wcp-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.wcp-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.wcp-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1.5px solid var(--border-input);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--text-secondary);
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.wcp-nav:hover {
+  border-color: var(--navy);
+  color: var(--navy);
+  background: var(--blue-soft);
+}
+
+.wcp-dow-row {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  margin-bottom: 4px;
+}
+
+.wcp-dow-row span {
+  text-align: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  padding: 2px 0;
+}
+
+.wcp-dow-row span:first-child { color: #dc2626; }
+.wcp-dow-row span:last-child  { color: #2563eb; }
+
+.wcp-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 1px;
+}
+
+/* 주 행 — 클릭 단위 */
+.wcp-week-row {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+
+.wcp-week-row:hover {
+  background: var(--blue-soft);
+}
+
+.wcp-week-row.is-selected {
+  background: var(--navy);
+}
+
+.wcp-week-row.is-selected .wcp-day {
+  color: #fff;
+}
+
+.wcp-week-row.is-selected .wcp-day.is-today {
+  color: #7dd3fc;
+}
+
+.wcp-day {
+  text-align: center;
+  padding: 5px 2px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-primary);
+  border-radius: 6px;
+  line-height: 1.2;
+}
+
+.wcp-day.is-other-month { color: var(--text-muted); opacity: 0.4; }
+.wcp-day.is-today       { color: var(--blue); font-weight: 800; }
+.wcp-day.is-sunday      { color: #dc2626; }
+.wcp-day.is-saturday    { color: #2563eb; }
+
+.wcp-week-row.is-selected .wcp-day.is-sunday,
+.wcp-week-row.is-selected .wcp-day.is-saturday { color: #bfdbfe; }
+
+@media (max-width: 640px) {
+  .week-nav-shared { gap: 6px; padding: 10px 12px; }
+  .week-nav-range-btn { min-width: 160px; }
+  .week-calendar-popup { width: 260px; }
+}
+
+.week-nav-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1.5px solid var(--border-input);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.15s ease;
+}
+
+.week-nav-btn:hover {
+  border-color: var(--navy);
+  color: var(--navy);
+  background: var(--blue-soft);
+}
+
+.week-nav-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 200px;
+}
+
+.week-nav-range {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.week-nav-sub {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.week-nav-today {
+  padding: 4px 10px;
+  border: 1.5px solid var(--border-input);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.week-nav-today:hover {
+  border-color: var(--blue);
+  color: var(--blue);
+}
+
+/* ── 요일별 타임라인 ── */
+.week-timeline {
+  padding: 0;
+}
+
+.day-row {
+  border-bottom: none;
+}
+
+.day-row:last-child { border-bottom: none; }
+
+/* ── 날짜 행: 날짜가 바뀌는 지점을 굵은 상단 선으로 강조 ── */
+.day-row + .day-row .day-row-head {
+  border-top: 2px solid #e2e8f0;
+}
+
+.day-row-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 22px 8px;
+  background: #f1f5f9;
+  border-bottom: 1px solid #e2e8f0;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.12s ease;
+}
+
+.day-row-head:hover {
+  background: #e8eef6;
+}
+
+.day-row-head.is-today {
+  background: #dbeafe;
+  border-left: 3px solid var(--blue);
+  border-top: 2px solid #93c5fd;
+}
+
+.day-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+
+/* ── 날짜+요일 가로 배치 ── */
+.day-date {
+  display: flex;
+  flex-direction: row;
+  align-items: baseline;
+  gap: 4px;
+  width: auto;
+  min-width: 52px;
+  flex-shrink: 0;
+}
+
+.day-date-num {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--text-primary);
+  line-height: 1;
+}
+
+.day-date-dow {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.is-today .day-date-num {
+  color: var(--blue);
+}
+
+.is-today .day-date-dow {
+  color: var(--blue);
+}
+
+.is-sunday .day-date-num,
+.is-sunday .day-date-dow { color: #dc2626; }
+
+.is-saturday .day-date-num,
+.is-saturday .day-date-dow { color: #2563eb; }
+
+.day-task-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+  padding: 0 8px;
+}
+
+.day-progress-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.day-progress-count {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.day-priority-badge {
+  display: inline-flex;
+  align-items: center;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.day-priority-badge.high   { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
+.day-priority-badge.medium { background: #fffbeb; color: #92400e; border: 1px solid #fde68a; }
+.day-priority-badge.low    { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
+
+.day-empty-label {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.day-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 160px;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.day-chip:hover { opacity: 0.8; }
+
+/* 우선순위별 칩 색상 */
+.chip-high   { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
+.chip-medium { background: #fffbeb; color: #92400e; border: 1px solid #fde68a; }
+.chip-low    { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
+
+.day-row-add {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-shrink: 0;
+}
+
+.day-add-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 24px;
+  padding: 0 8px;
+  border: 1.5px dashed var(--border-dashed);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.day-add-btn:hover {
+  border-color: var(--blue);
+  color: var(--blue);
+  background: var(--blue-soft);
+}
+
+/* ── 업무 아이템 목록 ── */
+.day-tasks {
+  padding: 8px 22px 12px;
+}
+
+.task-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1.5px solid var(--border-soft);
+  background: #fff;
+  margin-bottom: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.task-item:last-child { margin-bottom: 0; }
+
+.task-item:hover {
+  border-color: var(--border);
+  box-shadow: 0 2px 8px rgba(15,23,42,0.06);
+  transform: translateY(-1px);
+}
+
+.task-item.is-done {
+  opacity: 0.55;
+  background: #f8fafc;
+}
+
+.task-priority-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-top: 5px;
+  flex-shrink: 0;
+}
+
+.priority-high   { background: #dc2626; }
+.priority-medium { background: #d97706; }
+.priority-low    { background: #16a34a; }
+
+.task-item-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.task-item-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 6px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.task-item.is-done .task-item-title {
+  text-decoration: line-through;
+  color: var(--text-muted);
+}
+
+.task-item-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* 상세내용: 남은 공간 최대한 활용 */
+.task-item-desc {
+  font-size: 11px;
+  color: var(--text-muted);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.task-badge {
+  display: inline-flex;
+  align-items: center;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+}
+
+.badge-category { background: #eff6ff; color: #1d4ed8; }
+.badge-status-todo       { background: #f1f5f9; color: #475569; }
+.badge-status-inprogress { background: #fef9c3; color: #854d0e; }
+.badge-status-done       { background: #dcfce7; color: #15803d; }
+
+.task-item-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.task-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 30px;
+  padding: 0 10px;
+  border: 1.5px solid var(--border-input);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.task-icon-btn:hover {
+  border-color: var(--blue);
+  background: var(--blue-soft);
+  color: var(--blue);
+}
+
+.task-icon-btn.done {
+  border-color: #16a34a;
+  background: #f0fdf4;
+  color: #16a34a;
+}
+
+.task-icon-btn.done:hover {
+  background: #dcfce7;
+  border-color: #15803d;
+  color: #15803d;
+}
+
+.task-icon-btn.danger {
+  border-color: var(--border-input);
+  background: #fff;
+  color: var(--text-muted);
+}
+
+.task-icon-btn.danger:hover {
+  background: #fef2f2;
+  border-color: #dc2626;
+  color: #dc2626;
+}
+
+/* ── 주간 요약 바 ── */
+.week-summary-bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 22px;
+  background: #f0f7ff;
+}
+
+.summary-stat {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.summary-stat-num {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--navy);
+  line-height: 1;
+}
+
+.summary-stat-label {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.summary-sep {
+  width: 1px;
+  height: 20px;
+  background: #cbd5e1;
+}
+
+.progress-bar-wrap {
+  flex: 1;
+  height: 6px;
+  background: #dbeafe;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #0369a1, #38bdf8);
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+
+/* ── 주간일지 편집 영역 ── */
+.journal-section {
+  border-top: 1.5px solid var(--border-soft);
+  padding: 20px 22px;
+}
+
+.journal-section:first-child { border-top: none; }
+
+.journal-section-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.journal-section-title .icon {
+  font-size: 15px;
+}
+
+.journal-textarea {
+  width: 100%;
+  min-height: 80px;
+  padding: 10px 14px;
+  border: 1.5px solid var(--border-input);
+  border-radius: var(--radius-sm);
+  background: #fff;
+  color: var(--text-primary);
+  font-size: 13px;
+  line-height: 1.6;
+  resize: vertical;
+  transition: border-color 0.15s ease;
+  box-sizing: border-box;
+}
+
+.journal-textarea:focus {
+  outline: none;
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(47,109,246,0.10);
+}
+
+.journal-textarea:disabled {
+  background: #f8fafc;
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+
+
+/* ── 조출 / 토요근무 여부 ── */
+/* early-work-grid: 이번 주(좌) / 다음 주(우) 좌우 2컬럼 */
+.early-work-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+/* 각 컬럼: 레이블을 위에, 체크박스들을 아래로 세로 배치 */
+.early-work-week {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: #f8fafc;
+  border: 1px solid var(--border-soft);
+  border-radius: 10px;
+  padding: 10px 14px;
+}
+
+.early-work-week-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  margin-bottom: 2px;
+}
+
+.early-work-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.early-work-checkbox {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--blue);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.early-work-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+@media (max-width: 640px) {
+  .early-work-grid { grid-template-columns: 1fr; }
+}
+
+/* ── 근태 입력 ── */
+.attendance-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.attendance-item label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+
+.attendance-input {
+  width: 100%;
+  height: 40px;
+  padding: 0 12px;
+  border: 1.5px solid var(--border-input);
+  border-radius: var(--radius-sm);
+  background: #fff;
+  color: var(--text-primary);
+  font-size: 13px;
+  transition: border-color 0.15s ease;
+  box-sizing: border-box;
+}
+
+.attendance-input:focus {
+  outline: none;
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(47,109,246,0.10);
+}
+
+.attendance-input:disabled {
+  background: #f8fafc;
+  color: var(--text-muted);
+}
+
+/* ── 일지 상태 배지 ── */
+.journal-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 24px;
+  padding: 0 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.journal-status-draft     { background: #f1f5f9; color: #64748b; }
+.journal-status-submitted { background: #dbeafe; color: #1e40af; }
+.journal-status-closed    { background: #dcfce7; color: #166534; }
+
+/* ── 업무 등록/수정 모달 ── */
+.task-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15,23,42,0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s ease, visibility 0s linear 0.2s;
+  pointer-events: none;
+}
+
+.task-modal-overlay.open {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.2s ease, visibility 0s linear 0s;
+  pointer-events: all;
+}
+
+.task-modal {
+  width: 100%;
+  max-width: 640px;
+  background: #fff;
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-modal);
+  overflow: hidden;
+  transform: translateY(16px);
+  transition: transform 0.22s ease;
+}
+
+.task-modal-overlay.open .task-modal {
+  transform: translateY(0);
+}
+
+.task-modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 22px 16px;
+  background: #f7f9fd;
+  border-bottom: 1.5px solid #e0e7f2;
+}
+
+.task-modal-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.task-modal-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 18px;
+  transition: all 0.15s;
+}
+
+.task-modal-close:hover {
+  background: #f1f5f9;
+  color: var(--text-primary);
+}
+
+.task-modal-body {
+  padding: 20px 22px;
+  max-height: 60vh;
+  overflow-y: auto;
+  overflow-x: clip;
+}
+
+.task-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 22px;
+  border-top: 1.5px solid var(--border-soft);
+  background: #fafbfd;
+}
+
+/* ── 폼 그룹 ── */
+.form-group {
+  margin-bottom: 16px;
+}
+
+.form-group:last-child { margin-bottom: 0; }
+
+.form-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+
+.form-label .required {
+  color: #dc2626;
+  margin-left: 2px;
+}
+
+.form-input,
+.form-select,
+.form-textarea {
+  width: 100%;
+  padding: 0 12px;
+  height: 42px;
+  min-height: 42px;
+  border: 1.5px solid var(--border-input);
+  border-radius: var(--radius-sm);
+  background: #fff;
+  color: var(--text-primary);
+  font-size: 13px;
+  transition: border-color 0.15s ease;
+  box-sizing: border-box;
+}
+
+/* type=date — display:flex 금지 (캘린더 아이콘 위치 깨짐) */
+input[type="date"].form-input {
+  -webkit-appearance: none;
+  appearance: none;
+  display: block;
+  height: 42px;
+  min-height: 42px;
+  max-width: 100%;
+  width: 100%;
+  min-width: 0;
+  padding: 0 10px;
+  line-height: 40px;
+  box-sizing: border-box;
+  border: 1.5px solid var(--border-input);
+  border-radius: var(--radius-sm);
+  background: #fff;
+  color: var(--text-primary);
+  font-size: 13px;
+}
+
+.form-textarea {
+  height: auto;
+  min-height: 80px;
+  padding: 10px 12px;
+  resize: vertical;
+  line-height: 1.6;
+}
+
+.form-input:focus,
+.form-select:focus,
+.form-textarea:focus {
+  outline: none;
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(47,109,246,0.10);
+}
+
+/* 우선순위 선택 버튼 그룹 */
+.priority-group {
+  display: flex;
+  gap: 8px;
+}
+
+.priority-option {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  height: 38px;
+  border: 1.5px solid var(--border-input);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.priority-option input[type="radio"] { display: none; }
+
+.priority-option.selected-high   { border-color: #dc2626; background: #fef2f2; color: #b91c1c; font-weight: 700; }
+.priority-option.selected-medium { border-color: #d97706; background: #fffbeb; color: #92400e; font-weight: 700; }
+.priority-option.selected-low    { border-color: #16a34a; background: #f0fdf4; color: #166534; font-weight: 700; }
+
+/* 상태 선택 */
+.status-group {
+  display: flex;
+  gap: 6px;
+}
+
+.status-option {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 36px;
+  border: 1.5px solid var(--border-input);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.status-option input[type="radio"] { display: none; }
+
+.status-option.selected-todo       { border-color: #94a3b8; background: #f1f5f9; color: #475569; font-weight: 700; }
+.status-option.selected-inprogress { border-color: #d97706; background: #fef9c3; color: #854d0e; font-weight: 700; }
+.status-option.selected-done       { border-color: #16a34a; background: #dcfce7; color: #15803d; font-weight: 700; }
+
+/* ── 팀원 일지 목록 (팀장 뷰) ── */
+.team-journal-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
+  padding: 16px 22px;
+}
+
+.team-dept-header {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted, #64748b);
+  letter-spacing: 0.04em;
+  margin-top: 6px;
+  margin-bottom: -2px;
+}
+.team-dept-header::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border-soft, #e2e8f0);
+}
+
+.team-member-card {
+  border: 1.5px solid var(--border-card);
+  border-radius: var(--radius-lg);
+  background: #fff;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.team-member-card:hover {
+  border-color: #93c5fd;
+  box-shadow: 0 4px 16px rgba(37,99,235,0.10);
+  transform: translateY(-2px);
+}
+
+.team-member-card-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px 12px;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.member-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0369a1, #38bdf8);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.member-info-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.member-info-dept {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.manager-crown {
+  margin-left: auto;
+  font-size: 14px;
+}
+
+.team-member-card-body {
+  padding: 12px 16px;
+}
+
+.member-task-mini {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.mini-bar {
+  flex: 1;
+  height: 4px;
+  background: #e2e8f0;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.mini-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #0369a1, #38bdf8);
+  border-radius: 999px;
+}
+
+.member-task-count {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/* ── 빈 상태 ── */
+.task-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.task-empty-icon {
+  font-size: 36px;
+  margin-bottom: 12px;
+  opacity: 0.5;
+}
+
+.task-empty-text {
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+/* ── 저장 상태 표시 ── */
+.autosave-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.autosave-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #94a3b8;
+  transition: background 0.3s ease;
+}
+
+.autosave-dot.saving  { background: #d97706; }
+.autosave-dot.saved   { background: #16a34a; }
+.autosave-dot.error   { background: #dc2626; }
+
+/* ── 검색 폼 ── */
+.search-form {
+  padding: 20px 22px;
+  border-bottom: 1.5px solid var(--border-soft);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* 1행: 시작일 ~ 종료일 | 키워드 + 검색버튼 — 한 줄 정렬 */
+.search-main-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.search-date-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.search-date-inputs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.search-range-sep {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 38px;   /* form-input 높이와 맞춤 */
+  flex-shrink: 0;
+}
+
+.search-date-input {
+  width: 140px;
+  height: 38px;
+}
+
+.search-keyword-group {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.search-keyword-wrap {
+  display: flex;
+  gap: 8px;
+}
+
+.search-keyword-wrap .form-input {
+  flex: 1;
+  height: 38px;
+  min-width: 0;
+}
+
+.search-btn {
+  height: 38px;
+  padding: 0 20px;
+  font-size: 13px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* 2행: 카테고리 / 상태 / 중요도 / 초기화 — 한 줄 정렬 */
+.search-filter-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  padding-top: 4px;
+  border-top: 1px solid var(--border-soft);
+}
+
+.search-select {
+  height: 38px;
+  min-width: 120px;
+  font-size: 13px;
+}
+
+.search-reset-btn {
+  height: 38px;
+  padding: 0 16px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+/* 검색+초기화 버튼 묶음 — 오른쪽 끝 정렬 */
+.search-filter-btns {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+  align-items: center;
+}
+
+/* 공통 검색 라벨 */
+.search-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.search-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+/* 검색 결과 */
+.search-result-head {
+  display: flex;
+  align-items: center;
+  padding: 10px 22px;
+  background: #f7f9fd;
+  border-bottom: 1px solid var(--border-soft);
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.search-result-head strong {
+  color: var(--navy);
+  font-weight: 700;
+}
+
+.search-item-date {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+  padding-top: 2px;
+}
+
+.search-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 40px 20px;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+@media (max-width: 640px) {
+  /* 폼 전체 */
+  .search-form        { padding: 16px 14px; gap: 12px; }
+
+  /* 1행: 기간 · 키워드 — 세로 스택 */
+  .search-main-row    { flex-direction: column; align-items: stretch; gap: 10px; }
+  .search-date-group  { gap: 6px; }
+  .search-date-inputs { gap: 4px; }
+  .search-date-input  { flex: 1; width: auto; min-width: 0; min-height: 50px; font-size: 15px; border-radius: 12px; }
+  .search-keyword-wrap .form-input { min-height: 50px; font-size: 15px; border-radius: 12px; }
+
+  /* 2행: 필터 3개 한 줄 균등 + 버튼 한 줄 */
+  .search-filter-row  { flex-wrap: wrap; gap: 10px; }
+  .search-field       { flex: 1 1 0; min-width: 0; }
+  .search-select      { width: 100%; min-width: 0; min-height: 50px; font-size: 15px; border-radius: 12px; }
+  .search-filter-btns {
+    width: 100%;
+    margin-left: 0;
+    margin-top: 2px;
+    flex-direction: row;
+    gap: 8px;
+  }
+  .search-btn         { flex: 1; }
+  .search-reset-btn   { flex: 1; }
+}
+
+/* ── 덮어쓰기 확인 모달 ── */
+.overwrite-section {
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 10px;
+}
+
+.overwrite-section--replace {
+  background: #fff7ed;
+  border: 1.5px solid #fed7aa;
+}
+
+.overwrite-section--keep {
+  background: #f0fdf4;
+  border: 1.5px solid #bbf7d0;
+}
+
+.overwrite-section-head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.overwrite-list {
+  margin: 0;
+  padding: 0 0 0 4px;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.overwrite-list li {
+  font-size: 13px;
+  color: var(--text-primary);
+  padding-left: 4px;
+}
+
+/* ── 카테고리 관리 버튼 ── */
+.category-manage-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 28px;
+  padding: 0 10px;
+  border: 1.5px solid var(--border-input);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.category-manage-btn:hover {
+  border-color: var(--blue);
+  color: var(--blue);
+  background: var(--blue-soft);
+}
+
+/* ── 카테고리 출처 배지 ── */
+.category-source-badge {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.category-source-badge.is-custom {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.category-source-badge.is-default {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+/* ── 카테고리 목록 ── */
+.category-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1.5px solid var(--border-soft);
+  background: #fff;
+  margin-bottom: 6px;
+  transition: all 0.12s ease;
+}
+
+.category-item:hover {
+  border-color: var(--border);
+  background: #fafbfd;
+}
+
+.category-item-order {
+  font-size: 11px;
+  color: var(--text-muted);
+  width: 20px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.category-item-name {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+
+.category-item-actions {
+  display: flex;
+  gap: 4px;
+}
+
+/* ── 카테고리 추가 폼 ── */
+.category-add-form {
+  padding-top: 14px;
+  border-top: 1.5px solid var(--border-soft);
+}
+
+/* ── 팁 텍스트 ── */
+.category-tip {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin: 0;
+  flex: 1;
+}
+
+/* 업무 등록 모달 날짜 그리드 — PC: 2컬럼 */
+.date-row-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 16px;
+  align-items: end;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.date-row-grid .form-group {
+  min-width: 0;
+}
+
+/* ── 반응형 ── */
+@media (max-width: 640px) {
+  .category-manage-btn    { display: none !important; }
+  .week-summary-bar       { flex-wrap: wrap; gap: 8px; padding: 10px 14px; }
+  /* 모바일: 날짜 그리드 세로 배치 + 넘침 방지 */
+  .date-row-grid          { grid-template-columns: 1fr !important; }
+  input[type="date"].form-input { width: 100%; min-width: 0; font-size: 13px; }
+  /* 모바일: 모달 좌우 여백 축소 + 내부 넘침 방지 */
+  .task-modal-overlay     { padding: 12px; }
+  .task-modal             { overflow-x: clip; }
+  /* 모바일: 모달 세로 스크롤 허용 */
+  .task-modal             { max-height: 92vh; display: flex; flex-direction: column; }
+  .task-modal-body        { overflow-y: auto; overflow-x: clip; flex: 1; }
+  .summary-stat-num       { font-size: 16px; }
+  .attendance-grid        { grid-template-columns: 1fr; }
+  .team-journal-grid      { grid-template-columns: 1fr; }
+  .task-tabs              { gap: 2px; }
+  .task-tab-btn           { font-size: 11px; padding: 0 8px; gap: 3px; }
+  /* 모바일: day-progress 폭 조정 */
+  .day-progress-wrap { gap: 4px; }
+  .day-priority-badge { height: 16px; font-size: 10px; }
+  .priority-group,
+  .status-group           { gap: 4px; }
+
+  /* 주차 네비게이터 */
+  .week-nav-shared        { gap: 6px; padding: 10px 12px; }
+  .week-nav-range-btn     { min-width: 0; flex: 1; padding: 5px 8px; }
+  .week-nav-range-btn span { font-size: 12px; }
+  .week-nav-sub           { font-size: 11px; }
+  .week-calendar-popup    { width: 260px; }
+
+  /* 일지 헤더 — 버튼 세로 배치 */
+  .task-card-head         { flex-direction: column; align-items: flex-start; gap: 10px; }
+  .task-card-head > div:last-child { width: 100%; justify-content: flex-start; flex-wrap: wrap; }
+
+  /* 카드 여백 축소 */
+  .task-card-body,
+  .journal-section,
+  .day-tasks              { padding-left: 14px; padding-right: 14px; }
+  .task-card-head         { padding: 14px 14px 12px; }
+  .week-nav               { padding: 10px 14px; }
+  .week-summary-bar       { padding: 10px 14px; }
+  .team-journal-grid      { padding: 12px 14px; }
+
+  /* 검색 폼 */
+  .search-form            { padding: 14px 14px 12px; gap: 12px; }
+  .search-row--filters    { flex-direction: column; gap: 10px; }
+  .search-input           { width: 100%; }
+  .search-field--full     { min-width: 100%; }
+
+  /* 모바일: task-item 버튼을 카드 하단으로 이동 */
+  .task-item {
+    flex-wrap: wrap;
+  }
+  .task-item-body {
+    width: 100%;
+    flex: none;
+  }
+  /* 모바일: 제목 한 줄, 상세내용 숨김 */
+  .task-item-title { -webkit-line-clamp: 1; }
+  .task-item-desc  { display: none; }
+  .task-item-actions {
+    width: 100%;
+    justify-content: flex-end;
+    border-top: 1px solid var(--border-soft);
+    padding-top: 8px;
+    margin-top: 4px;
+  }
+}
+
+/* ── 인라인 로딩 스피너 ── */
+.task-loading-spinner {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 3px solid rgba(148, 163, 184, 0.28);
+  border-top-color: #0369a1;
+  animation: task-spin 0.75s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes task-spin {
+  to { transform: rotate(360deg); }
+}
+
+.task-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 40px 20px;
+  color: var(--text-muted);
+}
+
+.task-empty--error .task-empty-text {
+  color: #dc2626;
+}
+
+/* ── 단기업무 체크박스 ── */
+.single-day-check {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  user-select: none;
+}
+
+.single-day-check input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  accent-color: var(--blue);
+  cursor: pointer;
+}
+
+/* ── 모달 내부 로딩 오버레이 (업무 등록 모달용 — position: absolute) ── */
+.task-modal-loading {
+  display: none;
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(2px);
+  border-radius: var(--radius-xl);
+  align-items: center;
+  justify-content: center;
+}
+
+.task-modal-loading.active {
+  display: flex;
+}
+
+/* ── 일지 카드 로딩 오버레이 (뷰포트 고정 — 스크롤과 무관하게 화면 중앙) ── */
+.journal-card-loading {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(3px);
+  align-items: center;
+  justify-content: center;
+}
+
+.journal-card-loading.active {
+  display: flex;
+}
+
+.task-modal-loading-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+.task-modal-loading-text {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--navy);
+  letter-spacing: 0.01em;
+}
+
+/* ── 자동저장 토스트 ── */
+.autosave-toast {
+  position: fixed;
+  bottom: 28px;
+  right: 28px;
+  z-index: 9999;
+  min-width: 200px;
+  padding: 12px 20px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+  box-shadow: 0 6px 24px rgba(15, 23, 42, 0.15);
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.22s ease, transform 0.22s ease;
+  pointer-events: none;
+}
+
+.autosave-toast.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.autosave-toast--saved {
+  background: #f0fdf4;
+  border: 1.5px solid #bbf7d0;
+  color: #166534;
+}
+
+.autosave-toast--error {
+  background: #fef2f2;
+  border: 1.5px solid #fecaca;
+  color: #b91c1c;
+}
+
+/* ══════════════════════════════════════════════
+   부서원 업무 보기 (팀뷰) 스타일
+══════════════════════════════════════════════ */
+
+/* 팀뷰 활성 안내 배너 */
+.team-view-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 9px 18px;
+  background: #eff6ff;
+  border-bottom: 1.5px solid #bfdbfe;
+  font-size: 12.5px;
+  color: #1d4ed8;
+}
+.team-view-banner-icon {
+  font-size: 15px;
+  flex-shrink: 0;
+  line-height: 1.4;
+}
+
+.team-view-banner-text {
+  line-height: 1.4;
+}
+
+/* 날짜 헤더 — 부서원 N 칩 */
+.day-member-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #6d28d9;
+  background: #ede9fe;
+  border: 1px solid #ddd6fe;
+  border-radius: 6px;
+  padding: 1px 7px;
+  margin-left: 6px;
+}
+
+/* 부서원 업무 구분 섹션 */
+.team-task-section {
+  border-top: 2px solid #e2e8f0;
+  margin-top: 6px;
+  padding-top: 0;
+}
+
+/* 내 업무 / 부서원 업무 공통 섹션 헤더 */
+.team-task-section-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 3px 10px;
+  margin: 8px 14px 6px;
+  border-radius: 6px;
+}
+
+/* 내 업무 헤더 — 파란 계열 */
+.team-task-section-label--mine {
+  color: #0369a1;
+  background: #e0f2fe;
+  border: 1px solid #bae6fd;
+}
+
+/* 부서원 업무 헤더 — 보라 계열 */
+.team-task-section-label--team {
+  color: #6d28d9;
+  background: #ede9fe;
+  border: 1px solid #ddd6fe;
+}
+
+/* 읽기 전용 업무 카드 */
+.task-item--readonly {
+  background: #f5f3ff;
+  border-color: #ddd6fe !important;
+  cursor: pointer;
+}
+.task-item--readonly:hover {
+  background: #ede9fe;
+  box-shadow: 0 2px 8px rgba(109,40,217,0.10);
+}
+
+/* 소유자 태그 */
+.task-owner-tag {
+  display: inline-block;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #7c3aed;
+  background: #ede9fe;
+  border: 1px solid #ddd6fe;
+  border-radius: 5px;
+  padding: 0 6px;
+  vertical-align: middle;
+  line-height: 18px;
+}
+
+/* 상세 보기 버튼 */
+.team-task-detail-btn {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 26px;
+  padding: 0 10px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #7c3aed;
+  background: #ede9fe;
+  border: 1.5px solid #ddd6fe;
+  border-radius: 7px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.12s, border-color 0.12s;
+  align-self: center;
+}
+.team-task-detail-btn:hover {
+  background: #ddd6fe;
+  border-color: #c4b5fd;
+}
+
+/* 팀원 업무 카드 — 수행의원 태그 */
+.task-clinic-tag {
+  display: inline-flex;
+  align-items: center;
+  height: 18px;
+  padding: 0 6px;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #0369a1;
+  background: #e0f2fe;
+  border: 1px solid #bae6fd;
+  border-radius: 5px;
+  white-space: nowrap;
+}
+
+/* ── 팀원 업무 상세 모달 ── */
+.team-modal-owner-badge {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 9px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #7c3aed;
+  background: #ede9fe;
+  border: 1.5px solid #ddd6fe;
+  border-radius: 20px;
+}
+
+.team-modal-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.team-modal-pri-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.team-modal-info-row {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  margin-bottom: 16px;
+  padding: 10px 14px;
+  background: #f8fafc;
+  border: 1.5px solid var(--border-soft);
+  border-radius: 10px;
+  flex-wrap: wrap;
+  gap: 8px 0;
+}
+
+.team-modal-info-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 140px;
+}
+
+.team-modal-info-sep {
+  width: 1px;
+  height: 20px;
+  background: var(--border-soft);
+  margin: 0 14px;
+  flex-shrink: 0;
+}
+
+.team-modal-info-label {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.team-modal-info-value {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.team-modal-desc {
+  font-size: 13px;
+  color: var(--text-primary);
+  white-space: pre-wrap;
+  line-height: 1.7;
+  background: #f8fafc;
+  border: 1.5px solid var(--border-soft);
+  border-radius: 10px;
+  padding: 12px 16px;
+  font-family: inherit;
+}
+
+.team-modal-readonly-note {
+  font-size: 12px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* ── 팀원 업무 중요도 그룹 ── */
+.team-pri-group {
+  margin-bottom: 4px;
+}
+
+.team-pri-group-header {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  padding: 5px 16px 3px;
+  opacity: 0.8;
+}
+
+.team-pri-group-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.team-pri-group-header--high   { color: #b91c1c; }
+.team-pri-group-header--high   .team-pri-group-dot { background: #dc2626; }
+.team-pri-group-header--medium { color: #92400e; }
+.team-pri-group-header--medium .team-pri-group-dot { background: #d97706; }
+.team-pri-group-header--low    { color: #166534; }
+.team-pri-group-header--low    .team-pri-group-dot { background: #16a34a; }
+
+/* 기간 업무 종료일 표기 */
+.task-period-end {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 500;
+  color: #64748b;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  padding: 0 5px;
+  margin-left: 5px;
+  vertical-align: middle;
+  line-height: 18px;
+}
