@@ -881,8 +881,7 @@
   margin-bottom: 8px;
 }
 .det-tabs .tab-btn {
-  flex: 0 0 auto;
-  min-width: 100px;
+  flex: 1;
   height: 32px;
   border: none;
   background: transparent;
