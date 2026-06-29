@@ -41,9 +41,18 @@ function renderPhotoPreview(src) {
   const preview  = qs('#photoPreviewImage');
   const empty    = qs('#photoPreviewEmpty');
   const removeBtn = qs('#removePhotoBtn');
-  if (preview) { preview.src = src || ''; preview.style.display = src ? '' : 'none'; }
+  const dropzone  = qs('#photoDropzone');
+  const fileInfo  = qs('#photoFileInfo');
+  if (preview) {
+    preview.src = src || '';
+    preview.classList.toggle('is-hidden', !src);
+    preview.style.display = src ? '' : 'none';
+  }
   if (empty)    empty.style.display    = src ? 'none' : '';
   if (removeBtn) removeBtn.style.display = src ? '' : 'none';
+  // 미리보기가 있으면 드롭존 숨김, 없으면 드롭존 다시 표시
+  if (dropzone) dropzone.style.display = src ? 'none' : '';
+  if (fileInfo) fileInfo.style.display = src ? 'none' : 'none'; // 파일명 영역은 항상 숨김 (미리보기로 대체)
 }
 
 /* ── 폼 로드 (수정 모드) ───────────────────── */
