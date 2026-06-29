@@ -865,8 +865,8 @@ async function exportEquipmentExcel() {
           }
         };
 
-        if (isNum && val !== '') { cell.z = FMT_NUM;  cell.s.numFmt = FMT_NUM;  }
-        if (isDate && val)       { cell.z = FMT_DATE; cell.s.numFmt = FMT_DATE; }
+        if (isNum && val !== '') { cell.z = FMT_NUM; cell.s.numFmt = FMT_NUM; }
+        // 날짜는 문자열(yyyy-mm-dd)로 저장 — numFmt 지정 시 손상 오류 발생
 
         ws[addr] = cell;
       });
