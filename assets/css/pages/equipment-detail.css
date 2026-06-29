@@ -897,6 +897,7 @@
 }
 .det-tab:hover { color: #374151; }
 .det-tab.active { color: #2563eb; border-bottom-color: #2563eb; }
+.det-tab:disabled { color: #d1d5db; cursor: not-allowed; pointer-events: none; }
 .det-tab i { font-size: 13px; }
 
 .det-tab-panel { display: none; flex: 1; min-height: 0; overflow: hidden; }
