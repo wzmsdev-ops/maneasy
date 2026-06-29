@@ -76,56 +76,8 @@
     }
 
     /* ── 모달 공통 ── */
-    .m-modal { display:none; position:fixed; inset:0; z-index:500; align-items:center; justify-content:center; }
-    .m-modal.is-open { display:flex; }
-    .m-modal-backdrop { position:absolute; inset:0; background:rgba(11,22,48,0.45); }
-    .m-modal-dialog {
-      position:relative; z-index:1; background:#fff; border-radius:8px;
-      display:flex; flex-direction:column;
-      box-shadow:0 20px 60px rgba(0,0,0,0.16); border:1px solid #e5e7eb; overflow:hidden;
-    }
-    .m-modal-dialog--form   { width:calc(100vw - 80px); max-width:1600px; height:calc(100vh - 48px); }
-    .m-modal-dialog--detail { width:760px; max-width:calc(100vw - 32px); max-height:calc(100vh - 48px); }
-    .m-modal-dialog--detail-wide { width:1100px; max-width:calc(100vw - 32px); max-height:calc(100vh - 48px); }
-    .m-modal-dialog--wide   { width:880px; max-width:calc(100vw - 32px); height:calc(100vh - 48px); }
-    .m-modal-head {
-      display:flex; align-items:center; justify-content:space-between;
-      padding:10px 14px; background:#0b1630; flex-shrink:0;
-    }
-    .m-modal-title { font-size:13px; font-weight:700; color:#fff; }
-    .m-modal-close {
-      width:24px; height:24px; border:none; background:rgba(255,255,255,0.08);
-      border-radius:4px; color:rgba(255,255,255,0.6); cursor:pointer;
-      display:flex; align-items:center; justify-content:center; font-size:13px;
-    }
-    .m-modal-close:hover { background:rgba(255,255,255,0.15); color:#fff; }
-    .m-modal-body { flex:1; min-height:0; overflow-y:auto; padding:14px; display:flex; flex-direction:column; gap:10px; }
-    .m-modal-foot {
-      display:flex; justify-content:flex-end; align-items:center; gap:6px;
-      padding:8px 14px 10px; border-top:1px solid #f3f4f6; background:#f8fafc; flex-shrink:0;
-    }
 
     /* ── 폼 필드 ── */
-    .m-field { display:flex; flex-direction:column; gap:4px; }
-    .m-field label { font-size:11px; font-weight:600; color:#4b5563; }
-    .m-field input, .m-field select, .m-field textarea {
-      border:1px solid #d1d5db; border-radius:6px; padding:0 8px;
-      font-size:12px; outline:none; transition:border-color 0.15s; background:#fff;
-      box-sizing:border-box;
-    }
-    .m-field input, .m-field select { height:32px; }
-    .m-field textarea { height:52px; padding:6px 8px; resize:vertical; }
-    .m-field input:focus, .m-field select:focus, .m-field textarea:focus { border-color:#3b82f6; }
-    .m-field-row  { display:grid; grid-template-columns:1fr 1fr;     gap:8px; }
-    .m-field-row3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; }
-    .m-req { color:#ef4444; }
-    .m-readonly { background:#f8fafc !important; color:#9ca3af; }
-
-    /* ── 품목 그리드 영역 ── */
-    .po-items-section {
-      display:flex; flex-direction:column; gap:6px;
-      flex:1; min-height:0;
-    }
     .po-items-toolbar {
       display:flex; align-items:center; justify-content:space-between; flex-shrink:0;
     }
