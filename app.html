@@ -112,7 +112,8 @@
 </div>
 
 <script src="assets/libs/supabase.js"></script>
-<script src="assets/js/core/config.js"></script>
+<script src="assets/js/core/version.js"></script>
+  <script src="assets/js/core/config.js"></script>
 <script src="assets/js/core/utils.js"></script>
 <script src="assets/js/core/supabase.js"></script>
 <script src="assets/js/core/auth.js"></script>
@@ -283,8 +284,11 @@ function navigate(page, tab, skipHistory, extraQuery) {
   document.getElementById('breadcrumbPage').textContent = meta.page;
   document.getElementById('breadcrumbSep').style.display = meta.page ? '' : 'none';
 
+  const _ver = (typeof APP_VERSION !== 'undefined') ? APP_VERSION : '';
+  const _vq  = _ver ? ('v=' + _ver) : '';
+  const _q   = [pageQuery, _vq].filter(Boolean).join('&');
   document.getElementById('shellFrame').src =
-    `${CONFIG.SITE_BASE_URL}/pages/${pagePath}.html${pageQuery ? '?' + pageQuery : ''}`;
+    `${CONFIG.SITE_BASE_URL}/pages/${pagePath}.html${_q ? '?' + _q : ''}`;
 
   document.querySelectorAll('.sb-item.active, .sb-sub-item.active').forEach(el => el.classList.remove('active'));
   const _activeItem = document.querySelector(`.sb-sub-item[data-page="${pagePath}"]`);
