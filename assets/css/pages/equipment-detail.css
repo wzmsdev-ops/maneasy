@@ -869,3 +869,46 @@
     padding: 0 !important;
   }
 }
+
+/* ── 상세 탭 ── */
+.det-tabs {
+  display: flex;
+  gap: 2px;
+  padding: 0 0 0 0;
+  flex-shrink: 0;
+  border-bottom: 2px solid #e5e7eb;
+  margin-bottom: 8px;
+}
+.det-tab {
+  height: 34px;
+  padding: 0 18px;
+  border: none;
+  background: transparent;
+  font-size: 12px;
+  font-weight: 600;
+  color: #9ca3af;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  transition: color 0.15s;
+}
+.det-tab:hover { color: #374151; }
+.det-tab.active { color: #2563eb; border-bottom-color: #2563eb; }
+.det-tab i { font-size: 13px; }
+
+.det-tab-panel { display: none; flex: 1; min-height: 0; overflow: hidden; }
+.det-tab-panel.active { display: flex; flex-direction: column; }
+
+/* ── 정도관리 패널 ── */
+.det-qc-wrap {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 4px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
