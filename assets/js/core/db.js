@@ -77,10 +77,15 @@ window.db = (function () {
       reader.readAsDataURL(file);
     });
 
+    // GAS Web App은 application/x-www-form-urlencoded로 호출해야 CORS 통과
+    const formData = new FormData();
+    formData.append('base64', base64);
+    formData.append('mimeType', file.type);
+    formData.append('fileName', fileName);
+
     const res = await fetch(GAS_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ base64, mimeType: file.type, fileName }),
+      body: formData,
     });
 
     const data = await res.json();
@@ -95,11 +100,10 @@ window.db = (function () {
     const GAS_URL = CONFIG.GAS_UPLOAD_URL;
     if (!GAS_URL) return;
     try {
-      await fetch(GAS_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'delete', fileId }),
-      });
+      const fd = new FormData();
+      fd.append('action', 'delete');
+      fd.append('fileId', fileId);
+      await fetch(GAS_URL, { method: 'POST', body: fd });
     } catch (e) {
       console.warn('[db:deletePhoto]', e);
     }
