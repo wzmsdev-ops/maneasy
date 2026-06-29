@@ -1619,6 +1619,12 @@ function _initEntryGrid() {
     overlayNoRowsTemplate: '<span style="color:#9ca3af;font-size:12px;">+ 입력 버튼으로 측정값을 추가하세요</span>',
     onGridReady: function(p) { p.api.sizeColumnsToFit(); },
   });
+  // 컨테이너 너비 변경 시 컬럼 재조정
+  if (typeof ResizeObserver !== 'undefined') {
+    new ResizeObserver(function() {
+      if (_qcGrid) _qcGrid.sizeColumnsToFit();
+    }).observe(el);
+  }
 }
 
 function _entryColDefs(item) {
@@ -1806,7 +1812,8 @@ function _drawChart(item, entries) {
     return;
   }
   var mean=parseFloat(item.mean), sd=parseFloat(item.sd), dec=item.decimal_places||2;
-  var W=wrap.clientWidth||400, H=wrap.clientHeight||180;
+  var rect=wrap.getBoundingClientRect();
+  var W=Math.floor(rect.width)||400, H=Math.floor(rect.height)||180;
   // 좌측 여백(축 라벨 자리)은 라벨 글자수에 맞춰 동적으로 계산 — 고정값(48px)을 쓰면
   // 라벨이 짧을 때 왼쪽이 필요 이상으로 넓어져서 그래프가 오른쪽으로 쏠려 보임
   var maxLabelLen = Math.max(
