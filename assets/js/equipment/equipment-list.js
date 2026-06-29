@@ -529,6 +529,7 @@ function buildListRequestParams(filters, nextPage) {
     team_code:    filters.team_code,
     team_suffix:  filters.team_suffix,
     status:       filters.status,
+    qc_filter:    filters.qc_filter,
     manufacturer: filters.manufacturer,
     page:         nextPage,
     page_size:    equipmentListState.pageSize
