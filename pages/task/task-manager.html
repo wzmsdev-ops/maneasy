@@ -196,47 +196,64 @@
     .journal-status.open   { background: #fff7ed; color: #ea580c; }
     .journal-status.closed { background: #f0fdf4; color: #16a34a; }
 
-    /* ── 업무 등록/수정 모달 ── */
-    .task-modal-backdrop {
-      position: fixed; inset: 0; background: rgba(0,0,0,0.4);
-      display: none; align-items: center; justify-content: center;
-      z-index: 1000;
+    /* ── 업무 등록/수정 모달 (m-modal 스타일) ── */
+    .m-modal {
+      display: none; position: fixed; inset: 0; z-index: 1000;
+      align-items: center; justify-content: center;
     }
-    .task-modal-backdrop.open { display: flex; }
-    .task-modal {
-      background: #fff; border-radius: 12px; width: 440px;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.2); overflow: hidden;
+    .m-modal.is-open { display: flex; }
+    .m-modal-backdrop { position: absolute; inset: 0; background: rgba(11,22,48,0.45); }
+    .m-modal-dialog {
+      position: relative; z-index: 1; background: #fff; border-radius: 10px;
+      width: 560px; max-width: calc(100vw - 32px); max-height: calc(100vh - 64px);
+      display: flex; flex-direction: column;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.16); border: 1px solid #e5e7eb; overflow: hidden;
     }
-    .task-modal-head {
+    .m-modal-head {
       display: flex; align-items: center; justify-content: space-between;
-      padding: 14px 16px; border-bottom: 1px solid #e5e7eb; background: #f8fafc;
+      padding: 14px 18px; border-bottom: 1px solid #e5e7eb; background: #f8fafc; flex-shrink: 0;
     }
-    .task-modal-title { font-size: 14px; font-weight: 700; color: #111827; }
-    .task-modal-body { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
-    .task-modal-foot {
-      padding: 12px 16px; border-top: 1px solid #e5e7eb;
-      display: flex; justify-content: flex-end; gap: 8px; background: #f8fafc;
+    .m-modal-title { font-size: 14px; font-weight: 700; color: #111827; }
+    .m-modal-close { border: none; background: none; cursor: pointer; color: #9ca3af; font-size: 18px; line-height: 1; padding: 2px; }
+    .m-modal-close:hover { color: #374151; }
+    .m-modal-body { padding: 18px; display: flex; flex-direction: column; gap: 14px; overflow-y: auto; flex: 1; }
+    .m-modal-foot {
+      padding: 12px 18px; border-top: 1px solid #e5e7eb;
+      display: flex; justify-content: flex-end; gap: 8px; background: #f8fafc; flex-shrink: 0;
     }
-    .form-label { font-size: 11px; font-weight: 700; color: #6b7280; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.04em; }
-    .modal-date-row { display: flex; gap: 8px; }
+    .form-label { font-size: 11px; font-weight: 700; color: #6b7280; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.04em; display: block; }
+    .modal-date-row { display: flex; gap: 10px; }
     .modal-date-row .form-group { flex: 1; }
     .priority-btns { display: flex; gap: 6px; }
     .priority-btn {
-      flex: 1; height: 30px; border: 1px solid #e5e7eb; border-radius: 6px;
-      background: #fff; cursor: pointer; font-size: 11px; font-weight: 600;
+      flex: 1; height: 32px; border: 1px solid #e5e7eb; border-radius: 6px;
+      background: #fff; cursor: pointer; font-size: 12px; font-weight: 600;
       color: #6b7280; transition: all 0.1s;
     }
-    .priority-btn.active.HIGH { background: #fef2f2; border-color: #fca5a5; color: #dc2626; }
+    .priority-btn.active.HIGH   { background: #fef2f2; border-color: #fca5a5; color: #dc2626; }
     .priority-btn.active.MEDIUM { background: #fff7ed; border-color: #fdba74; color: #ea580c; }
-    .priority-btn.active.LOW  { background: #f0fdf4; border-color: #86efac; color: #16a34a; }
+    .priority-btn.active.LOW    { background: #f0fdf4; border-color: #86efac; color: #16a34a; }
     .status-btns { display: flex; gap: 6px; }
     .status-btn {
-      flex: 1; height: 30px; border: 1px solid #e5e7eb; border-radius: 6px;
-      background: #fff; cursor: pointer; font-size: 11px; font-weight: 600; color: #6b7280;
+      flex: 1; height: 32px; border: 1px solid #e5e7eb; border-radius: 6px;
+      background: #fff; cursor: pointer; font-size: 12px; font-weight: 600; color: #6b7280;
     }
     .status-btn.active.TODO        { background: #f3f4f6; border-color: #d1d5db; color: #374151; }
     .status-btn.active.IN_PROGRESS { background: #fff7ed; border-color: #fdba74; color: #ea580c; }
     .status-btn.active.DONE        { background: #f0fdf4; border-color: #86efac; color: #16a34a; }
+
+    /* ── 달력 근태 토글 ── */
+    .cal-attend-row {
+      display: flex; gap: 3px; margin-top: auto; flex-shrink: 0;
+    }
+    .cal-attend-btn {
+      flex: 1; font-size: 8px; font-weight: 700; padding: 1px 0;
+      border: 1px solid #e5e7eb; border-radius: 3px; background: #f9fafb;
+      color: #9ca3af; cursor: pointer; text-align: center; line-height: 1.4;
+      transition: all 0.1s;
+    }
+    .cal-attend-btn.on      { background: #fff7ed; border-color: #fdba74; color: #ea580c; }
+    .cal-attend-btn.on.sat  { background: #eff6ff; border-color: #93c5fd; color: #2563eb; }
 
     /* 검색 탭 */
     #panelSearch { flex-direction: column; gap: 8px; }
@@ -330,37 +347,40 @@
   </div>
 
   <!-- 업무 등록/수정 모달 -->
-  <div class="task-modal-backdrop" id="taskModal">
-    <div class="task-modal">
-      <div class="task-modal-head">
-        <span class="task-modal-title" id="taskModalTitle">업무 추가</span>
-        <button style="border:none;background:none;cursor:pointer;color:#6b7280;font-size:18px;" onclick="closeTaskModal()"><i class="ti ti-x"></i></button>
+  <div class="m-modal" id="taskModal">
+    <div class="m-modal-backdrop" onclick="closeTaskModal()"></div>
+    <div class="m-modal-dialog">
+      <div class="m-modal-head">
+        <span class="m-modal-title" id="taskModalTitle">업무 추가</span>
+        <button class="m-modal-close" onclick="closeTaskModal()"><i class="ti ti-x"></i></button>
       </div>
-      <div class="task-modal-body">
+      <div class="m-modal-body">
         <div class="form-group">
-          <div class="form-label">업무 제목 *</div>
-          <input type="text" class="input" id="mtTitle" placeholder="업무 제목을 입력하세요" style="height:34px;">
+          <label class="form-label">업무 제목 *</label>
+          <input type="text" class="input" id="mtTitle" placeholder="업무 제목을 입력하세요">
         </div>
         <div class="modal-date-row">
           <div class="form-group">
-            <div class="form-label">시작일 *</div>
-            <input type="date" class="input" id="mtStartDate" style="height:34px;">
+            <label class="form-label">시작일 *</label>
+            <input type="date" class="input" id="mtStartDate">
           </div>
           <div class="form-group">
-            <div class="form-label">종료일</div>
-            <input type="date" class="input" id="mtEndDate" style="height:34px;">
+            <label class="form-label">종료일</label>
+            <input type="date" class="input" id="mtEndDate">
+          </div>
+        </div>
+        <div class="modal-date-row">
+          <div class="form-group">
+            <label class="form-label">카테고리</label>
+            <select class="input" id="mtCategory"></select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">수행 의원</label>
+            <select class="input" id="mtWorkClinic"></select>
           </div>
         </div>
         <div class="form-group">
-          <div class="form-label">카테고리</div>
-          <select class="input" id="mtCategory" style="height:34px;"></select>
-        </div>
-        <div class="form-group">
-          <div class="form-label">수행 의원</div>
-          <select class="input" id="mtWorkClinic" style="height:34px;"></select>
-        </div>
-        <div class="form-group">
-          <div class="form-label">중요도</div>
+          <label class="form-label">중요도</label>
           <div class="priority-btns">
             <button class="priority-btn active HIGH" data-priority="HIGH">⚡ 주요</button>
             <button class="priority-btn active MEDIUM" data-priority="MEDIUM">— 보통</button>
@@ -368,7 +388,7 @@
           </div>
         </div>
         <div class="form-group">
-          <div class="form-label">상태</div>
+          <label class="form-label">상태</label>
           <div class="status-btns">
             <button class="status-btn active TODO" data-status="TODO">예정</button>
             <button class="status-btn active IN_PROGRESS" data-status="IN_PROGRESS">진행중</button>
@@ -376,11 +396,11 @@
           </div>
         </div>
         <div class="form-group">
-          <div class="form-label">상세 내용</div>
-          <textarea class="input" id="mtDesc" rows="3" placeholder="상세 내용 (선택)" style="resize:vertical;font-family:inherit;font-size:12px;padding:8px;"></textarea>
+          <label class="form-label">상세 내용</label>
+          <textarea class="input" id="mtDesc" rows="4" placeholder="상세 내용 (선택)" style="resize:vertical;font-family:inherit;font-size:12px;padding:8px;"></textarea>
         </div>
       </div>
-      <div class="task-modal-foot">
+      <div class="m-modal-foot">
         <button class="btn btn-sm btn-danger" id="deleteTaskBtn" style="margin-right:auto;display:none;" onclick="deleteTask()">삭제</button>
         <button class="btn btn-sm" onclick="closeTaskModal()">취소</button>
         <button class="btn btn-sm btn-primary" onclick="saveTask()">저장</button>
