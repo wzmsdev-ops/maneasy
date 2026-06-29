@@ -1691,32 +1691,40 @@ async function _loadEntries() {
   if (!_selItem || !_qcGrid) return;
   var dateFrom = document.getElementById('qcDateFrom')?.value || '';
   var dateTo   = document.getElementById('qcDateTo')?.value || '';
-  var q = supabaseClient.from('lj_entries').select('*').eq('item_id', _selItem.id);
-  if (dateFrom) q = q.gte('date', dateFrom);
-  if (dateTo)   q = q.lte('date', dateTo);
-  var { data } = await q.order('date', { ascending: true });
-  var rows = data || [];
 
-  // Westgard 판정 — 정량 항목이고 Mean/SD가 있을 때만, 행마다 위반규칙을 계산해서 붙임
+  // Westgard 판정(연속 포인트 규칙: 2_2s/R_4s/4_1s/10x)은 조회 날짜 범위와 무관하게
+  // 항상 전체 이력 기준으로 계산해야 정확함 — 화면에는 필터된 구간만 보여주되,
+  // 판정 자체는 전체 데이터를 기준으로 미리 계산해둔 뒤 그 결과만 잘라서 씀
+  var { data: allData } = await supabaseClient.from('lj_entries').select('*')
+    .eq('item_id', _selItem.id).order('date', { ascending: true });
+  var allRows = allData || [];
+
   var item = _selItem;
   if (item.item_type === 'quantitative' && item.mean != null && item.sd) {
     var mean = parseFloat(item.mean), sd = parseFloat(item.sd);
-    var numeric = rows.map(function(r) { return { v: parseFloat(r.value) }; });
+    var numeric = allRows.map(function(r) { return { v: parseFloat(r.value) }; });
     var evals = _evalWestgard(numeric, mean, sd);
-    rows.forEach(function(r, i) {
+    allRows.forEach(function(r, i) {
       var ok = !isNaN(numeric[i].v);
       r._violations = ok ? evals[i].violations : [];
       r._reject     = ok ? evals[i].reject     : false;
       r._warning    = ok ? evals[i].warning    : false;
     });
   } else {
-    rows.forEach(function(r) { r._violations = []; r._reject = false; r._warning = false; });
+    allRows.forEach(function(r) { r._violations = []; r._reject = false; r._warning = false; });
   }
 
-  // 최근 측정의 판정을 헤더 배지로 표시
+  // 화면 표시용 — 날짜 필터 적용 (판정 결과는 위에서 전체 기준으로 이미 계산된 걸 그대로 들고 있음)
+  var rows = allRows.filter(function(r) {
+    if (dateFrom && r.date < dateFrom) return false;
+    if (dateTo   && r.date > dateTo)   return false;
+    return true;
+  });
+
+  // 최근 측정의 판정을 헤더 배지로 표시 — 이것도 전체 이력 기준 마지막 건으로 표시
   var badge = document.getElementById('qcWestgardBadge');
   if (badge) {
-    var last = rows.length ? rows[rows.length - 1] : null;
+    var last = allRows.length ? allRows[allRows.length - 1] : null;
     if (item.item_type !== 'quantitative' || item.mean == null || !item.sd) {
       badge.textContent = '';
     } else if (!last) {
