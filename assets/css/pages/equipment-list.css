@@ -9,7 +9,7 @@
 .eq-page {
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  height: 100%;
   overflow: hidden;
   padding: 4px 12px 14px;
   gap: 4px;
