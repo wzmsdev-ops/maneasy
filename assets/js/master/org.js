@@ -35,6 +35,9 @@ const PAGE_GROUPS = [
     { key: 'materials/stock',            label: '재고 관리' },
     { key: 'materials/material-stats',   label: '자재 통계' },
   ]},
+  { app: '업무일정 관리', pages: [
+    { key: 'task/task-manager', label: '업무일정·일지' },
+  ]},
   { app: '마스터 관리', pages: [
     { key: 'master/org',    label: '의원·부서·사용자' },
     { key: 'master/supply', label: '자재·거래처' },
@@ -55,6 +58,7 @@ const ROLE_DEFAULT_PAGES = {
     'materials/procurement':       '접근불가',
     'materials/stock':             '접근불가',
     'materials/material-stats':    'user',
+    'task/task-manager':        'user',
     'master/org':               '접근불가',
     'master/supply':            '접근불가',
   },
@@ -68,6 +72,7 @@ const ROLE_DEFAULT_PAGES = {
     'materials/procurement':       'manager',
     'materials/stock':             'manager',
     'materials/material-stats':    'user',
+    'task/task-manager':        'admin',
     'master/org':               'admin',
     'master/supply':            'admin',
   },
