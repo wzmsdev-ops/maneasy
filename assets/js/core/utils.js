@@ -481,3 +481,17 @@ function refitGridColumns(api) {
     try { api.sizeColumnsToFit(); } catch(e) { /* 그리드가 이미 제거된 경우 무시 */ }
   }, 0);
 }
+
+// GAS Web App 알림 발송 헬퍼
+async function gasNotify(action, params) {
+  const url = CONFIG.GAS_NOTIFY_URL;
+  if (!url) return;
+  try {
+    const fd = new FormData();
+    fd.append('action', action);
+    Object.entries(params).forEach(([k, v]) => fd.append(k, v));
+    await fetch(url, { method: 'POST', body: fd });
+  } catch (e) {
+    console.warn('[gasNotify]', e);
+  }
+}
