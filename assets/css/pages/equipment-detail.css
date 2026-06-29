@@ -879,6 +879,7 @@
   border-radius: 8px;
   padding: 3px;
   flex-shrink: 0;
+  margin-bottom: 8px;
 }
 .det-tabs .tab-btn {
   flex: 1;
