@@ -42,6 +42,9 @@ function initMainTabs() {
       document.querySelectorAll('.us-main-panel').forEach(function(p) { p.classList.remove('active'); });
       btn.classList.add('active');
       document.getElementById('panel-' + target)?.classList.add('active');
+      // 액션바 — 작성 탭에서만 표시
+      var ab = document.getElementById('us-actionbar');
+      if (ab) ab.style.display = target === 'entry' ? 'flex' : 'none';
       setTimeout(function() {
         if (target === 'history') { if (!_gridUse) initUseGrid(); loadUseLog(1); }
       }, 50);
