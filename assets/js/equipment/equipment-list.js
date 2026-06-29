@@ -606,8 +606,8 @@ async function loadEquipmentList(nextPage) {
       .eq('deleted_yn', 'N');
 
     if (requestParams.status)     sbQuery = sbQuery.eq('status', requestParams.status);
-    if (requestParams.qc_filter === 'Y') sbQuery = sbQuery.eq('qc_enabled', true);
-    if (requestParams.qc_filter === 'N') sbQuery = sbQuery.eq('qc_enabled', false);
+    if (requestParams.qc_filter === 'Y') sbQuery = sbQuery.is('qc_enabled', true);
+    if (requestParams.qc_filter === 'N') sbQuery = sbQuery.is('qc_enabled', false);
     if (requestParams.clinic_code) sbQuery = sbQuery.eq('clinic_code', requestParams.clinic_code);
     if (requestParams.team_code)   sbQuery = sbQuery.eq('team_code', requestParams.team_code);
     if (requestParams.team_suffix) sbQuery = sbQuery.eq('team_code', requestParams.team_suffix);
