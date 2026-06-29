@@ -38,21 +38,24 @@ function initPhotoUi() {
 }
 
 function renderPhotoPreview(src) {
-  const preview  = qs('#photoPreviewImage');
-  const empty    = qs('#photoPreviewEmpty');
+  const preview   = qs('#photoPreviewImage');
+  const empty     = qs('#photoPreviewEmpty');
   const removeBtn = qs('#removePhotoBtn');
   const dropzone  = qs('#photoDropzone');
   const fileInfo  = qs('#photoFileInfo');
+
   if (preview) {
     preview.src = src || '';
     preview.classList.toggle('is-hidden', !src);
     preview.style.display = src ? '' : 'none';
   }
-  if (empty)    empty.style.display    = src ? 'none' : '';
-  if (removeBtn) removeBtn.style.display = src ? '' : 'none';
-  // 미리보기가 있으면 드롭존 숨김, 없으면 드롭존 다시 표시
-  if (dropzone) dropzone.style.display = src ? 'none' : '';
-  if (fileInfo) fileInfo.style.display = src ? 'none' : 'none'; // 파일명 영역은 항상 숨김 (미리보기로 대체)
+  if (empty)     empty.style.display     = src ? 'none' : '';
+  if (removeBtn) removeBtn.style.display = src ? ''     : 'none';
+  // 파일이 선택됐을 때(src=dataURL)는 드롭존 숨김, 기존 저장 URL이면 드롭존 유지
+  if (dropzone && src && src.startsWith('data:')) dropzone.style.display = 'none';
+  if (dropzone && !src) dropzone.style.display = '';
+  // 파일명 info는 드롭존과 같이 표시
+  if (fileInfo && !src) fileInfo.style.display = 'none';
 }
 
 /* ── 폼 로드 (수정 모드) ───────────────────── */
