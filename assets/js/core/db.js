@@ -62,51 +62,28 @@ window.db = (function () {
   /* ── Storage 헬퍼 ────────────────────────────── */
 
   async function uploadPhoto(file, equipmentId) {
-    // GAS Web App으로 업로드 → Google Drive 저장 → lh3 CDN URL 반환
-    const GAS_URL = CONFIG.GAS_UPLOAD_URL;
-    if (!GAS_URL) throw new Error('GAS_UPLOAD_URL이 설정되지 않았습니다.');
+    const ext = file.name.split('.').pop();
+    const path = `${equipmentId}/${Date.now()}.${ext}`;
 
-    const ext = file.name.split('.').pop().toLowerCase();
-    const fileName = `${equipmentId}_${Date.now()}.${ext}`;
+    const { error } = await supabaseClient.storage
+      .from(CONFIG.STORAGE.EQUIPMENT_PHOTOS)
+      .upload(path, file, { upsert: true });
 
-    // File → Base64
-    const base64 = await new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result.split(',')[1]);
-      reader.onerror = () => reject(new Error('파일 읽기 실패'));
-      reader.readAsDataURL(file);
-    });
+    if (error) handleError(error, 'uploadPhoto');
 
-    // GAS Web App은 application/x-www-form-urlencoded로 호출해야 CORS 통과
-    const formData = new FormData();
-    formData.append('base64', base64);
-    formData.append('mimeType', file.type);
-    formData.append('fileName', fileName);
+    const { data } = supabaseClient.storage
+      .from(CONFIG.STORAGE.EQUIPMENT_PHOTOS)
+      .getPublicUrl(path);
 
-    const res = await fetch(GAS_URL, {
-      method: 'POST',
-      body: formData,
-    });
-
-    const data = await res.json();
-    if (!data.success) throw new Error(data.error || '업로드 실패');
-
-    // path 자리에 fileId 저장 (삭제 시 사용)
-    return { path: data.fileId, url: data.url };
+    return { path, url: data.publicUrl };
   }
 
-  async function deletePhoto(fileId) {
-    if (!fileId) return;
-    const GAS_URL = CONFIG.GAS_UPLOAD_URL;
-    if (!GAS_URL) return;
-    try {
-      const fd = new FormData();
-      fd.append('action', 'delete');
-      fd.append('fileId', fileId);
-      await fetch(GAS_URL, { method: 'POST', body: fd });
-    } catch (e) {
-      console.warn('[db:deletePhoto]', e);
-    }
+  async function deletePhoto(path) {
+    if (!path) return;
+    const { error } = await supabaseClient.storage
+      .from(CONFIG.STORAGE.EQUIPMENT_PHOTOS)
+      .remove([path]);
+    if (error) console.warn('[db:deletePhoto]', error);
   }
 
   return {
