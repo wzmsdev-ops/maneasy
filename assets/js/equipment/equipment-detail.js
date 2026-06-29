@@ -1793,7 +1793,7 @@ function _renderChart(item, entries) {
     Number(mean+3*sd).toFixed(dec).length,
     Number(mean-3*sd).toFixed(dec).length
   );
-  var p={t:18, r:16, b:32, l: Math.max(28, 14 + maxLabelLen*5.6)};
+  var p={t:18, r:8, b:32, l: Math.max(24, 10 + maxLabelLen*5.2)};
   var cw=W-p.l-p.r, ch=H-p.t-p.b;
   var yMin=mean-3.5*sd, yMax=mean+3.5*sd;
   function Y(v){return p.t+ch-(v-yMin)/(yMax-yMin)*ch;}
@@ -1826,7 +1826,9 @@ function _renderChart(item, entries) {
   var step=Math.max(1,Math.ceil(data.length/8));
   data.forEach(function(d,i){
     if(i%step!==0&&i!==data.length-1)return;
-    svg.push('<text x="'+X(i)+'" y="'+(p.t+ch+13)+'" text-anchor="middle" fill="#9ca3af" font-size="9">'+String(d.date).slice(5)+'</text>');
+    // 맨 처음/맨 끝 라벨은 가운데정렬하면 차트 밖으로 튀어나가 잘리므로, 안쪽 방향으로 붙여서 정렬
+    var anchor = i===0 ? 'start' : (i===data.length-1 ? 'end' : 'middle');
+    svg.push('<text x="'+X(i)+'" y="'+(p.t+ch+13)+'" text-anchor="'+anchor+'" fill="#9ca3af" font-size="9">'+String(d.date).slice(5)+'</text>');
   });
   svg.push('<rect x="'+p.l+'" y="'+p.t+'" width="'+cw+'" height="'+ch+'" fill="none" stroke="#e5e7eb"/>');
   svg.push('</svg>');
