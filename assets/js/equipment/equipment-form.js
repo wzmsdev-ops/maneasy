@@ -71,7 +71,7 @@ function fillForm(eq) {
   // clinic_name, team_name은 select option에서 읽으므로 별도 세팅 불필요
   setVal('department_preview',   eq.department);
   setVal('location',            eq.location);
-  document.getElementById('qc_enabled').checked = !!eq.qc_enabled;
+  document.getElementById('qc_enabled').value = eq.qc_enabled ? 'true' : 'false';
   setVal('current_user',     eq.current_user_name);
   setVal('status',              eq.status);
   setVal('memo',                eq.memo);
@@ -129,7 +129,7 @@ async function saveEquipment() {
     team_name:            (function() { const s = document.getElementById('team_code'); return s && s.selectedIndex > 0 ? s.options[s.selectedIndex].textContent.trim() : ''; })(),
     department:           val('department_preview'),
     location:             val('location'),
-    qc_enabled:           document.getElementById('qc_enabled')?.checked || false,
+    qc_enabled:           document.getElementById('qc_enabled')?.value === 'true',
     current_user_name:    val('current_user'),
     status:               val('status') || CONFIG.EQUIPMENT_STATUS.IN_USE,
     memo:                 val('memo'),
