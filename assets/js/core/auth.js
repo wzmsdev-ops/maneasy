@@ -120,24 +120,62 @@ window.auth = (function () {
       setMessage('계정 승인 대기 중입니다. 관리자 승인 후 로그인할 수 있습니다.', 'warn');
     }
 
-    // 탭 전환 (로그인 / 회원가입)
+    // 탭 전환 (로그인 / 회원가입 / 비밀번호 재설정)
     const tabLogin    = document.getElementById('tabLogin');
     const tabSignup   = document.getElementById('tabSignup');
+    const tabReset    = document.getElementById('tabReset');
     const panelLogin  = document.getElementById('panelLogin');
     const panelSignup = document.getElementById('panelSignup');
+    const panelReset  = document.getElementById('panelReset');
 
     function showTab(tab) {
-      const isLogin = tab === 'login';
-      tabLogin?.classList.toggle('is-active', isLogin);
-      tabSignup?.classList.toggle('is-active', !isLogin);
-      if (panelLogin)  panelLogin.style.display  = isLogin ? '' : 'none';
-      if (panelSignup) panelSignup.style.display = isLogin ? 'none' : '';
+      [tabLogin, tabSignup, tabReset].forEach(t => t?.classList.remove('is-active'));
+      [panelLogin, panelSignup, panelReset].forEach(p => { if (p) p.style.display = 'none'; });
+      if (tab === 'login')  { tabLogin?.classList.add('is-active');  if (panelLogin)  panelLogin.style.display  = ''; }
+      if (tab === 'signup') { tabSignup?.classList.add('is-active'); if (panelSignup) panelSignup.style.display = ''; }
+      if (tab === 'reset')  { tabReset?.classList.add('is-active');  if (panelReset)  panelReset.style.display  = ''; }
       setMessage('', '');
     }
 
     tabLogin?.addEventListener('click',  () => showTab('login'));
     tabSignup?.addEventListener('click', () => showTab('signup'));
-    showTab('login');
+    tabReset?.addEventListener('click',  () => showTab('reset'));
+
+    // ?type=recovery — 비밀번호 재설정 링크 클릭 후 진입
+    const hashParams = new URLSearchParams(location.hash.slice(1));
+    if (hashParams.get('type') === 'recovery') {
+      showTab('reset');
+      document.getElementById('resetStep1').style.display = 'none';
+      document.getElementById('resetStep2').style.display = '';
+    } else {
+      showTab('login');
+    }
+
+    /* ── 비밀번호 재설정 ── */
+    document.getElementById('resetSendBtn')?.addEventListener('click', async function() {
+      const email = document.getElementById('resetEmail')?.value?.trim();
+      if (!email) return setMessage('이메일을 입력해 주세요.', 'error');
+      this.disabled = true;
+      setMessage('', '');
+      const redirectTo = location.origin + location.pathname;
+      const { error } = await supabaseClient.auth.resetPasswordForEmail(email, { redirectTo });
+      this.disabled = false;
+      if (error) return setMessage('발송 실패: ' + error.message, 'error');
+      setMessage('재설정 링크를 이메일로 발송했습니다. 메일함을 확인해 주세요.', 'success');
+    });
+
+    document.getElementById('resetConfirmBtn')?.addEventListener('click', async function() {
+      const pw  = document.getElementById('newPassword')?.value?.trim();
+      const pw2 = document.getElementById('newPassword2')?.value?.trim();
+      if (!pw || pw.length < 6) return setMessage('비밀번호를 6자 이상 입력해 주세요.', 'error');
+      if (pw !== pw2) return setMessage('비밀번호가 일치하지 않습니다.', 'error');
+      this.disabled = true;
+      const { error } = await supabaseClient.auth.updateUser({ password: pw });
+      this.disabled = false;
+      if (error) return setMessage('변경 실패: ' + error.message, 'error');
+      setMessage('비밀번호가 변경됐습니다. 로그인해 주세요.', 'success');
+      setTimeout(() => { showTab('login'); history.replaceState(null, '', location.pathname); }, 2000);
+    });
 
     /* ── 로그인 ── */
     const loginBtn      = document.getElementById('loginBtn');
