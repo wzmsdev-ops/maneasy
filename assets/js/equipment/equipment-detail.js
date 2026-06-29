@@ -1772,7 +1772,27 @@ window._delEntry = async function(row) {
 };
 
 /* ── L-J 차트 ────────────────────────────────── */
+var _qcChartRO = null;       // ljChartWrap 크기 변화를 감지해서 다시 그리기 위한 ResizeObserver
+var _qcLastChartArgs = null; // 마지막으로 그린 item/entries 캐시 (재측정 시 재사용)
+
 function _renderChart(item, entries) {
+  var wrap = document.getElementById('ljChartWrap');
+  if (!wrap) return;
+  _qcLastChartArgs = { item: item, entries: entries };
+
+  // wrap의 실제 크기가 변할 때마다(탭 전환으로 처음 보이게 되는 순간 포함) 다시 그림.
+  // 한 번만 wrap.clientWidth를 읽고 끝내면, 탭이 아직 숨겨져있거나 레이아웃이 다 안 잡힌
+  // 시점에 측정된 작은 값이 그대로 굳어버려서 차트가 실제 패널보다 좁게 그려지는 문제가 있었음.
+  if (!_qcChartRO && typeof ResizeObserver !== 'undefined') {
+    _qcChartRO = new ResizeObserver(function() {
+      if (_qcLastChartArgs) _drawChart(_qcLastChartArgs.item, _qcLastChartArgs.entries);
+    });
+    _qcChartRO.observe(wrap);
+  }
+  _drawChart(item, entries);
+}
+
+function _drawChart(item, entries) {
   var wrap = document.getElementById('ljChartWrap');
   if (!wrap) return;
   if (item.item_type !== 'quantitative' || !item.mean || !item.sd) {
