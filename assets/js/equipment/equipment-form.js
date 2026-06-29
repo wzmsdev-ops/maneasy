@@ -253,6 +253,8 @@ async function init() {
       (document.querySelector('h2, .page-title').textContent = '장비 수정');
     const btnText = document.getElementById('submitButtonText');
     if (btnText) btnText.textContent = '장비 수정';
+    const cancelBtn = qs('#cancelBtn');
+    if (cancelBtn) cancelBtn.innerHTML = '<i class="ti ti-arrow-left"></i> 상세로';
     showGlobalLoading('장비 정보를 불러오는 중...');
     try {
       const eq = await loadEquipment(editingId);
