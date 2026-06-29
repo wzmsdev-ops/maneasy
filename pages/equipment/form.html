@@ -11,7 +11,40 @@
     if (new URLSearchParams(location.search).get('shell') === '1')
       document.documentElement.classList.add('in-shell');
   </script>
-</head>
+<style>  .toggle-switch {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    height: 32px;
+    user-select: none;
+  }
+  .toggle-switch input { display: none; }
+  .toggle-track {
+    position: relative;
+    width: 36px;
+    height: 20px;
+    background: #d1d5db;
+    border-radius: 10px;
+    transition: background 0.2s;
+    flex-shrink: 0;
+  }
+  .toggle-thumb {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 16px;
+    height: 16px;
+    background: #fff;
+    border-radius: 50%;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    transition: left 0.2s;
+  }
+  .toggle-switch input:checked + .toggle-track { background: #2563eb; }
+  .toggle-switch input:checked + .toggle-track .toggle-thumb { left: 18px; }
+  .toggle-label { font-size: 12px; color: #6b7280; }
+  .toggle-switch input:checked ~ .toggle-label { color: #2563eb; font-weight: 600; }
+</style></head>
 <body class="equipment-form-page">
 
 <div class="eform-page">
@@ -67,10 +100,14 @@
             <label class="form-label">위치</label>
             <input type="text" id="location" class="input" placeholder="예: 3층 진료실" />
           </div>
-          <div class="form-field" style="display:flex;align-items:center;padding-top:22px;">
-            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:#374151;font-weight:500;">
-              <input type="checkbox" id="qc_enabled" style="width:16px;height:16px;cursor:pointer;accent-color:#2563eb;" />
-              정도관리 사용
+          <div class="form-field">
+            <label class="form-label">정도관리</label>
+            <label class="toggle-switch">
+              <input type="checkbox" id="qc_enabled" />
+              <span class="toggle-track">
+                <span class="toggle-thumb"></span>
+              </span>
+              <span class="toggle-label">사용</span>
             </label>
           </div>
           <div class="form-field eform-full">
