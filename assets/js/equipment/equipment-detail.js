@@ -675,6 +675,7 @@ async function loadEquipmentCore(equipmentId, userEmail, options) {
   // equipment_id 호환 (ME-2026-0001)
   if (eqData) eqData.equipment_id = eqData.equipment_no || eqData.id;
   currentEquipmentData = eqData || {};
+  window._currentEquipment = currentEquipmentData; // QC 패널에서 참조
 
   renderHero(currentEquipmentData);
   renderPhoto(currentEquipmentData);
@@ -1288,3 +1289,207 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 });
+
+/* ══════════════════════════════════════════════
+   탭 전환
+══════════════════════════════════════════════ */
+document.addEventListener('DOMContentLoaded', function() {
+  document.querySelectorAll('.det-tab').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var tab = btn.dataset.tab;
+      document.querySelectorAll('.det-tab').forEach(function(b) { b.classList.remove('active'); });
+      document.querySelectorAll('.det-tab-panel').forEach(function(p) { p.classList.remove('active'); });
+      btn.classList.add('active');
+      var panel = document.getElementById('detPanel-' + tab);
+      if (panel) panel.classList.add('active');
+      if (tab === 'qc') initQcPanel();
+    });
+  });
+});
+
+/* ══════════════════════════════════════════════
+   정도관리 패널
+══════════════════════════════════════════════ */
+var _qcInited      = false;
+var _qcItemGrid    = null;
+var _qcEntryGrid   = null;
+var _selectedQcItemId = null;
+
+function initQcPanel() {
+  if (_qcInited) return;
+  _qcInited = true;
+
+  var eq = window._currentEquipment;
+  if (!eq) return;
+
+  var disabled = document.getElementById('detQcDisabled');
+  var content  = document.getElementById('detQcContent');
+
+  if (!eq.qc_enabled) {
+    if (disabled) disabled.style.display = '';
+    if (content)  content.style.display  = 'none';
+    var enableBtn = document.getElementById('detQcEnableBtn');
+    if (enableBtn) {
+      enableBtn.addEventListener('click', async function() {
+        await supabaseClient.from('equipments').update({ qc_enabled: true }).eq('id', eq.id);
+        eq.qc_enabled = true;
+        disabled.style.display = 'none';
+        content.style.display  = 'flex';
+        loadQcItems(eq.id);
+      });
+    }
+    return;
+  }
+
+  if (disabled) disabled.style.display = 'none';
+  if (content)  content.style.display  = 'flex';
+  loadQcItems(eq.id);
+}
+
+async function loadQcItems(equipmentId) {
+  var el = document.getElementById('qcItemGrid');
+  if (!el) return;
+
+  var { data, error } = await supabaseClient
+    .from('lj_items')
+    .select('*')
+    .eq('equipment_id', equipmentId)
+    .order('created_at', { ascending: true });
+  if (error) { console.error(error); return; }
+
+  var rows = data || [];
+  var cnt = document.getElementById('qcItemCountText');
+  if (cnt) cnt.textContent = rows.length + '건';
+
+  if (!_qcItemGrid) {
+    _qcItemGrid = agGrid.createGrid(el, {
+      columnDefs: [
+        { headerName: '항목명',   field: 'item_name', flex: 2,
+          headerClass: 'ag-left-header',
+          cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-start', fontWeight:600 },
+        },
+        { headerName: '유형',     field: 'item_type', width: 80 },
+        { headerName: '단위',     field: 'unit',      width: 70 },
+        { headerName: '평균(Mean)', field: 'mean',    width: 100,
+          cellRenderer: function(p) { return p.value != null ? Number(p.value).toFixed(2) : '-'; }
+        },
+        { headerName: 'SD',       field: 'sd',        width: 80,
+          cellRenderer: function(p) { return p.value != null ? Number(p.value).toFixed(2) : '-'; }
+        },
+        { headerName: '메모',     field: 'memo',      flex: 1,
+          headerClass: 'ag-left-header',
+          cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-start' },
+        },
+      ],
+      rowData: rows,
+      rowHeight: 34,
+      headerHeight: 34,
+      suppressCellFocus: true,
+      suppressHorizontalScroll: true,
+      defaultColDef: { sortable:true, resizable:true, suppressMovable:true,
+        cellStyle: { display:'flex', alignItems:'center', justifyContent:'center' } },
+      overlayNoRowsTemplate: '<span style="color:#9ca3af;font-size:12px;">등록된 검사항목이 없습니다.</span>',
+      onGridReady: function(p) { p.api.sizeColumnsToFit(); },
+      onRowClicked: function(p) { selectQcItem(p.data); },
+    });
+  } else {
+    _qcItemGrid.setGridOption('rowData', rows);
+  }
+
+  // 항목 추가 버튼
+  var addBtn = document.getElementById('addQcItemBtn');
+  if (addBtn && !addBtn._bound) {
+    addBtn._bound = true;
+    addBtn.addEventListener('click', function() { openQcItemModal(equipmentId); });
+  }
+}
+
+function selectQcItem(item) {
+  _selectedQcItemId = item.id;
+  var lbl = document.getElementById('qcSelectedItemLabel');
+  if (lbl) lbl.textContent = item.item_name;
+  var btn = document.getElementById('addLjEntryBtn');
+  if (btn) btn.disabled = false;
+  loadLjEntries(item.id);
+}
+
+async function loadLjEntries(itemId) {
+  var el = document.getElementById('qcEntryGrid');
+  if (!el) return;
+
+  var { data, error } = await supabaseClient
+    .from('lj_entries')
+    .select('*')
+    .eq('item_id', itemId)
+    .order('date', { ascending: false });
+  if (error) { console.error(error); return; }
+
+  var rows = data || [];
+
+  if (!_qcEntryGrid) {
+    _qcEntryGrid = agGrid.createGrid(el, {
+      columnDefs: [
+        { headerName: '측정일', field: 'date',  width: 110,
+          cellRenderer: function(p) { return p.value ? String(p.value).slice(0,10) : '-'; }
+        },
+        { headerName: '측정값', field: 'value', width: 100,
+          cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-end', fontWeight:700 },
+        },
+        { headerName: '메모', field: 'memo', flex: 1,
+          headerClass: 'ag-left-header',
+          cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-start' },
+        },
+      ],
+      rowData: rows,
+      rowHeight: 34,
+      headerHeight: 34,
+      suppressCellFocus: true,
+      suppressHorizontalScroll: true,
+      defaultColDef: { sortable:true, resizable:true, suppressMovable:true,
+        cellStyle: { display:'flex', alignItems:'center', justifyContent:'center' } },
+      overlayNoRowsTemplate: '<span style="color:#9ca3af;font-size:12px;">입력된 데이터가 없습니다.</span>',
+      onGridReady: function(p) { p.api.sizeColumnsToFit(); },
+    });
+  } else {
+    _qcEntryGrid.setGridOption('rowData', rows);
+  }
+
+  var addBtn = document.getElementById('addLjEntryBtn');
+  if (addBtn && !addBtn._bound) {
+    addBtn._bound = true;
+    addBtn.addEventListener('click', function() {
+      if (_selectedQcItemId) openLjEntryModal(_selectedQcItemId);
+    });
+  }
+}
+
+function openQcItemModal(equipmentId) {
+  var name  = prompt('검사항목명을 입력하세요:');
+  if (!name) return;
+  var unit  = prompt('단위를 입력하세요 (예: mg/dL):') || '';
+  var mean  = parseFloat(prompt('평균(Mean)을 입력하세요:') || '0') || null;
+  var sd    = parseFloat(prompt('SD를 입력하세요:')       || '0') || null;
+  supabaseClient.from('lj_items').insert({
+    equipment_id: equipmentId,
+    item_name: name, item_type: 'quantitative',
+    unit: unit, mean: mean, sd: sd,
+  }).then(function(res) {
+    if (res.error) { alert('등록 실패: ' + res.error.message); return; }
+    _qcItemGrid = null;
+    loadQcItems(equipmentId);
+  });
+}
+
+function openLjEntryModal(itemId) {
+  var date  = prompt('측정일을 입력하세요 (YYYY-MM-DD):', new Date().toISOString().slice(0,10));
+  if (!date) return;
+  var value = prompt('측정값을 입력하세요:');
+  if (value === null) return;
+  var memo  = prompt('메모 (선택사항):') || '';
+  supabaseClient.from('lj_entries').insert({
+    item_id: itemId, date: date, value: value, memo: memo,
+  }).then(function(res) {
+    if (res.error) { alert('입력 실패: ' + res.error.message); return; }
+    loadLjEntries(itemId);
+  });
+}
