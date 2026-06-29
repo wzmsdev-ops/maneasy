@@ -118,13 +118,18 @@
   <!-- ── 탭 패널: 정도관리 ── -->
   <div class="det-tab-panel" id="detPanel-qc">
     <div class="det-qc-wrap">
+
+      <!-- 정도관리 비활성 -->
       <div id="detQcDisabled" class="empty-box" style="display:none;">
         이 장비는 정도관리가 비활성화되어 있습니다.<br>
         <button class="btn btn-sm btn-primary" style="margin-top:10px;" id="detQcEnableBtn">정도관리 활성화</button>
       </div>
-      <div id="detQcContent" style="display:none; height:100%; display:flex; flex-direction:column; gap:8px;">
-        <!-- 검사항목 목록 -->
-        <div class="det-card" style="flex:1;min-height:0;">
+
+      <!-- 정도관리 활성 -->
+      <div id="detQcContent" style="display:none;flex:1;min-height:0;display:flex;flex-direction:column;gap:8px;">
+
+        <!-- 상단: 검사항목 목록 -->
+        <div class="det-card" style="flex:0 0 auto;">
           <div class="det-card-head">
             <span class="det-card-title">검사항목</span>
             <div class="det-card-actions">
@@ -132,22 +137,134 @@
               <button type="button" id="addQcItemBtn" class="btn btn-sm btn-primary">+ 항목 추가</button>
             </div>
           </div>
-          <div id="qcItemGrid" class="ag-theme-alpine" style="height:240px;"></div>
+          <div id="qcItemGrid" class="ag-theme-alpine" style="height:180px;"></div>
         </div>
-        <!-- LJ 데이터 입력 -->
-        <div class="det-card" style="flex:1;min-height:0;">
-          <div class="det-card-head">
-            <span class="det-card-title">LJ 데이터</span>
-            <div class="det-card-actions">
-              <span id="qcSelectedItemLabel" style="font-size:11px;color:#6b7280;"></span>
-              <button type="button" id="addLjEntryBtn" class="btn btn-sm btn-primary" disabled>+ 데이터 입력</button>
+
+        <!-- 하단: 선택 항목의 데이터 + 차트 -->
+        <div id="detQcDetail" style="display:none;flex:1;min-height:0;display:flex;gap:8px;">
+          <!-- 좌: 데이터 입력 그리드 -->
+          <div class="det-card" style="flex:1;min-height:0;display:flex;flex-direction:column;">
+            <div class="det-card-head">
+              <span class="det-card-title">측정 데이터</span>
+              <div class="det-card-actions">
+                <span id="qcSelectedItemLabel" style="font-size:11px;color:#2563eb;font-weight:600;"></span>
+                <button type="button" id="addLjEntryBtn" class="btn btn-sm btn-primary" disabled>+ 데이터 입력</button>
+              </div>
             </div>
+            <div id="qcEntryGrid" class="ag-theme-alpine" style="flex:1;min-height:0;"></div>
           </div>
-          <div id="qcEntryGrid" class="ag-theme-alpine" style="height:240px;"></div>
+          <!-- 우: L-J 차트 -->
+          <div class="det-card" id="detLjChartCard" style="flex:1.5;min-height:0;display:flex;flex-direction:column;">
+            <div class="det-card-head">
+              <span class="det-card-title">L-J 차트</span>
+              <div class="det-card-actions">
+                <button type="button" id="ljChartPrintBtn" class="btn btn-sm" style="display:none;">출력</button>
+              </div>
+            </div>
+            <div id="ljChartWrap" style="flex:1;min-height:0;padding:8px;"></div>
+          </div>
         </div>
+
       </div>
     </div>
   </div><!-- /detPanel-qc -->
+
+  <!-- ── 검사항목 등록/수정 모달 ── -->
+  <div id="qcItemModal" class="m-modal">
+    <div class="m-modal-backdrop" onclick="closeQcItemModal()"></div>
+    <div class="m-modal-dialog" style="max-width:480px;">
+      <div class="m-modal-head">
+        <span class="m-modal-title" id="qcItemModalTitle">검사항목 추가</span>
+        <button class="m-modal-close" onclick="closeQcItemModal()"><i class="ti ti-x"></i></button>
+      </div>
+      <div class="m-modal-body" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
+        <div class="m-field">
+          <label class="form-label">항목명 <span style="color:#dc2626">*</span></label>
+          <input type="text" id="qi_name" class="input" placeholder="예: Glucose, HbA1c" />
+        </div>
+        <div class="m-field-row">
+          <div class="m-field">
+            <label class="form-label">유형</label>
+            <select id="qi_type" class="input" onchange="onQiTypeChange()">
+              <option value="quantitative">정량 (Quantitative)</option>
+              <option value="qualitative">정성 (Qualitative)</option>
+            </select>
+          </div>
+          <div class="m-field">
+            <label class="form-label">단위</label>
+            <input type="text" id="qi_unit" class="input" placeholder="예: mg/dL, %" />
+          </div>
+        </div>
+        <!-- 정량 전용 -->
+        <div id="qi_quantitative_fields">
+          <div class="m-field-row">
+            <div class="m-field">
+              <label class="form-label">평균 (Mean)</label>
+              <input type="number" id="qi_mean" class="input" step="any" placeholder="0.00" />
+            </div>
+            <div class="m-field">
+              <label class="form-label">표준편차 (SD)</label>
+              <input type="number" id="qi_sd" class="input" step="any" placeholder="0.00" />
+            </div>
+            <div class="m-field" style="max-width:80px;">
+              <label class="form-label">소수점</label>
+              <input type="number" id="qi_decimal" class="input" value="2" min="0" max="6" />
+            </div>
+          </div>
+        </div>
+        <!-- 정성 전용 -->
+        <div id="qi_qualitative_fields" style="display:none;">
+          <div class="m-field">
+            <label class="form-label">선택지 (쉼표 구분)</label>
+            <input type="text" id="qi_preset" class="input" placeholder="예: 양성,음성,미검출" />
+          </div>
+          <div class="m-field">
+            <label class="form-label">예상값 (정상)</label>
+            <input type="text" id="qi_expected" class="input" placeholder="예: 음성" />
+          </div>
+        </div>
+        <div class="m-field">
+          <label class="form-label">메모</label>
+          <input type="text" id="qi_memo" class="input" placeholder="참고사항" />
+        </div>
+      </div>
+      <div class="m-modal-foot">
+        <button class="btn btn-sm" onclick="closeQcItemModal()">취소</button>
+        <button class="btn btn-sm btn-primary" id="qcItemSaveBtn" onclick="saveQcItem()">저장</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 측정값 입력 모달 ── -->
+  <div id="qcEntryModal" class="m-modal">
+    <div class="m-modal-backdrop" onclick="closeQcEntryModal()"></div>
+    <div class="m-modal-dialog" style="max-width:360px;">
+      <div class="m-modal-head">
+        <span class="m-modal-title">측정값 입력</span>
+        <button class="m-modal-close" onclick="closeQcEntryModal()"><i class="ti ti-x"></i></button>
+      </div>
+      <div class="m-modal-body" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
+        <div class="m-field">
+          <label class="form-label">측정일 <span style="color:#dc2626">*</span></label>
+          <input type="date" id="qe_date" class="input" />
+        </div>
+        <div class="m-field">
+          <label class="form-label">측정값 <span style="color:#dc2626">*</span></label>
+          <input type="text" id="qe_value" class="input" placeholder="값 입력" />
+          <!-- 정성 항목이면 select로 교체 -->
+          <select id="qe_value_select" class="input" style="display:none;"></select>
+        </div>
+        <div class="m-field">
+          <label class="form-label">메모</label>
+          <input type="text" id="qe_memo" class="input" placeholder="참고사항" />
+        </div>
+      </div>
+      <div class="m-modal-foot">
+        <button class="btn btn-sm" onclick="closeQcEntryModal()">취소</button>
+        <button class="btn btn-sm btn-primary" onclick="saveQcEntry()">저장</button>
+      </div>
+    </div>
+  </div>
 
 </div><!-- /det-page -->
 
