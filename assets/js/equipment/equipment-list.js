@@ -564,11 +564,9 @@ async function loadEquipmentList(nextPage) {
   if (equipmentListState.loading) return;
 
   equipmentListState.loading = true;
-  var _showingOverlay = !!equipmentListState._initialLoad;
-
   try {
     if (typeof clearMessage === 'function') clearMessage();
-    if (typeof showGlobalLoading === 'function' && _showingOverlay) {
+    if (typeof showGlobalLoading === 'function') {
       showGlobalLoading('장비 목록을 불러오는 중...');
     }
 
@@ -660,7 +658,7 @@ async function loadEquipmentList(nextPage) {
     }
   } finally {
     equipmentListState.loading = false;
-    if (typeof hideGlobalLoading === 'function' && _showingOverlay) {
+    if (typeof hideGlobalLoading === 'function') {
       hideGlobalLoading();
     }
   }
