@@ -1359,6 +1359,16 @@ function initQcPanel() {
   document.getElementById('addQcItemBtn').addEventListener('click', _startNew);
   document.getElementById('addLjEntryBtn').addEventListener('click', _addRow);
 
+  // 측정 데이터 조회 날짜 기본값 — 오늘부터 한 달 전까지
+  var today = new Date();
+  var monthAgo = new Date(today);
+  monthAgo.setMonth(today.getMonth() - 1);
+  var qFrom = document.getElementById('qcDateFrom');
+  var qTo   = document.getElementById('qcDateTo');
+  if (qFrom) qFrom.value = monthAgo.toISOString().slice(0,10);
+  if (qTo)   qTo.value   = today.toISOString().slice(0,10);
+  document.getElementById('qcDateSearchBtn')?.addEventListener('click', function() { _loadEntries(); });
+
   // 측정 데이터 그리드 딱 한 번만 생성
   _initEntryGrid();
   _loadItems();
@@ -1563,7 +1573,38 @@ async function deleteQcItem() {
 }
 window.deleteQcItem = deleteQcItem;
 
-/* ── 측정 데이터 그리드 (딱 1개, 재사용) ─────── */
+/* ── Westgard 다중규칙 판정 ─────────────────────
+   data: [{date, v}] 측정일 오름차순
+   각 포인트마다 위반한 규칙 목록과 reject 여부를 반환 */
+function _evalWestgard(data, mean, sd) {
+  if (!sd) return data.map(function() { return { z: 0, violations: [], reject: false, warning: false }; });
+  return data.map(function(d, i) {
+    var z = (d.v - mean) / sd;
+    var violations = [];
+
+    if (Math.abs(z) > 3) violations.push('1_3s');
+    else if (Math.abs(z) > 2) violations.push('1_2s');
+
+    if (i > 0) {
+      var z0 = (data[i-1].v - mean) / sd;
+      if ((z > 2 && z0 > 2) || (z < -2 && z0 < -2)) violations.push('2_2s');
+      if (Math.abs(z - z0) > 4) violations.push('R_4s');
+    }
+    if (i >= 3) {
+      var last4 = [data[i-3], data[i-2], data[i-1], d].map(function(x) { return (x.v - mean) / sd; });
+      if (last4.every(function(zz) { return zz > 1; }) || last4.every(function(zz) { return zz < -1; })) violations.push('4_1s');
+    }
+    if (i >= 9) {
+      var last10 = data.slice(i-9, i+1).map(function(x) { return x.v - mean; });
+      if (last10.every(function(dd) { return dd > 0; }) || last10.every(function(dd) { return dd < 0; })) violations.push('10x');
+    }
+
+    var rejectRules = violations.filter(function(v) { return v !== '1_2s'; });
+    return { z: z, violations: violations, reject: rejectRules.length > 0, warning: violations.indexOf('1_2s') >= 0 && rejectRules.length === 0 };
+  });
+}
+
+
 function _initEntryGrid() {
   var el = document.getElementById('qcEntryGrid');
   if (!el || _qcGrid) return;
@@ -1597,15 +1638,21 @@ function _entryColDefs(item) {
       cellEditorParams: isQual ? { values: item.preset.split(',').map(function(s){return s.trim();}) } : {},
       cellStyle: function(p) {
         var base = { display:'flex', alignItems:'center', justifyContent:'flex-end', fontWeight:600 };
-        if (item && item.item_type === 'quantitative' && item.mean != null && item.sd != null && p.value) {
-          var z = Math.abs((parseFloat(p.value) - parseFloat(item.mean)) / parseFloat(item.sd));
-          base.color = z > 3 ? '#dc2626' : z > 2 ? '#f59e0b' : '#111827';
-        }
+        if (p.data._reject) base.color = '#dc2626';
+        else if (p.data._warning) base.color = '#d97706';
         return base;
       },
       cellRenderer: function(p) {
         return (p.value != null && p.value !== '') ? String(p.value)
           : '<span style="color:#d1d5db;font-size:11px;">값 클릭</span>';
+      }
+    },
+    { headerName: '판정', width: 80, sortable: false,
+      cellStyle: { display:'flex', alignItems:'center', justifyContent:'center', fontSize:'10px', fontWeight:700 },
+      cellRenderer: function(p) {
+        if (!p.data._violations || !p.data._violations.length) return '<span style="color:#9ca3af;">-</span>';
+        var color = p.data._reject ? '#dc2626' : '#d97706';
+        return '<span style="color:' + color + ';" title="' + p.data._violations.join(', ') + '">' + p.data._violations[0] + (p.data._violations.length > 1 ? ' 외' : '') + '</span>';
       }
     },
     { headerName: '메모', field: 'memo', flex: 1,
@@ -1620,10 +1667,19 @@ function _entryColDefs(item) {
         wrap.style.cssText = 'display:flex;gap:4px;';
         var s = document.createElement('button');
         s.className = 'tbl-btn'; s.textContent = '저장';
-        s.onclick = function() { window._saveEntry(p.node.data); };
+        // click 대신 mousedown — 편집 중인 셀이 있으면 click 이벤트의 첫 번째는
+        // 포커스아웃(편집 종료) 처리에 먹혀서 버튼이 한 번에 안 눌리는 문제가 있음.
+        // mousedown은 그 포커스아웃 처리보다 먼저 발생해서 항상 정상적으로 잡힘.
+        s.addEventListener('mousedown', function(e) {
+          e.preventDefault();
+          window._saveEntry(p.node.data);
+        });
         var d = document.createElement('button');
         d.className = 'tbl-btn tbl-btn--danger'; d.textContent = '삭제';
-        d.onclick = function() { window._delEntry(p.node.data); };
+        d.addEventListener('mousedown', function(e) {
+          e.preventDefault();
+          window._delEntry(p.node.data);
+        });
         wrap.appendChild(s); wrap.appendChild(d);
         return wrap;
       }
@@ -1633,9 +1689,47 @@ function _entryColDefs(item) {
 
 async function _loadEntries() {
   if (!_selItem || !_qcGrid) return;
-  var { data } = await supabaseClient.from('lj_entries').select('*')
-    .eq('item_id', _selItem.id).order('date', { ascending: true });
+  var dateFrom = document.getElementById('qcDateFrom')?.value || '';
+  var dateTo   = document.getElementById('qcDateTo')?.value || '';
+  var q = supabaseClient.from('lj_entries').select('*').eq('item_id', _selItem.id);
+  if (dateFrom) q = q.gte('date', dateFrom);
+  if (dateTo)   q = q.lte('date', dateTo);
+  var { data } = await q.order('date', { ascending: true });
   var rows = data || [];
+
+  // Westgard 판정 — 정량 항목이고 Mean/SD가 있을 때만, 행마다 위반규칙을 계산해서 붙임
+  var item = _selItem;
+  if (item.item_type === 'quantitative' && item.mean != null && item.sd) {
+    var mean = parseFloat(item.mean), sd = parseFloat(item.sd);
+    var numeric = rows.map(function(r) { return { v: parseFloat(r.value) }; });
+    var evals = _evalWestgard(numeric, mean, sd);
+    rows.forEach(function(r, i) {
+      var ok = !isNaN(numeric[i].v);
+      r._violations = ok ? evals[i].violations : [];
+      r._reject     = ok ? evals[i].reject     : false;
+      r._warning    = ok ? evals[i].warning    : false;
+    });
+  } else {
+    rows.forEach(function(r) { r._violations = []; r._reject = false; r._warning = false; });
+  }
+
+  // 최근 측정의 판정을 헤더 배지로 표시
+  var badge = document.getElementById('qcWestgardBadge');
+  if (badge) {
+    var last = rows.length ? rows[rows.length - 1] : null;
+    if (item.item_type !== 'quantitative' || item.mean == null || !item.sd) {
+      badge.textContent = '';
+    } else if (!last) {
+      badge.innerHTML = '';
+    } else if (last._reject) {
+      badge.innerHTML = '<span style="color:#dc2626;">⚠ ' + last._violations.join(', ') + ' 위반 (Reject)</span>';
+    } else if (last._warning) {
+      badge.innerHTML = '<span style="color:#d97706;">△ 1_2s (경고)</span>';
+    } else {
+      badge.innerHTML = '<span style="color:#059669;">✓ 정상</span>';
+    }
+  }
+
   // 컬럼 업데이트 (항목 유형에 따라)
   _qcGrid.setGridOption('columnDefs', _entryColDefs(_selItem));
   _qcGrid.setGridOption('rowData', rows);
@@ -1678,7 +1772,7 @@ function _renderChart(item, entries) {
       (item.item_type !== 'quantitative' ? '정성 항목은 차트를 지원하지 않습니다.' : 'Mean과 SD를 입력하면 차트가 표시됩니다.') + '</div>';
     return;
   }
-  var data = entries.map(function(e){return{date:e.date,v:parseFloat(e.value)};}).filter(function(e){return!isNaN(e.v);});
+  var data = entries.map(function(e){return{date:e.date,v:parseFloat(e.value),reject:e._reject,warning:e._warning};}).filter(function(e){return!isNaN(e.v);});
   if (!data.length) {
     wrap.innerHTML = '<div style="height:100%;display:flex;align-items:center;justify-content:center;color:#9ca3af;font-size:11px;">측정 데이터를 입력하면 차트가 표시됩니다.</div>';
     return;
@@ -1711,8 +1805,9 @@ function _renderChart(item, entries) {
   });
   if(data.length>1) svg.push('<polyline points="'+data.map(function(d,i){return X(i)+','+Y(d.v);}).join(' ')+'" fill="none" stroke="#3b82f6" stroke-width="1.5" stroke-linejoin="round"/>');
   data.forEach(function(d,i){
-    var z=Math.abs((d.v-mean)/sd), c=z>3?'#ef4444':z>2?'#f59e0b':'#3b82f6';
-    svg.push('<circle cx="'+X(i)+'" cy="'+Y(d.v)+'" r="3.5" fill="'+c+'" stroke="#fff" stroke-width="1.5"/>');
+    var c = d.reject ? '#dc2626' : d.warning ? '#f59e0b' : '#3b82f6';
+    var r = d.reject ? 4.5 : 3.5;
+    svg.push('<circle cx="'+X(i)+'" cy="'+Y(d.v)+'" r="'+r+'" fill="'+c+'" stroke="#fff" stroke-width="1.5"/>');
   });
   var step=Math.max(1,Math.ceil(data.length/8));
   data.forEach(function(d,i){
