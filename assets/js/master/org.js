@@ -486,11 +486,25 @@ function onUserClinicSelectChange() {
 
 async function approveUser(id) {
   if (!confirm('이 사용자를 승인하시겠습니까?')) return;
+
+  // 승인 전 사용자 이름/이메일 조회
+  const { data: userData } = await supabaseClient
+    .from('user_profiles_with_email')
+    .select('user_name, email')
+    .eq('id', id)
+    .single();
+
   const { error } = await supabaseClient
     .from('user_profiles')
     .update({ active: 'Y', role: 'user' })
     .eq('id', id);
   if (error) { alert('승인 실패: ' + error.message); return; }
+
+  // 승인 완료 알림 메일 발송
+  if (userData && typeof gasNotify === 'function') {
+    gasNotify('approvalNotice', { name: userData.user_name, email: userData.email });
+  }
+
   await refreshUsers();
 }
 window.approveUser = approveUser;
