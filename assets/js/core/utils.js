@@ -38,26 +38,68 @@ function nl2br(value) {
   return escapeHtml(value).replace(/\n/g, '<br>');
 }
 
-function showMessage(message, type = 'info') {
-  const box = qs('#messageBox');
-
-  if (!box) {
-    alert(message);
-    return;
+function showMessage(message, type = 'info', duration = 4000) {
+  // 토스트 컨테이너 (없으면 생성)
+  let container = document.getElementById('_toastContainer');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = '_toastContainer';
+    container.style.cssText = [
+      'position:fixed', 'bottom:20px', 'right:20px', 'z-index:99999',
+      'display:flex', 'flex-direction:column', 'gap:8px',
+      'pointer-events:none', 'max-width:360px',
+    ].join(';');
+    document.body.appendChild(container);
   }
 
-  box.className = `message-box ${type}`;
-  box.textContent = message;
-  box.style.display = 'block';
+  const COLORS = {
+    success: { bg:'#f0fdf4', border:'#86efac', icon:'#16a34a', text:'#166534', ico:'✓' },
+    error:   { bg:'#fef2f2', border:'#fca5a5', icon:'#dc2626', text:'#991b1b', ico:'✕' },
+    warning: { bg:'#fffbeb', border:'#fcd34d', icon:'#d97706', text:'#92400e', ico:'⚠' },
+    info:    { bg:'#eff6ff', border:'#93c5fd', icon:'#2563eb', text:'#1e40af', ico:'ℹ' },
+  };
+  const c = COLORS[type] || COLORS.info;
+
+  const toast = document.createElement('div');
+  toast.style.cssText = [
+    'display:flex', 'align-items:flex-start', 'gap:10px',
+    'padding:12px 14px', 'border-radius:8px',
+    'background:' + c.bg, 'border:1px solid ' + c.border,
+    'box-shadow:0 4px 12px rgba(0,0,0,0.12)',
+    'font-size:12px', 'line-height:1.5', 'color:' + c.text,
+    'pointer-events:auto', 'cursor:pointer',
+    'opacity:0', 'transform:translateX(20px)',
+    'transition:opacity 0.25s, transform 0.25s',
+    'word-break:keep-all',
+  ].join(';');
+
+  toast.innerHTML =
+    '<span style="font-size:14px;color:' + c.icon + ';flex-shrink:0;margin-top:1px;">' + c.ico + '</span>' +
+    '<span style="flex:1;">' + String(message).replace(/&/g,'&amp;').replace(/</g,'&lt;') + '</span>' +
+    '<span style="color:#9ca3af;font-size:11px;flex-shrink:0;margin-top:1px;">✕</span>';
+
+  container.appendChild(toast);
+
+  // 애니메이션 in
+  requestAnimationFrame(function() {
+    toast.style.opacity = '1';
+    toast.style.transform = 'translateX(0)';
+  });
+
+  function dismiss() {
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateX(20px)';
+    setTimeout(function() { if (toast.parentNode) toast.parentNode.removeChild(toast); }, 250);
+  }
+
+  toast.addEventListener('click', dismiss);
+  if (duration > 0) setTimeout(dismiss, duration);
 }
 
 function clearMessage() {
+  // 기존 messageBox 숨김 (레거시 호환)
   const box = qs('#messageBox');
-  if (!box) return;
-
-  box.style.display = 'none';
-  box.textContent = '';
-  box.className = 'message-box';
+  if (box) { box.style.display = 'none'; box.textContent = ''; box.className = 'message-box'; }
 }
 
 function setLoading(button, isLoading, loadingText = '처리 중...') {
