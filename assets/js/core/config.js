@@ -14,9 +14,6 @@ const CONFIG = {
     EQUIPMENT_PHOTOS: 'equipment-photos',
   },
 
-  // GAS Web App URL — drive-upload.gs 배포 후 입력
-  GAS_UPLOAD_URL: 'https://script.google.com/macros/s/AKfycby4LMuwlpA_1-ehuBZpyNEOoesmo8ULGO5bnOt1vRcUoS0VTV88WE6oMrbVewicDRwOfg/exec',
-
   EQUIPMENT_STATUS: {
     IN_USE:     'IN_USE',
     REPAIRING:  'REPAIRING',
