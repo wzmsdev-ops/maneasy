@@ -170,16 +170,23 @@
             <div style="flex:1;min-height:0;display:flex;overflow:hidden;">
               <!-- 측정 데이터 -->
               <div style="flex:1;min-width:0;border-right:1px solid #e5e7eb;display:flex;flex-direction:column;">
-                <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-bottom:1px solid #e5e7eb;flex-shrink:0;background:#f8fafc;">
-                  <span style="font-size:12px;font-weight:700;color:#374151;">측정 데이터</span>
-                  <button type="button" id="addLjEntryBtn" class="btn btn-sm btn-primary" style="height:24px;padding:0 8px;font-size:11px;">+ 입력</button>
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-bottom:1px solid #e5e7eb;flex-shrink:0;background:#f8fafc;gap:8px;flex-wrap:wrap;">
+                  <span style="font-size:12px;font-weight:700;color:#374151;white-space:nowrap;">측정 데이터</span>
+                  <div style="display:flex;align-items:center;gap:4px;flex:1;min-width:0;justify-content:flex-end;">
+                    <input type="date" id="qcDateFrom" style="height:24px;font-size:11px;padding:0 4px;border:1px solid #e5e7eb;border-radius:4px;width:118px;" />
+                    <span style="font-size:11px;color:#9ca3af;">~</span>
+                    <input type="date" id="qcDateTo" style="height:24px;font-size:11px;padding:0 4px;border:1px solid #e5e7eb;border-radius:4px;width:118px;" />
+                    <button type="button" id="qcDateSearchBtn" class="btn btn-sm" style="height:24px;padding:0 8px;font-size:11px;">조회</button>
+                  </div>
+                  <button type="button" id="addLjEntryBtn" class="btn btn-sm btn-primary" style="height:24px;padding:0 8px;font-size:11px;white-space:nowrap;">+ 입력</button>
                 </div>
                 <div id="qcEntryGrid" class="ag-theme-alpine" style="flex:1;min-height:0;"></div>
               </div>
               <!-- L-J 차트 -->
               <div style="flex:1.2;min-width:0;display:flex;flex-direction:column;">
-                <div style="padding:8px 12px;border-bottom:1px solid #e5e7eb;flex-shrink:0;background:#f8fafc;">
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-bottom:1px solid #e5e7eb;flex-shrink:0;background:#f8fafc;gap:8px;">
                   <span style="font-size:12px;font-weight:700;color:#374151;">L-J 차트</span>
+                  <span id="qcWestgardBadge" style="font-size:11px;font-weight:700;"></span>
                 </div>
                 <div id="ljChartWrap" style="flex:1;min-height:0;padding:8px;overflow:hidden;"></div>
               </div>
