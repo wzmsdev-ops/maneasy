@@ -119,77 +119,64 @@
   <div class="det-tab-panel" id="detPanel-qc">
     <div class="det-qc-wrap">
 
-      <!-- 정도관리 비활성 -->
+      <!-- 비활성 -->
       <div id="detQcDisabled" class="empty-box" style="display:none;">
         이 장비는 정도관리가 비활성화되어 있습니다.<br>
         <button class="btn btn-sm btn-primary" style="margin-top:10px;" id="detQcEnableBtn">정도관리 활성화</button>
       </div>
 
-      <!-- 정도관리 활성: 2열 구조 -->
-      <div id="detQcContent" style="display:none;flex:1;min-height:0;display:flex;gap:8px;">
+      <!-- 활성: 3단 구조 (검사항목 목록 | 항목 정보/폼 | 측정데이터+차트) -->
+      <div id="detQcContent" style="display:none;flex:1;min-height:0;display:flex;gap:0;overflow:hidden;">
 
-        <!-- 좌: 검사항목 -->
-        <div style="flex:0 0 300px;display:flex;flex-direction:column;gap:8px;">
-          <div class="det-card" style="flex:1;min-height:0;display:flex;flex-direction:column;">
-            <div class="det-card-head">
-              <span class="det-card-title">검사항목</span>
-              <div class="det-card-actions">
-                <span class="det-card-count" id="qcItemCountText"></span>
-                <button type="button" id="addQcItemBtn" class="btn btn-sm btn-primary">+ 추가</button>
+        <!-- 1열: 검사항목 목록 -->
+        <div style="flex:0 0 200px;border-right:1px solid #e5e7eb;display:flex;flex-direction:column;">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:#f8fafc;border-bottom:1px solid #e5e7eb;flex-shrink:0;">
+            <span style="font-size:12px;font-weight:700;color:#374151;">검사항목 <span id="qcItemCountText" style="color:#9ca3af;font-weight:400;"></span></span>
+            <button type="button" id="addQcItemBtn" class="btn btn-sm btn-primary" style="padding:0 8px;height:24px;font-size:11px;">+ 추가</button>
+          </div>
+          <div id="qcItemList" style="flex:1;overflow-y:auto;"></div>
+        </div>
+
+        <!-- 2열: 항목 정보 / 입력 폼 -->
+        <div style="flex:0 0 280px;border-right:1px solid #e5e7eb;display:flex;flex-direction:column;">
+          <!-- 미선택 -->
+          <div id="detQcNoSelect" style="flex:1;display:flex;align-items:center;justify-content:center;color:#9ca3af;font-size:12px;text-align:center;padding:20px;">
+            ← 검사항목을<br>선택하거나 추가하세요
+          </div>
+          <!-- 항목 폼 -->
+          <div id="qcItemForm" style="display:none;flex:1;flex-direction:column;overflow:hidden;">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:#f8fafc;border-bottom:1px solid #e5e7eb;flex-shrink:0;">
+              <span id="qcFormTitle" style="font-size:12px;font-weight:700;color:#374151;">항목 정보</span>
+              <div style="display:flex;gap:4px;">
+                <button id="qcItemSaveBtn" class="btn btn-sm btn-primary" style="display:none;padding:0 8px;height:24px;font-size:11px;" onclick="saveQcItem()">저장</button>
+                <button id="qcItemCancelBtn" class="btn btn-sm" style="display:none;padding:0 8px;height:24px;font-size:11px;" onclick="cancelQcItem()">취소</button>
+                <button id="qcItemEditBtn" class="btn btn-sm" style="padding:0 8px;height:24px;font-size:11px;" onclick="editQcItem()">수정</button>
+                <button id="qcItemDeleteBtn" class="btn btn-sm btn-danger" style="padding:0 8px;height:24px;font-size:11px;" onclick="deleteQcItem()">삭제</button>
               </div>
             </div>
-            <div id="qcItemGrid" class="ag-theme-alpine" style="flex:1;min-height:0;"></div>
+            <div id="qcItemFormBody" style="flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:10px;font-size:12px;"></div>
           </div>
         </div>
 
-        <!-- 우: 선택 항목 상세 -->
-        <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:8px;">
-
-          <!-- 항목 미선택 안내 -->
-          <div id="detQcNoSelect" class="empty-box" style="flex:1;">
-            ← 왼쪽에서 검사항목을 선택하세요
+        <!-- 3열: 측정 데이터 + L-J 차트 -->
+        <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:0;overflow:hidden;">
+          <!-- 측정 데이터 그리드 -->
+          <div style="flex:1;min-height:0;border-bottom:1px solid #e5e7eb;display:flex;flex-direction:column;">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:#f8fafc;border-bottom:1px solid #e5e7eb;flex-shrink:0;">
+              <span style="font-size:12px;font-weight:700;color:#374151;">측정 데이터</span>
+              <button type="button" id="addLjEntryBtn" class="btn btn-sm btn-primary" disabled style="padding:0 8px;height:24px;font-size:11px;">+ 입력</button>
+            </div>
+            <div id="qcEntryGrid" class="ag-theme-alpine" style="flex:1;min-height:0;"></div>
           </div>
-
-          <!-- 항목 선택 후 -->
-          <div id="detQcDetail" style="display:none;flex:1;min-height:0;flex-direction:column;gap:8px;">
-
-            <!-- 항목 편집 폼 -->
-            <div class="det-card" id="qcItemFormCard">
-              <div class="det-card-head">
-                <span class="det-card-title" id="qcItemFormTitle">항목 정보</span>
-                <div class="det-card-actions">
-                  <button type="button" id="qcItemEditToggleBtn" class="btn btn-sm">수정</button>
-                  <button type="button" id="qcItemDeleteBtn" class="btn btn-sm btn-danger">삭제</button>
-                </div>
-              </div>
-              <div id="qcItemFormBody" style="padding:10px 14px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;font-size:12px;">
-                <!-- JS로 렌더링 -->
-              </div>
+          <!-- L-J 차트 -->
+          <div style="flex:1;min-height:0;display:flex;flex-direction:column;">
+            <div style="padding:8px 12px;background:#f8fafc;border-bottom:1px solid #e5e7eb;flex-shrink:0;">
+              <span style="font-size:12px;font-weight:700;color:#374151;">L-J 차트</span>
             </div>
-
-            <!-- 측정값 그리드 + L-J 차트 -->
-            <div style="flex:1;min-height:0;display:flex;gap:8px;">
-              <!-- 측정값 -->
-              <div class="det-card" style="flex:1;min-height:0;display:flex;flex-direction:column;">
-                <div class="det-card-head">
-                  <span class="det-card-title">측정 데이터</span>
-                  <div class="det-card-actions">
-                    <button type="button" id="addLjEntryBtn" class="btn btn-sm btn-primary">+ 입력</button>
-                  </div>
-                </div>
-                <div id="qcEntryGrid" class="ag-theme-alpine" style="flex:1;min-height:0;"></div>
-              </div>
-              <!-- L-J 차트 -->
-              <div class="det-card" style="flex:1.5;min-height:0;display:flex;flex-direction:column;">
-                <div class="det-card-head">
-                  <span class="det-card-title">L-J 차트</span>
-                </div>
-                <div id="ljChartWrap" style="flex:1;min-height:0;padding:8px;"></div>
-              </div>
-            </div>
-
+            <div id="ljChartWrap" style="flex:1;min-height:0;padding:8px;"></div>
           </div>
         </div>
+
       </div>
     </div>
   </div><!-- /detPanel-qc -->
