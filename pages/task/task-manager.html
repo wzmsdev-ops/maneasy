@@ -197,30 +197,6 @@
     .journal-status.closed { background: #f0fdf4; color: #16a34a; }
 
     /* ── 업무 등록/수정 모달 (m-modal 스타일) ── */
-    .m-modal {
-      display: none; position: fixed; inset: 0; z-index: 1000;
-      align-items: center; justify-content: center;
-    }
-    .m-modal.is-open { display: flex; }
-    .m-modal-backdrop { position: absolute; inset: 0; background: rgba(11,22,48,0.45); }
-    .m-modal-dialog {
-      position: relative; z-index: 1; background: #fff; border-radius: 10px;
-      width: 560px; max-width: calc(100vw - 32px); max-height: calc(100vh - 64px);
-      display: flex; flex-direction: column;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.16); border: 1px solid #e5e7eb; overflow: hidden;
-    }
-    .m-modal-head {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 14px 18px; border-bottom: 1px solid #e5e7eb; background: #f8fafc; flex-shrink: 0;
-    }
-    .m-modal-title { font-size: 14px; font-weight: 700; color: #111827; }
-    .m-modal-close { border: none; background: none; cursor: pointer; color: #9ca3af; font-size: 18px; line-height: 1; padding: 2px; }
-    .m-modal-close:hover { color: #374151; }
-    .m-modal-body { padding: 18px; display: flex; flex-direction: column; gap: 14px; overflow-y: auto; flex: 1; }
-    .m-modal-foot {
-      padding: 12px 18px; border-top: 1px solid #e5e7eb;
-      display: flex; justify-content: flex-end; gap: 8px; background: #f8fafc; flex-shrink: 0;
-    }
     .form-label { font-size: 11px; font-weight: 700; color: #6b7280; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.04em; display: block; }
     .modal-date-row { display: flex; gap: 10px; }
     .modal-date-row .form-group { flex: 1; }
