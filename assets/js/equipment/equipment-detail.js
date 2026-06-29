@@ -1504,7 +1504,10 @@ window._onQfType = function() {
   if (l) l.style.display = t === 'qualitative'  ? 'contents' : 'none';
 };
 
+var _prevSelItem = null; // 새 항목 추가 취소 시 복원용
+
 function _startNew() {
+  _prevSelItem = _selItem; // 현재 선택 항목 기억
   _selItem = null;
   _qcMode  = 'new';
   _renderList();
@@ -1518,11 +1521,27 @@ function editQcItem() { _qcMode = 'edit'; _renderBar(); }
 window.editQcItem = editQcItem;
 
 function cancelQcItem() {
-  _qcMode = _selItem ? 'view' : null;
-  if (!_selItem) {
+  if (_qcMode === 'new' && _prevSelItem) {
+    // 새 항목 추가 취소 → 이전 선택 항목으로 복원
+    _selItem = _prevSelItem;
+    _prevSelItem = null;
+    _qcMode = 'view';
+    _renderList();
+    _renderBar();
+    _loadEntries();
+  } else if (_qcMode === 'new') {
+    // 이전 선택 항목 없었으면 미선택 상태로
+    _selItem = null;
+    _prevSelItem = null;
+    _qcMode = 'view';
+    _renderList();
     document.getElementById('detQcNoSelect').style.display = 'flex';
     document.getElementById('detQcSelected').style.display = 'none';
-  } else { _renderBar(); }
+  } else {
+    // edit 모드 취소 → 보기 모드로
+    _qcMode = 'view';
+    _renderBar();
+  }
 }
 window.cancelQcItem = cancelQcItem;
 
@@ -1813,14 +1832,14 @@ function _drawChart(item, entries) {
   }
   var mean=parseFloat(item.mean), sd=parseFloat(item.sd), dec=item.decimal_places||2;
   var rect=wrap.getBoundingClientRect();
-  var W=Math.floor(rect.width)||400, H=Math.floor(rect.height)||180;
+  var W=Math.max(100, Math.floor(rect.width)), H=Math.max(80, Math.floor(rect.height));
   // 좌측 여백(축 라벨 자리)은 라벨 글자수에 맞춰 동적으로 계산 — 고정값(48px)을 쓰면
   // 라벨이 짧을 때 왼쪽이 필요 이상으로 넓어져서 그래프가 오른쪽으로 쏠려 보임
   var maxLabelLen = Math.max(
     Number(mean+3*sd).toFixed(dec).length,
     Number(mean-3*sd).toFixed(dec).length
   );
-  var p={t:18, r:8, b:32, l: Math.max(24, 10 + maxLabelLen*5.2)};
+  var p={t:18, r:16, b:36, l: Math.max(28, 10 + maxLabelLen*5.5)};
   var cw=W-p.l-p.r, ch=H-p.t-p.b;
   var yMin=mean-3.5*sd, yMax=mean+3.5*sd;
   function Y(v){return p.t+ch-(v-yMin)/(yMax-yMin)*ch;}
