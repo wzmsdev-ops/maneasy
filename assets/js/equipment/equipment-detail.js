@@ -1313,16 +1313,15 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 /* ══════════════════════════════════════════════
-   정도관리 패널
+   정도관리 패널 — 인라인 그리드 방식
 ══════════════════════════════════════════════ */
-var _qcEquipmentId   = null;
-var _qcItemGrid      = null;
-var _qcEntryGrid     = null;
-var _qcInited        = false;
-var _selectedQcItem  = null;
-var _editingQcItemId = null;
+var _qcEquipmentId  = null;
+var _qcItemGrid     = null;
+var _qcEntryGrid    = null;
+var _qcInited       = false;
+var _selectedQcItem = null;
+var _qcItemEditing  = false;
 
-/* ── 패널 초기화 ─────────────────────────────── */
 function initQcPanel() {
   if (_qcInited) return;
   _qcInited = true;
@@ -1353,75 +1352,38 @@ function initQcPanel() {
   if (qcContent) qcContent.style.display = 'flex';
   loadQcItems();
 
+  // + 추가 버튼
   var addBtn = document.getElementById('addQcItemBtn');
-  if (addBtn) addBtn.addEventListener('click', function() { openQcItemModal(null); });
-
-  var addEntryBtn = document.getElementById('addLjEntryBtn');
-  if (addEntryBtn) addEntryBtn.addEventListener('click', function() {
-    if (_selectedQcItem) openQcEntryModal();
-  });
+  if (addBtn) addBtn.addEventListener('click', function() { showQcItemForm(null); });
 }
 
 /* ── 검사항목 그리드 ─────────────────────────── */
 async function loadQcItems() {
   var el = document.getElementById('qcItemGrid');
   if (!el) return;
-
-  var { data, error } = await supabaseClient
-    .from('lj_items').select('*').eq('equipment_id', _qcEquipmentId)
-    .order('created_at', { ascending: true });
-  if (error) { showMessage('항목 로드 실패: ' + error.message, 'error'); return; }
+  var { data } = await supabaseClient.from('lj_items').select('*')
+    .eq('equipment_id', _qcEquipmentId).order('created_at', { ascending: true });
   var rows = data || [];
-
   var cnt = document.getElementById('qcItemCountText');
   if (cnt) cnt.textContent = rows.length + '건';
 
   if (!_qcItemGrid) {
     _qcItemGrid = agGrid.createGrid(el, {
       columnDefs: [
-        { headerName: '항목명', field: 'item_name', flex: 2,
+        { headerName: '항목명', field: 'item_name', flex: 1,
           headerClass: 'ag-left-header',
-          cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-start', fontWeight:600 },
-        },
-        { headerName: '유형', field: 'item_type', width: 80,
-          cellRenderer: function(p) { return p.value === 'quantitative' ? '정량' : '정성'; }
-        },
-        { headerName: '단위', field: 'unit', width: 70 },
-        { headerName: 'Mean', field: 'mean', width: 80,
-          cellRenderer: function(p) { return p.data.item_type === 'quantitative' && p.value != null ? Number(p.value).toFixed(p.data.decimal_places||2) : '-'; }
-        },
-        { headerName: 'SD', field: 'sd', width: 70,
-          cellRenderer: function(p) { return p.data.item_type === 'quantitative' && p.value != null ? Number(p.value).toFixed(p.data.decimal_places||2) : '-'; }
-        },
-        { headerName: '메모', field: 'memo', flex: 1,
-          headerClass: 'ag-left-header',
-          cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-start', color:'#6b7280' },
-        },
-        { headerName: '', width: 80, sortable: false,
-          cellStyle: { display:'flex', alignItems:'center', justifyContent:'center', gap:'4px' },
-          cellRenderer: function(p) {
-            var wrap = document.createElement('div');
-            wrap.style.cssText = 'display:flex;gap:4px;';
-            var editBtn = document.createElement('button');
-            editBtn.className = 'tbl-btn';
-            editBtn.textContent = '수정';
-            editBtn.onclick = function() { window.openQcItemModal(p.data.id); };
-            var delBtn = document.createElement('button');
-            delBtn.className = 'tbl-btn tbl-btn--danger';
-            delBtn.textContent = '삭제';
-            delBtn.onclick = function() { window.deleteQcItem(p.data.id); };
-            wrap.appendChild(editBtn);
-            wrap.appendChild(delBtn);
-            return wrap;
-          }
-        },
+          cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-start', fontWeight:600 } },
+        { headerName: '유형', field: 'item_type', width: 60,
+          cellRenderer: function(p) { return p.value === 'quantitative' ? '정량' : '정성'; } },
+        { headerName: '단위', field: 'unit', width: 55,
+          cellStyle: { display:'flex', alignItems:'center', justifyContent:'center', color:'#6b7280' } },
       ],
-      rowData: rows,
-      rowHeight: 34, headerHeight: 34,
+      rowData: rows, rowHeight: 34, headerHeight: 34,
       suppressCellFocus: true, suppressHorizontalScroll: true,
-      defaultColDef: { sortable: true, resizable: true, suppressMovable: true,
+      defaultColDef: { sortable: false, resizable: true, suppressMovable: true,
         cellStyle: { display:'flex', alignItems:'center', justifyContent:'center' } },
-      overlayNoRowsTemplate: '<span style="color:#9ca3af;font-size:12px;">등록된 검사항목이 없습니다. 항목을 추가해 주세요.</span>',
+      overlayNoRowsTemplate: '<span style="color:#9ca3af;font-size:11px;text-align:center;">+ 추가 버튼으로<br>검사항목을 등록하세요</span>',
+      rowSelection: 'single',
       onGridReady: function(p) { p.api.sizeColumnsToFit(); },
       onRowClicked: function(p) { selectQcItem(p.data); },
     });
@@ -1432,72 +1394,253 @@ async function loadQcItems() {
 
 function selectQcItem(item) {
   _selectedQcItem = item;
-  var lbl = document.getElementById('qcSelectedItemLabel');
-  if (lbl) lbl.textContent = item.item_name + (item.unit ? ' (' + item.unit + ')' : '');
-  var addBtn = document.getElementById('addLjEntryBtn');
-  if (addBtn) addBtn.disabled = false;
-  var detail = document.getElementById('detQcDetail');
-  if (detail) detail.style.display = 'flex';
+  _qcItemEditing  = false;
+  var noSelect = document.getElementById('detQcNoSelect');
+  var detail   = document.getElementById('detQcDetail');
+  if (noSelect) noSelect.style.display = 'none';
+  if (detail)   { detail.style.display = 'flex'; }
+  renderQcItemInfo(item);
+  _qcEntryGrid = null;
   loadQcEntries(item);
 }
+
+/* ── 항목 정보 렌더링 (읽기 / 편집) ────────────── */
+function renderQcItemInfo(item) {
+  var body  = document.getElementById('qcItemFormBody');
+  var title = document.getElementById('qcItemFormTitle');
+  var editBtn = document.getElementById('qcItemEditToggleBtn');
+  var delBtn  = document.getElementById('qcItemDeleteBtn');
+  if (!body) return;
+
+  if (title) title.textContent = item.item_name;
+
+  if (!_qcItemEditing) {
+    // 읽기 모드
+    var isQ = item.item_type === 'quantitative';
+    var dec = item.decimal_places || 2;
+    body.innerHTML = [
+      field('유형', isQ ? '정량' : '정성'),
+      field('단위', item.unit || '-'),
+      isQ ? field('Mean', item.mean != null ? Number(item.mean).toFixed(dec) : '-') : field('선택지', item.preset || '-'),
+      isQ ? field('SD',   item.sd   != null ? Number(item.sd).toFixed(dec)   : '-') : field('예상값', item.expected_value || '-'),
+      isQ ? field('소수점', item.decimal_places) : '',
+      field('메모', item.memo || '-'),
+    ].join('');
+    if (editBtn) editBtn.textContent = '수정';
+    if (delBtn)  delBtn.style.display = '';
+  } else {
+    // 편집 모드
+    var isQ = item.item_type === 'quantitative';
+    body.style.display = 'flex';
+    body.style.flexDirection = 'column';
+    body.style.gap = '8px';
+    body.innerHTML =
+      '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">' +
+      fInput('항목명', 'qi_edit_name', item.item_name) +
+      fSelect('유형', 'qi_edit_type', [['quantitative','정량'],['qualitative','정성']], item.item_type, 'onQiEditTypeChange()') +
+      fInput('단위', 'qi_edit_unit', item.unit) +
+      '</div>' +
+      '<div id="qi_edit_quant" style="display:' + (isQ?'grid':'none') + ';grid-template-columns:1fr 1fr 1fr;gap:8px;">' +
+      fInput('평균(Mean)', 'qi_edit_mean', item.mean, 'number') +
+      fInput('SD', 'qi_edit_sd', item.sd, 'number') +
+      fInput('소수점', 'qi_edit_decimal', item.decimal_places || 2, 'number') +
+      '</div>' +
+      '<div id="qi_edit_qual" style="display:' + (isQ?'none':'grid') + ';grid-template-columns:1fr 1fr;gap:8px;">' +
+      fInput('선택지(쉼표구분)', 'qi_edit_preset', item.preset) +
+      fInput('예상값', 'qi_edit_expected', item.expected_value) +
+      '</div>' +
+      '<div style="display:grid;grid-template-columns:1fr;gap:8px;">' +
+      fInput('메모', 'qi_edit_memo', item.memo) +
+      '</div>' +
+      '<div style="display:flex;gap:6px;justify-content:flex-end;">' +
+      '<button class="btn btn-sm" onclick="cancelQcItemEdit()">취소</button>' +
+      '<button class="btn btn-sm btn-primary" onclick="saveQcItemEdit()">저장</button>' +
+      '</div>';
+    if (editBtn) editBtn.textContent = '';
+    if (delBtn)  delBtn.style.display = 'none';
+  }
+
+  // 수정 버튼
+  if (editBtn && !editBtn._bound) {
+    editBtn._bound = true;
+    editBtn.addEventListener('click', function() {
+      _qcItemEditing = !_qcItemEditing;
+      renderQcItemInfo(_selectedQcItem);
+    });
+  }
+  // 삭제 버튼
+  if (delBtn && !delBtn._bound) {
+    delBtn._bound = true;
+    delBtn.addEventListener('click', function() { deleteQcItem(_selectedQcItem.id); });
+  }
+}
+
+function field(label, value) {
+  return '<div style="font-size:11px;"><div style="color:#9ca3af;margin-bottom:2px;">' + label + '</div>' +
+    '<div style="color:#111827;font-weight:500;">' + (value ?? '-') + '</div></div>';
+}
+function fInput(label, id, value, type) {
+  return '<div style="font-size:11px;"><div style="color:#6b7280;margin-bottom:3px;">' + label + '</div>' +
+    '<input type="' + (type||'text') + '" id="' + id + '" class="input" value="' + (value??'') + '" style="height:28px;font-size:11px;" /></div>';
+}
+function fSelect(label, id, options, selected, onchange) {
+  var opts = options.map(function(o) {
+    return '<option value="' + o[0] + '"' + (o[0]===selected?' selected':'') + '>' + o[1] + '</option>';
+  }).join('');
+  return '<div style="font-size:11px;"><div style="color:#6b7280;margin-bottom:3px;">' + label + '</div>' +
+    '<select id="' + id + '" class="input" style="height:28px;font-size:11px;" onchange="' + (onchange||'') + '">' + opts + '</select></div>';
+}
+
+function onQiEditTypeChange() {
+  var type = document.getElementById('qi_edit_type')?.value;
+  var q = document.getElementById('qi_edit_quant');
+  var l = document.getElementById('qi_edit_qual');
+  if (q) q.style.display = type === 'quantitative' ? 'grid' : 'none';
+  if (l) l.style.display = type === 'qualitative'  ? 'grid' : 'none';
+}
+window.onQiEditTypeChange = onQiEditTypeChange;
+
+function cancelQcItemEdit() {
+  _qcItemEditing = false;
+  renderQcItemInfo(_selectedQcItem);
+}
+window.cancelQcItemEdit = cancelQcItemEdit;
+
+async function saveQcItemEdit() {
+  var name = document.getElementById('qi_edit_name')?.value.trim();
+  if (!name) { showMessage('항목명을 입력해 주세요.', 'warning'); return; }
+  var type = document.getElementById('qi_edit_type')?.value;
+  var payload = {
+    item_name:      name,
+    item_type:      type,
+    unit:           document.getElementById('qi_edit_unit')?.value.trim() || '',
+    memo:           document.getElementById('qi_edit_memo')?.value.trim() || '',
+    decimal_places: parseInt(document.getElementById('qi_edit_decimal')?.value) || 2,
+    mean:           type==='quantitative' ? (parseFloat(document.getElementById('qi_edit_mean')?.value)||null) : null,
+    sd:             type==='quantitative' ? (parseFloat(document.getElementById('qi_edit_sd')?.value)||null)   : null,
+    preset:         type==='qualitative'  ? (document.getElementById('qi_edit_preset')?.value.trim()||'')   : '',
+    expected_value: type==='qualitative'  ? (document.getElementById('qi_edit_expected')?.value.trim()||'') : '',
+    updated_at:     new Date().toISOString(),
+  };
+  var { error } = await supabaseClient.from('lj_items').update(payload).eq('id', _selectedQcItem.id);
+  if (error) { showMessage('저장 실패: ' + error.message, 'error'); return; }
+  Object.assign(_selectedQcItem, payload);
+  _qcItemEditing = false;
+  showMessage('저장됐습니다.', 'success');
+  renderQcItemInfo(_selectedQcItem);
+  _qcItemGrid = null;
+  await loadQcItems();
+}
+window.saveQcItemEdit = saveQcItemEdit;
+
+async function showQcItemForm(itemId) {
+  // 새 항목 추가 — 빈 항목 insert 후 선택
+  var { data, error } = await supabaseClient.from('lj_items').insert({
+    equipment_id: _qcEquipmentId,
+    item_name: '새 항목', item_type: 'quantitative',
+    unit: '', memo: '', decimal_places: 2,
+  }).select().single();
+  if (error) { showMessage('항목 생성 실패: ' + error.message, 'error'); return; }
+  _qcItemGrid = null;
+  await loadQcItems();
+  _selectedQcItem = data;
+  _qcItemEditing  = true;
+  var noSelect = document.getElementById('detQcNoSelect');
+  var detail   = document.getElementById('detQcDetail');
+  if (noSelect) noSelect.style.display = 'none';
+  if (detail)   detail.style.display = 'flex';
+  renderQcItemInfo(data);
+  _qcEntryGrid = null;
+  await loadQcEntries(data);
+}
+
+async function deleteQcItem(itemId) {
+  if (!confirm('검사항목과 모든 측정 데이터가 삭제됩니다. 계속하시겠습니까?')) return;
+  await supabaseClient.from('lj_entries').delete().eq('item_id', itemId);
+  var { error } = await supabaseClient.from('lj_items').delete().eq('id', itemId);
+  if (error) { showMessage('삭제 실패: ' + error.message, 'error'); return; }
+  showMessage('삭제됐습니다.', 'success');
+  _selectedQcItem = null;
+  _qcItemEditing  = false;
+  document.getElementById('detQcNoSelect').style.display = '';
+  document.getElementById('detQcDetail').style.display = 'none';
+  _qcItemGrid = null;
+  await loadQcItems();
+}
+window.deleteQcItem = deleteQcItem;
 
 /* ── 측정값 그리드 ───────────────────────────── */
 async function loadQcEntries(item) {
   var el = document.getElementById('qcEntryGrid');
   if (!el) return;
-
-  var { data, error } = await supabaseClient
-    .from('lj_entries').select('*').eq('item_id', item.id)
-    .order('date', { ascending: true });
-  if (error) { showMessage('데이터 로드 실패: ' + error.message, 'error'); return; }
+  var { data } = await supabaseClient.from('lj_entries').select('*')
+    .eq('item_id', item.id).order('date', { ascending: true });
   var rows = data || [];
+
+  // + 입력 버튼 이벤트 (최초 1회)
+  var addBtn = document.getElementById('addLjEntryBtn');
+  if (addBtn && !addBtn._bound) {
+    addBtn._bound = true;
+    addBtn.addEventListener('click', function() { addQcEntryRow(); });
+  }
 
   if (!_qcEntryGrid) {
     _qcEntryGrid = agGrid.createGrid(el, {
       columnDefs: [
         { headerName: '측정일', field: 'date', width: 110,
-          cellRenderer: function(p) { return p.value ? String(p.value).slice(0,10) : '-'; }
+          editable: true, singleClickEdit: true,
+          cellEditor: 'agDateStringCellEditor',
+          cellRenderer: function(p) { return p.value ? String(p.value).slice(0,10) : '<span style="color:#d1d5db;">날짜 입력</span>'; }
         },
-        { headerName: '측정값', field: 'value', width: 100,
-          cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-end', fontWeight:700 },
-          cellRenderer: function(p) {
+        { headerName: '측정값', field: 'value', flex: 1,
+          editable: true, singleClickEdit: true,
+          cellStyle: function(p) {
+            var base = { display:'flex', alignItems:'center', justifyContent:'flex-end', fontWeight:600 };
             if (item.item_type === 'quantitative' && item.mean != null && item.sd != null) {
-              var v = parseFloat(p.value), m = parseFloat(item.mean), s = parseFloat(item.sd);
-              var z = Math.abs((v - m) / s);
-              var color = z > 3 ? '#dc2626' : z > 2 ? '#f59e0b' : '#111827';
-              return '<span style="color:' + color + ';">' + p.value + '</span>';
+              var v=parseFloat(p.value), m=parseFloat(item.mean), s=parseFloat(item.sd);
+              var z=Math.abs((v-m)/s);
+              base.color = z>3?'#dc2626':z>2?'#f59e0b':'#111827';
             }
-            return p.value;
-          }
+            return base;
+          },
+          cellRenderer: function(p) { return p.value || '<span style="color:#d1d5db;">값 입력</span>'; }
         },
         { headerName: '메모', field: 'memo', flex: 1,
+          editable: true, singleClickEdit: true,
           headerClass: 'ag-left-header',
           cellStyle: { display:'flex', alignItems:'center', justifyContent:'flex-start', color:'#6b7280' },
         },
-        { headerName: '', width: 50, sortable: false,
-          cellStyle: { display:'flex', alignItems:'center', justifyContent:'center' },
+        { headerName: '', width: 60, sortable: false,
+          cellStyle: { display:'flex', alignItems:'center', justifyContent:'center', gap:'4px' },
           cellRenderer: function(p) {
-            var btn = document.createElement('button');
-            btn.className = 'tbl-btn tbl-btn--danger';
-            btn.textContent = '삭제';
-            btn.onclick = function() { window.deleteQcEntry(p.data.id, item); };
-            return btn;
+            var wrap = document.createElement('div');
+            wrap.style.cssText = 'display:flex;gap:4px;';
+            var saveBtn = document.createElement('button');
+            saveBtn.className = 'tbl-btn';
+            saveBtn.textContent = '저장';
+            saveBtn.onclick = function() { window.saveQcEntryRow(p.node.data, item); };
+            var delBtn = document.createElement('button');
+            delBtn.className = 'tbl-btn tbl-btn--danger';
+            delBtn.textContent = '삭제';
+            delBtn.onclick = function() { window.deleteQcEntry(p.node.data, item); };
+            wrap.appendChild(saveBtn);
+            wrap.appendChild(delBtn);
+            return wrap;
           }
         },
       ],
-      rowData: rows,
-      rowHeight: 34, headerHeight: 34,
-      suppressCellFocus: true, suppressHorizontalScroll: true,
+      rowData: rows, rowHeight: 34, headerHeight: 34,
+      suppressCellFocus: false, suppressHorizontalScroll: true,
+      stopEditingWhenCellsLoseFocus: true,
       defaultColDef: { sortable: false, resizable: true, suppressMovable: true,
         cellStyle: { display:'flex', alignItems:'center', justifyContent:'center' } },
-      overlayNoRowsTemplate: '<span style="color:#9ca3af;font-size:12px;">측정 데이터가 없습니다.</span>',
+      overlayNoRowsTemplate: '<span style="color:#9ca3af;font-size:12px;">+ 입력 버튼으로 측정값을 추가하세요</span>',
       onGridReady: function(p) { p.api.sizeColumnsToFit(); },
     });
   } else {
     _qcEntryGrid.setGridOption('rowData', rows);
   }
 
-  // L-J 차트
   if (item.item_type === 'quantitative') renderLjChart(item, rows);
   else {
     var wrap = document.getElementById('ljChartWrap');
@@ -1505,248 +1648,98 @@ async function loadQcEntries(item) {
   }
 }
 
-/* ── L-J 차트 ────────────────────────────────── */
-function renderLjChart(item, entries) {
-  var wrap = document.getElementById('ljChartWrap');
-  if (!wrap) return;
-  wrap.innerHTML = '';
+function addQcEntryRow() {
+  if (!_qcEntryGrid || !_selectedQcItem) return;
+  var today = new Date().toISOString().slice(0,10);
+  _qcEntryGrid.applyTransaction({ add: [{ id: null, item_id: _selectedQcItem.id, date: today, value: '', memo: '' }] });
+}
 
-  if (!item.mean || !item.sd || entries.length === 0) {
-    wrap.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#9ca3af;font-size:12px;">Mean/SD 값 또는 측정 데이터가 없습니다.</div>';
+async function saveQcEntryRow(row, item) {
+  if (!row.date || !row.value) { showMessage('날짜와 측정값을 입력해 주세요.', 'warning'); return; }
+  var payload = { item_id: item.id, date: row.date, value: String(row.value), memo: row.memo || '' };
+  var res = row.id
+    ? await supabaseClient.from('lj_entries').update(payload).eq('id', row.id)
+    : await supabaseClient.from('lj_entries').insert(payload);
+  if (res.error) { showMessage('저장 실패: ' + res.error.message, 'error'); return; }
+  showMessage('저장됐습니다.', 'success');
+  _qcEntryGrid = null;
+  await loadQcEntries(item);
+}
+window.saveQcEntryRow = saveQcEntryRow;
+
+async function deleteQcEntry(row, item) {
+  if (!row.id) { // 아직 저장 안 된 행
+    _qcEntryGrid.applyTransaction({ remove: [row] });
     return;
   }
-
-  var mean = parseFloat(item.mean), sd = parseFloat(item.sd);
-  var dec  = item.decimal_places || 2;
-  var data = entries.map(function(e) { return { date: e.date, value: parseFloat(e.value) }; })
-                    .filter(function(e) { return !isNaN(e.value); });
-  if (!data.length) { wrap.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#9ca3af;font-size:12px;">유효한 측정값이 없습니다.</div>'; return; }
-
-  var W = wrap.clientWidth || 500, H = wrap.clientHeight || 300;
-  var pad = { top: 24, right: 16, bottom: 48, left: 56 };
-  var cw = W - pad.left - pad.right, ch = H - pad.top - pad.bottom;
-
-  // Y 범위: mean ± 3.5SD
-  var yMin = mean - 3.5 * sd, yMax = mean + 3.5 * sd;
-  function yPx(v) { return pad.top + ch - (v - yMin) / (yMax - yMin) * ch; }
-  function xPx(i) { return pad.left + (data.length === 1 ? cw / 2 : i / (data.length - 1) * cw); }
-
-  var lines = [
-    { label: '+3SD', v: mean + 3*sd, color:'#dc2626', dash:'4,2' },
-    { label: '+2SD', v: mean + 2*sd, color:'#f59e0b', dash:'4,2' },
-    { label: '+1SD', v: mean +   sd, color:'#6b7280', dash:'2,2' },
-    { label: 'Mean', v: mean,        color:'#2563eb', dash:'' },
-    { label: '-1SD', v: mean -   sd, color:'#6b7280', dash:'2,2' },
-    { label: '-2SD', v: mean - 2*sd, color:'#f59e0b', dash:'4,2' },
-    { label: '-3SD', v: mean - 3*sd, color:'#dc2626', dash:'4,2' },
-  ];
-
-  var svgParts = [
-    '<svg xmlns="http://www.w3.org/2000/svg" width="' + W + '" height="' + H + '" style="font-family:inherit;font-size:10px;">',
-    '<rect width="' + W + '" height="' + H + '" fill="#fff"/>',
-    // 배경 밴드 ±2SD
-    '<rect x="' + pad.left + '" y="' + yPx(mean + 2*sd) + '" width="' + cw + '" height="' + (yPx(mean - 2*sd) - yPx(mean + 2*sd)) + '" fill="#fef9ef" opacity="0.8"/>',
-  ];
-
-  // 수평 기준선
-  lines.forEach(function(l) {
-    var y = yPx(l.v);
-    var dash = l.dash ? ' stroke-dasharray="' + l.dash + '"' : '';
-    svgParts.push('<line x1="' + pad.left + '" y1="' + y + '" x2="' + (pad.left + cw) + '" y2="' + y + '" stroke="' + l.color + '" stroke-width="' + (l.label==='Mean'?1.5:1) + '"' + dash + '/>');
-    svgParts.push('<text x="' + (pad.left - 4) + '" y="' + (y + 4) + '" text-anchor="end" fill="' + l.color + '" font-size="9" font-weight="' + (l.label==='Mean'?'700':'400') + '">' + Number(l.v).toFixed(dec) + '</text>');
-  });
-
-  // 데이터 연결선
-  if (data.length > 1) {
-    var pts = data.map(function(d, i) { return xPx(i) + ',' + yPx(d.value); }).join(' ');
-    svgParts.push('<polyline points="' + pts + '" fill="none" stroke="#2563eb" stroke-width="1.5" stroke-linejoin="round"/>');
-  }
-
-  // 데이터 포인트
-  data.forEach(function(d, i) {
-    var x = xPx(i), y = yPx(d.value), z = Math.abs((d.value - mean) / sd);
-    var color = z > 3 ? '#dc2626' : z > 2 ? '#f59e0b' : '#2563eb';
-    svgParts.push('<circle cx="' + x + '" cy="' + y + '" r="4" fill="' + color + '" stroke="#fff" stroke-width="1.5"/>');
-  });
-
-  // X축 날짜 레이블 (최대 10개)
-  var step = Math.max(1, Math.ceil(data.length / 10));
-  data.forEach(function(d, i) {
-    if (i % step !== 0 && i !== data.length - 1) return;
-    var x = xPx(i);
-    svgParts.push('<text x="' + x + '" y="' + (pad.top + ch + 16) + '" text-anchor="middle" fill="#6b7280" font-size="9">' + String(d.date).slice(5) + '</text>');
-    svgParts.push('<line x1="' + x + '" y1="' + (pad.top + ch) + '" x2="' + x + '" y2="' + (pad.top + ch + 4) + '" stroke="#e5e7eb"/>');
-  });
-
-  // 축 테두리
-  svgParts.push('<rect x="' + pad.left + '" y="' + pad.top + '" width="' + cw + '" height="' + ch + '" fill="none" stroke="#e5e7eb"/>');
-
-  // 제목
-  svgParts.push('<text x="' + (W / 2) + '" y="14" text-anchor="middle" fill="#374151" font-size="11" font-weight="700">' + item.item_name + ' L-J Chart</text>');
-
-  svgParts.push('</svg>');
-  wrap.innerHTML = svgParts.join('');
-}
-
-/* ── 검사항목 모달 ────────────────────────────── */
-function onQiTypeChange() {
-  var type = document.getElementById('qi_type')?.value;
-  document.getElementById('qi_quantitative_fields').style.display = type === 'quantitative' ? '' : 'none';
-  document.getElementById('qi_qualitative_fields').style.display  = type === 'qualitative'  ? '' : 'none';
-}
-window.onQiTypeChange = onQiTypeChange;
-
-function openQcItemModal(itemId) {
-  _editingQcItemId = itemId || null;
-  var title = document.getElementById('qcItemModalTitle');
-  if (title) title.textContent = itemId ? '검사항목 수정' : '검사항목 추가';
-
-  // 초기화
-  ['qi_name','qi_unit','qi_mean','qi_sd','qi_memo','qi_preset','qi_expected'].forEach(function(id) {
-    var el = document.getElementById(id); if (el) el.value = '';
-  });
-  document.getElementById('qi_type').value = 'quantitative';
-  document.getElementById('qi_decimal').value = '2';
-  onQiTypeChange();
-
-  if (itemId) {
-    // 수정 모드 — 기존값 채우기
-    supabaseClient.from('lj_items').select('*').eq('id', itemId).single().then(function(res) {
-      if (res.error || !res.data) return;
-      var d = res.data;
-      document.getElementById('qi_name').value    = d.item_name  || '';
-      document.getElementById('qi_type').value    = d.item_type  || 'quantitative';
-      document.getElementById('qi_unit').value    = d.unit       || '';
-      document.getElementById('qi_mean').value    = d.mean       != null ? d.mean : '';
-      document.getElementById('qi_sd').value      = d.sd         != null ? d.sd   : '';
-      document.getElementById('qi_decimal').value = d.decimal_places != null ? d.decimal_places : 2;
-      document.getElementById('qi_preset').value  = d.preset     || '';
-      document.getElementById('qi_expected').value= d.expected_value || '';
-      document.getElementById('qi_memo').value    = d.memo       || '';
-      onQiTypeChange();
-    });
-  }
-
-  document.getElementById('qcItemModal').classList.add('is-open');
-}
-window.openQcItemModal = openQcItemModal;
-
-function closeQcItemModal() {
-  document.getElementById('qcItemModal').classList.remove('is-open');
-}
-window.closeQcItemModal = closeQcItemModal;
-
-async function saveQcItem() {
-  var name = document.getElementById('qi_name')?.value.trim();
-  if (!name) { showMessage('항목명을 입력해 주세요.', 'warning'); return; }
-
-  var type = document.getElementById('qi_type').value;
-  var payload = {
-    equipment_id:   _qcEquipmentId,
-    item_name:      name,
-    item_type:      type,
-    unit:           document.getElementById('qi_unit').value.trim(),
-    memo:           document.getElementById('qi_memo').value.trim(),
-    decimal_places: parseInt(document.getElementById('qi_decimal').value) || 2,
-    mean:           type === 'quantitative' ? (parseFloat(document.getElementById('qi_mean').value) || null) : null,
-    sd:             type === 'quantitative' ? (parseFloat(document.getElementById('qi_sd').value)   || null) : null,
-    preset:         type === 'qualitative'  ? document.getElementById('qi_preset').value.trim()   : '',
-    expected_value: type === 'qualitative'  ? document.getElementById('qi_expected').value.trim() : '',
-  };
-
-  var btn = document.getElementById('qcItemSaveBtn');
-  if (btn) btn.disabled = true;
-
-  var res = _editingQcItemId
-    ? await supabaseClient.from('lj_items').update(payload).eq('id', _editingQcItemId)
-    : await supabaseClient.from('lj_items').insert(payload);
-
-  if (btn) btn.disabled = false;
-  if (res.error) { showMessage('저장 실패: ' + res.error.message, 'error'); return; }
-
-  showMessage(_editingQcItemId ? '항목이 수정됐습니다.' : '항목이 추가됐습니다.', 'success');
-  closeQcItemModal();
-  _qcItemGrid = null;
-  await loadQcItems();
-}
-window.saveQcItem = saveQcItem;
-
-async function deleteQcItem(itemId) {
-  if (!confirm('검사항목과 모든 측정 데이터가 삭제됩니다. 계속하시겠습니까?')) return;
-  await supabaseClient.from('lj_entries').delete().eq('item_id', itemId);
-  var res = await supabaseClient.from('lj_items').delete().eq('id', itemId);
-  if (res.error) { showMessage('삭제 실패: ' + res.error.message, 'error'); return; }
-  showMessage('항목이 삭제됐습니다.', 'success');
-  if (_selectedQcItem?.id === itemId) {
-    _selectedQcItem = null;
-    var detail = document.getElementById('detQcDetail');
-    if (detail) detail.style.display = 'none';
-    _qcEntryGrid = null;
-  }
-  _qcItemGrid = null;
-  await loadQcItems();
-}
-window.deleteQcItem = deleteQcItem;
-
-/* ── 측정값 모달 ──────────────────────────────── */
-function openQcEntryModal() {
-  if (!_selectedQcItem) return;
-  // 날짜 기본값: 오늘
-  document.getElementById('qe_date').value  = new Date().toISOString().slice(0, 10);
-  document.getElementById('qe_value').value = '';
-  document.getElementById('qe_memo').value  = '';
-
-  // 정성이면 select로 전환
-  var valInput  = document.getElementById('qe_value');
-  var valSelect = document.getElementById('qe_value_select');
-  if (_selectedQcItem.item_type === 'qualitative' && _selectedQcItem.preset) {
-    var opts = _selectedQcItem.preset.split(',').map(function(s) { return s.trim(); }).filter(Boolean);
-    valSelect.innerHTML = opts.map(function(o) { return '<option value="' + o + '">' + o + '</option>'; }).join('');
-    valInput.style.display  = 'none';
-    valSelect.style.display = '';
-  } else {
-    valInput.style.display  = '';
-    valSelect.style.display = 'none';
-  }
-
-  document.getElementById('qcEntryModal').classList.add('is-open');
-  setTimeout(function() { document.getElementById('qe_value').focus(); }, 100);
-}
-window.openQcEntryModal = openQcEntryModal;
-
-function closeQcEntryModal() {
-  document.getElementById('qcEntryModal').classList.remove('is-open');
-}
-window.closeQcEntryModal = closeQcEntryModal;
-
-async function saveQcEntry() {
-  var date = document.getElementById('qe_date').value;
-  var valInput  = document.getElementById('qe_value');
-  var valSelect = document.getElementById('qe_value_select');
-  var value = valSelect.style.display !== 'none' ? valSelect.value : valInput.value.trim();
-  if (!date || !value) { showMessage('측정일과 측정값을 입력해 주세요.', 'warning'); return; }
-
-  var res = await supabaseClient.from('lj_entries').insert({
-    item_id:    _selectedQcItem.id,
-    date:       date,
-    value:      value,
-    memo:       document.getElementById('qe_memo').value.trim(),
-  });
-  if (res.error) { showMessage('저장 실패: ' + res.error.message, 'error'); return; }
-
-  showMessage('측정값이 저장됐습니다.', 'success');
-  closeQcEntryModal();
-  _qcEntryGrid = null;
-  await loadQcEntries(_selectedQcItem);
-}
-window.saveQcEntry = saveQcEntry;
-
-async function deleteQcEntry(entryId, item) {
   if (!confirm('측정 데이터를 삭제하시겠습니까?')) return;
-  var res = await supabaseClient.from('lj_entries').delete().eq('id', entryId);
-  if (res.error) { showMessage('삭제 실패: ' + res.error.message, 'error'); return; }
+  var { error } = await supabaseClient.from('lj_entries').delete().eq('id', row.id);
+  if (error) { showMessage('삭제 실패: ' + error.message, 'error'); return; }
   showMessage('삭제됐습니다.', 'success');
   _qcEntryGrid = null;
   await loadQcEntries(item);
 }
 window.deleteQcEntry = deleteQcEntry;
+
+/* ── L-J 차트 (SVG) ─────────────────────────── */
+function renderLjChart(item, entries) {
+  var wrap = document.getElementById('ljChartWrap');
+  if (!wrap) return;
+  wrap.innerHTML = '';
+  if (!item.mean || !item.sd || !entries.length) {
+    wrap.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#9ca3af;font-size:12px;text-align:center;">Mean/SD 값 또는<br>측정 데이터가 없습니다.</div>';
+    return;
+  }
+  var mean=parseFloat(item.mean), sd=parseFloat(item.sd), dec=item.decimal_places||2;
+  var data=entries.map(function(e){return{date:e.date,value:parseFloat(e.value)};}).filter(function(e){return!isNaN(e.value);});
+  if (!data.length) { wrap.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#9ca3af;font-size:12px;">유효한 측정값이 없습니다.</div>'; return; }
+
+  var W=wrap.clientWidth||400, H=wrap.clientHeight||260;
+  var pad={top:24,right:16,bottom:40,left:56};
+  var cw=W-pad.left-pad.right, ch=H-pad.top-pad.bottom;
+  var yMin=mean-3.5*sd, yMax=mean+3.5*sd;
+  function yPx(v){return pad.top+ch-(v-yMin)/(yMax-yMin)*ch;}
+  function xPx(i){return pad.left+(data.length===1?cw/2:i/(data.length-1)*cw);}
+
+  var lines=[
+    {label:'+3SD',v:mean+3*sd,color:'#dc2626',dash:'4,2'},
+    {label:'+2SD',v:mean+2*sd,color:'#f59e0b',dash:'4,2'},
+    {label:'+1SD',v:mean+  sd,color:'#9ca3af',dash:'2,2'},
+    {label:'Mean',v:mean,     color:'#2563eb',dash:''},
+    {label:'-1SD',v:mean-  sd,color:'#9ca3af',dash:'2,2'},
+    {label:'-2SD',v:mean-2*sd,color:'#f59e0b',dash:'4,2'},
+    {label:'-3SD',v:mean-3*sd,color:'#dc2626',dash:'4,2'},
+  ];
+  var s=['<svg xmlns="http://www.w3.org/2000/svg" width="'+W+'" height="'+H+'" style="font-family:inherit;font-size:10px;">',
+    '<rect width="'+W+'" height="'+H+'" fill="#fff"/>',
+    '<rect x="'+pad.left+'" y="'+yPx(mean+2*sd)+'" width="'+cw+'" height="'+(yPx(mean-2*sd)-yPx(mean+2*sd))+'" fill="#fffbeb" opacity="0.8"/>'];
+
+  lines.forEach(function(l){
+    var y=yPx(l.v), da=l.dash?'stroke-dasharray="'+l.dash+'"':'';
+    s.push('<line x1="'+pad.left+'" y1="'+y+'" x2="'+(pad.left+cw)+'" y2="'+y+'" stroke="'+l.color+'" stroke-width="'+(l.label==='Mean'?1.5:1)+'" '+da+'/>');
+    s.push('<text x="'+(pad.left-4)+'" y="'+(y+3.5)+'" text-anchor="end" fill="'+l.color+'" font-size="9" font-weight="'+(l.label==='Mean'?700:400)+'">'+Number(l.v).toFixed(dec)+'</text>');
+  });
+
+  if (data.length>1){
+    var pts=data.map(function(d,i){return xPx(i)+','+yPx(d.value);}).join(' ');
+    s.push('<polyline points="'+pts+'" fill="none" stroke="#2563eb" stroke-width="1.5" stroke-linejoin="round"/>');
+  }
+  data.forEach(function(d,i){
+    var x=xPx(i),y=yPx(d.value),z=Math.abs((d.value-mean)/sd);
+    var color=z>3?'#dc2626':z>2?'#f59e0b':'#2563eb';
+    s.push('<circle cx="'+x+'" cy="'+y+'" r="4" fill="'+color+'" stroke="#fff" stroke-width="1.5"/>');
+  });
+
+  var step=Math.max(1,Math.ceil(data.length/8));
+  data.forEach(function(d,i){
+    if(i%step!==0&&i!==data.length-1)return;
+    var x=xPx(i);
+    s.push('<text x="'+x+'" y="'+(pad.top+ch+14)+'" text-anchor="middle" fill="#6b7280" font-size="9">'+String(d.date).slice(5)+'</text>');
+    s.push('<line x1="'+x+'" y1="'+(pad.top+ch)+'" x2="'+x+'" y2="'+(pad.top+ch+4)+'" stroke="#e5e7eb"/>');
+  });
+
+  s.push('<rect x="'+pad.left+'" y="'+pad.top+'" width="'+cw+'" height="'+ch+'" fill="none" stroke="#e5e7eb"/>');
+  s.push('<text x="'+(W/2)+'" y="13" text-anchor="middle" fill="#374151" font-size="11" font-weight="700">'+item.item_name+' L-J Chart</text>');
+  s.push('</svg>');
+  wrap.innerHTML=s.join('');
+}
