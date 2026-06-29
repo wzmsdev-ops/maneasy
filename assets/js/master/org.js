@@ -668,8 +668,9 @@ function openEditUser(id) {
   fillDeptSelect('u_dept_select', '선택 안 함', clinic?.id || null, dept?.id || null);
 
   // 앱 접근 권한 — page_perms가 비어있으면 역할 기본값 사용 모드
-  const pagePerms = row.page_perms || {};
-  const useDefault = !row.page_perms || Object.keys(pagePerms).length === 0;
+  const pagePerms = row.page_perms || null;
+  // page_perms가 null/undefined일 때만 역할 기본값 사용, 빈 객체도 직접설정으로 처리
+  const useDefault = pagePerms === null || pagePerms === undefined;
   document.getElementById('u_perm_useDefault').checked = useDefault;
   document.getElementById('u_perm_roleLabel').textContent = row.role || '-';
   // 모달 열 때마다 그리드 완전 재생성
@@ -697,7 +698,7 @@ async function saveUser() {
   const team_name = deptOpt?.dataset.name || '';
 
   const useDefault = document.getElementById('u_perm_useDefault')?.checked;
-  const page_perms = useDefault ? null : getPagePermsFromGrid();
+  const page_perms = useDefault ? null : (getPagePermsFromGrid() || {});
 
   const payload = {
     user_name:   val('u_user_name'),
