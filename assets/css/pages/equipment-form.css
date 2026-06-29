@@ -9,7 +9,7 @@ body { background: #f0f2f5; }
 .eform-page {
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  height: 100%;
   overflow: hidden;
   padding: 8px 14px;
   gap: 8px;
