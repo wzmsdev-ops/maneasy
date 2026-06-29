@@ -16,6 +16,7 @@
   let selectedDate  = null;  // 'yyyy-mm-dd'
   let calTasks      = [];    // 현재 월 task_items
   let calJournal    = null;  // 현재 사용자 주 단위 journal (선택 날짜 기준)
+  let _journalMap   = {};    // { week_start: journal } — 달력 근태 토글용
 
   // 팀 현황
   let teamWeekStart = '';
@@ -69,7 +70,7 @@
     document.getElementById('searchKeyword').addEventListener('keydown', e => { if(e.key==='Enter') runSearch(); });
 
     // 모달 배경 클릭
-    document.getElementById('taskModal').addEventListener('click', e => { if(e.target.id==='taskModal') closeTaskModal(); });
+    document.getElementById('taskModal').addEventListener('click', e => {  });
 
     // 엑셀 버튼 manager/admin만
     if (isManager) document.getElementById('exportExcelBtn').style.display = '';
@@ -155,12 +156,20 @@
     const nextM = calMonth === 11 ? { y: calYear+1, m: 0 } : { y: calYear, m: calMonth+1 };
     const monthEnd = `${nextM.y}-${String(nextM.m+1).padStart(2,'0')}-01`;
 
-    const { data } = await supabaseClient.from('task_items').select('*')
-      .eq('user_email', currentUser.email)
-      .gte('start_date', monthStart)
-      .lt('start_date', monthEnd)
-      .order('start_date');
+    const [{ data }, { data: journals }] = await Promise.all([
+      supabaseClient.from('task_items').select('*')
+        .eq('user_email', currentUser.email)
+        .gte('start_date', monthStart)
+        .lt('start_date', monthEnd)
+        .order('start_date'),
+      supabaseClient.from('task_journals').select('*')
+        .eq('user_email', currentUser.email)
+        .gte('week_start', monthStart)
+        .lt('week_start', monthEnd),
+    ]);
     calTasks = data || [];
+    _journalMap = {};
+    (journals || []).forEach(j => { _journalMap[j.week_start] = j; });
 
     document.getElementById('calMonthLabel').textContent = `${calYear}년 ${calMonth+1}월`;
     buildCalGrid();
@@ -215,9 +224,26 @@
       }).join('');
       const more = tasks.length > 3 ? `<div class="cal-task-chip more">+${tasks.length-3}건</div>` : '';
 
+      // 일요일 — 주간 근태 토글 (조기출근/토요근무)
+      // 해당 주 journal에서 값 읽기 (calJournalMap에서)
+      let attendHtml = '';
+      if (day === 0 && !otherMonth) {
+        const ws = date; // 일요일 = 주 시작
+        const j  = _journalMap[ws];
+        const earlyOn = j?.early_work_this === 'Y';
+        const satOn   = j?.sat_work_this   === 'Y';
+        attendHtml = `<div class="cal-attend-row" onclick="event.stopPropagation()">
+          <button class="cal-attend-btn${earlyOn?' on':''}" title="조기출근"
+            onclick="toggleAttend('${ws}','early_work_this',this)">조출</button>
+          <button class="cal-attend-btn${satOn?' on sat':''}" title="토요근무"
+            onclick="toggleAttend('${ws}','sat_work_this',this)">토근</button>
+        </div>`;
+      }
+
       return `<div class="${cls.join(' ')}" data-date="${date}" onclick="selectDate('${date}')">
         <div class="cal-date-num">${dayNum}</div>
         ${chips}${more}
+        ${attendHtml}
       </div>`;
     }).join('');
   }
@@ -319,6 +345,28 @@
     return created;
   }
 
+  window.toggleAttend = async function(ws, field, btn) {
+    const we = getWeekEnd(ws);
+    // journal 없으면 생성
+    if (!_journalMap[ws]) {
+      const { data } = await supabaseClient.from('task_journals').insert({
+        user_email: currentUser.email, week_start: ws, week_end: we, status: 'OPEN'
+      }).select().single();
+      if (data) _journalMap[ws] = data;
+    }
+    const cur = _journalMap[ws];
+    const newVal = cur[field] === 'Y' ? 'N' : 'Y';
+    await supabaseClient.from('task_journals').update({ [field]: newVal, updated_at: new Date().toISOString() })
+      .eq('user_email', currentUser.email).eq('week_start', ws);
+    _journalMap[ws][field] = newVal;
+    const isSat = field === 'sat_work_this';
+    btn.classList.toggle('on', newVal === 'Y');
+    if (isSat) btn.classList.toggle('sat', newVal === 'Y');
+    // 상세 패널도 갱신
+    if (calJournal && calJournal.week_start === ws) calJournal[field] = newVal;
+    if (selectedDate && getWeekStart(selectedDate) === ws) renderDetailPanel(selectedDate);
+  };
+
   window.saveAttend = async function(field, ws, we, checked) {
     await ensureJournal(ws, we);
     const upd = { [field]: checked ? 'Y' : 'N', updated_at: new Date().toISOString() };
@@ -373,12 +421,12 @@
       setPriority('MEDIUM');
       setStatus('TODO');
     }
-    document.getElementById('taskModal').classList.add('open');
+    document.getElementById('taskModal').classList.add('is-open');
     document.getElementById('mtTitle').focus();
   };
 
   window.closeTaskModal = function() {
-    document.getElementById('taskModal').classList.remove('open');
+    document.getElementById('taskModal').classList.remove('is-open');
     editingTaskId = null;
   };
 
