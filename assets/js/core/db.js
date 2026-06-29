@@ -61,13 +61,36 @@ window.db = (function () {
 
   /* ── Storage 헬퍼 ────────────────────────────── */
 
+  // 이미지 리사이즈/압축 (Canvas API)
+  function compressImage(file, maxWidth = 1280, quality = 0.82) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        let w = img.naturalWidth, h = img.naturalHeight;
+        if (w > maxWidth) { h = Math.round(h * maxWidth / w); w = maxWidth; }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        canvas.toBlob(blob => {
+          if (!blob) { reject(new Error('이미지 압축 실패')); return; }
+          resolve(new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' }));
+        }, 'image/jpeg', quality);
+      };
+      img.onerror = () => reject(new Error('이미지 로드 실패'));
+      img.src = url;
+    });
+  }
+
   async function uploadPhoto(file, equipmentId) {
-    const ext = file.name.split('.').pop();
-    const path = `${equipmentId}/${Date.now()}.${ext}`;
+    // 업로드 전 리사이즈/압축 (최대 1280px, JPEG 품질 82%)
+    const compressed = await compressImage(file);
+    const path = `${equipmentId}/${Date.now()}.jpg`;
 
     const { error } = await supabaseClient.storage
       .from(CONFIG.STORAGE.EQUIPMENT_PHOTOS)
-      .upload(path, file, { upsert: true });
+      .upload(path, compressed, { upsert: true, contentType: 'image/jpeg' });
 
     if (error) handleError(error, 'uploadPhoto');
 
