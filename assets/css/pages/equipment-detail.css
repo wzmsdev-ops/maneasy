@@ -874,31 +874,28 @@
 .det-tabs {
   display: flex;
   gap: 2px;
-  padding: 0 0 0 0;
+  background: #e5e7eb;
+  border-radius: 8px;
+  padding: 3px;
   flex-shrink: 0;
-  border-bottom: 2px solid #e5e7eb;
   margin-bottom: 8px;
 }
-.det-tab {
-  height: 34px;
-  padding: 0 18px;
+.det-tabs .tab-btn {
+  flex: 0 0 auto;
+  min-width: 100px;
+  height: 32px;
   border: none;
   background: transparent;
+  border-radius: 6px;
   font-size: 12px;
   font-weight: 600;
-  color: #9ca3af;
+  color: #6b7280;
   cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  border-bottom: 2px solid transparent;
-  margin-bottom: -2px;
-  transition: color 0.15s;
+  transition: background 0.15s, color 0.15s;
 }
-.det-tab:hover { color: #374151; }
-.det-tab.active { color: #2563eb; border-bottom-color: #2563eb; }
-.det-tab:disabled { color: #d1d5db; cursor: not-allowed; pointer-events: none; }
-.det-tab i { font-size: 13px; }
+.det-tabs .tab-btn:hover { background: rgba(255,255,255,0.6); color: #374151; }
+.det-tabs .tab-btn.active { background: #fff; color: #111827; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+.det-tabs .tab-btn:disabled { color: #c4c9d4; cursor: not-allowed; }
 
 .det-tab-panel { display: none; flex: 1; min-height: 0; overflow: hidden; }
 .det-tab-panel.active { display: flex; flex-direction: column; }
