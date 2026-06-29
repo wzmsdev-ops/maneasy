@@ -52,6 +52,16 @@
     }
     .ag-theme-alpine .ag-root-wrapper { border-radius: 8px; overflow: hidden; }
     .ag-theme-alpine .ag-body-viewport { overflow-x: hidden !important; overflow-y: auto !important; }
+    /* 장비목록 전용 — 빈 행 영역에 구분선 패턴 */
+    #equipmentGrid .ag-center-cols-viewport {
+      background-image: repeating-linear-gradient(
+        to bottom,
+        transparent 0px,
+        transparent 34px,
+        #f0f0f0 34px,
+        #f0f0f0 35px
+      );
+    }
     .ag-theme-alpine .ag-body-horizontal-scroll { display: none !important; height: 0 !important; min-height: 0 !important; }
     .ag-theme-alpine .ag-horizontal-left-spacer,
     .ag-theme-alpine .ag-horizontal-right-spacer { display: none !important; }
