@@ -263,6 +263,11 @@ window.auth = (function () {
       // 자동 로그인 방지
       await clearSession();
 
+      // 관리자에게 가입 신청 알림 메일 발송
+      if (typeof gasNotify === 'function') {
+        gasNotify('signupNotice', { name, email });
+      }
+
       if (typeof hideGlobalLoading === 'function') hideGlobalLoading();
       setMessage('가입이 완료됐습니다. 관리자 승인 후 로그인할 수 있습니다.', 'success');
       signupBtn.disabled = false;
