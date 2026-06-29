@@ -49,6 +49,7 @@
         <div class="auth-tab-bar">
           <button class="auth-tab" id="tabLogin">로그인</button>
           <button class="auth-tab" id="tabSignup">회원가입</button>
+          <button class="auth-tab" id="tabReset">비밀번호 재설정</button>
         </div>
 
         <div id="authMessage" class="auth-message"></div>
@@ -111,6 +112,41 @@
           <p style="font-size:12px;color:#9ca3af;text-align:center;margin-top:10px;">
             가입 후 관리자 승인이 필요합니다.
           </p>
+        </div>
+
+        <!-- 비밀번호 재설정 패널 -->
+        <div id="panelReset" class="auth-form" style="display:none;">
+          <!-- step1: 이메일 입력 -->
+          <div id="resetStep1">
+            <p style="font-size:13px;color:#6b7280;margin:0 0 16px;">가입한 이메일을 입력하면 비밀번호 재설정 링크를 보내드립니다.</p>
+            <div class="auth-field">
+              <label for="resetEmail">이메일</label>
+              <div class="auth-input-wrap">
+                <i class="ti ti-mail"></i>
+                <input type="email" id="resetEmail" placeholder="이메일 주소">
+              </div>
+            </div>
+            <button type="button" class="auth-btn" id="resetSendBtn">재설정 링크 발송</button>
+          </div>
+          <!-- step2: 새 비밀번호 입력 (링크 클릭 후) -->
+          <div id="resetStep2" style="display:none;">
+            <p style="font-size:13px;color:#6b7280;margin:0 0 16px;">새 비밀번호를 입력해 주세요.</p>
+            <div class="auth-field">
+              <label for="newPassword">새 비밀번호</label>
+              <div class="auth-input-wrap">
+                <i class="ti ti-lock"></i>
+                <input type="password" id="newPassword" placeholder="6자 이상" autocomplete="new-password">
+              </div>
+            </div>
+            <div class="auth-field">
+              <label for="newPassword2">새 비밀번호 확인</label>
+              <div class="auth-input-wrap">
+                <i class="ti ti-lock-check"></i>
+                <input type="password" id="newPassword2" placeholder="비밀번호 재입력" autocomplete="new-password">
+              </div>
+            </div>
+            <button type="button" class="auth-btn" id="resetConfirmBtn">비밀번호 변경</button>
+          </div>
         </div>
 
       </div>
