@@ -236,7 +236,7 @@
           <button class="cal-attend-btn${earlyOn?' on':''}" title="조기출근"
             onclick="toggleAttend('${ws}','early_work_this',this)">조출</button>
           <button class="cal-attend-btn${satOn?' on sat':''}" title="토요근무"
-            onclick="toggleAttend('${ws}','sat_work_this',this)">토근</button>
+            onclick="toggleAttend('${ws}','sat_work_this',this)">토요근무</button>
         </div>`;
       }
 
