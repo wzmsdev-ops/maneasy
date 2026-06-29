@@ -684,7 +684,7 @@ async function loadEquipmentCore(equipmentId, userEmail, options) {
   renderHero(currentEquipmentData);
   renderPhoto(currentEquipmentData);
   renderDetailInfo(currentEquipmentData);
-  renderQrCode(currentEquipmentData.equipment_id);
+  renderQrCode(currentEquipmentData.id); // QR에는 반드시 UUID(id) 사용
   applyActionVisibility();
   bindPhotoActionButtons();
 
