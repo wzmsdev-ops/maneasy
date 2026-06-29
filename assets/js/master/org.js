@@ -28,10 +28,6 @@ const PAGE_GROUPS = [
     { key: 'equipment/form',      label: '장비 등록·수정' },
     { key: 'equipment/detail',    label: '장비 상세' },
   ]},
-  { app: '정도관리', pages: [
-    { key: 'qc/items', label: '검사항목 관리' },
-    { key: 'qc/data',  label: '데이터 입력' },
-  ]},
   { app: '자재관리', pages: [
     { key: 'materials/purchase-request', label: '발주요청' },
     { key: 'materials/use-stock',        label: '사용처리' },
@@ -54,8 +50,6 @@ const ROLE_DEFAULT_PAGES = {
     'equipment/list':           'user',
     'equipment/detail':         'user',
     'equipment/form':           '접근불가',
-    'qc/items':                 'user',
-    'qc/data':                  'user',
     'materials/purchase-request':  'user',
     'materials/use-stock':         'user',
     'materials/procurement':       '접근불가',
@@ -69,8 +63,6 @@ const ROLE_DEFAULT_PAGES = {
     'equipment/list':           'user',
     'equipment/detail':         'user',
     'equipment/form':           'edit',
-    'qc/items':                 'user',
-    'qc/data':                  'user',
     'materials/purchase-request':  'user',
     'materials/use-stock':         'user',
     'materials/procurement':       'manager',
