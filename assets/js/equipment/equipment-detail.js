@@ -677,6 +677,10 @@ async function loadEquipmentCore(equipmentId, userEmail, options) {
   currentEquipmentData = eqData || {};
   window._currentEquipment = currentEquipmentData; // QC 패널에서 참조
 
+  // 정도관리 탭 활성화/비활성화
+  var qcTab = document.getElementById('detTabQc');
+  if (qcTab) qcTab.disabled = !currentEquipmentData.qc_enabled;
+
   renderHero(currentEquipmentData);
   renderPhoto(currentEquipmentData);
   renderDetailInfo(currentEquipmentData);
@@ -1335,6 +1339,8 @@ function initQcPanel() {
         eq.qc_enabled = true;
         disabled.style.display = 'none';
         content.style.display  = 'flex';
+        var qcTab = document.getElementById('detTabQc');
+        if (qcTab) qcTab.disabled = false;
         loadQcItems(eq.id);
       });
     }
