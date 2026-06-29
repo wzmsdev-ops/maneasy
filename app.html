@@ -85,9 +85,16 @@
 
     </div>
     <div class="sb-footer">
-      <button class="sb-logout" onclick="doLogout()">
-        <i class="ti ti-logout"></i><span>로그아웃</span>
-      </button>
+      <div style="display:flex;align-items:center;gap:6px;">
+        <button class="sb-logout" onclick="doLogout()" style="flex:1;">
+          <i class="ti ti-logout"></i><span>로그아웃</span>
+        </button>
+        <button onclick="clearAppCache()" title="캐시 초기화"
+          style="background:none;border:none;cursor:pointer;padding:6px 4px;color:var(--sb-text);opacity:0.5;transition:opacity 0.15s;flex-shrink:0;"
+          onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.5'">
+          <i class="ti ti-refresh" style="font-size:15px;"></i>
+        </button>
+      </div>
     </div>
   </nav>
 
@@ -314,6 +321,25 @@ function closeSidebar() {
   document.getElementById('sbOverlay').classList.remove('is-visible');
 }
 async function doLogout() { await auth.logout(); }
+function clearAppCache() {
+  if (!confirm('캐시를 초기화하고 페이지를 새로고침합니다.')) return;
+  // 현재 페이지 기억
+  var frame = document.getElementById('shellFrame');
+  var currentSrc = frame?.src || '';
+  // 캐시 클리어 후 재로드
+  if ('caches' in window) {
+    caches.keys().then(function(names) {
+      names.forEach(function(name) { caches.delete(name); });
+    });
+  }
+  // iframe 강제 새로고침
+  if (frame && currentSrc) {
+    var sep = currentSrc.includes('?') ? '&' : '?';
+    frame.src = currentSrc + sep + '_t=' + Date.now();
+  }
+  // 전체 페이지 새로고침
+  setTimeout(function() { location.reload(true); }, 100);
+}
 
 window.shellNavigate = navigate;
 window.addEventListener('popstate', e => {
