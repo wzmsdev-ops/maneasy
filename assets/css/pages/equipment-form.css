@@ -259,7 +259,7 @@ body { background: #f0f2f5; }
 /* 사진 본문 — 좌: 미리보기 / 우: 업로드 */
 .eform-photo-body {
   display: grid;
-  grid-template-columns: 280px 1fr;
+  grid-template-columns: 1fr 1fr;
   gap: 12px;
   padding: 12px 14px;
   flex: 1;
