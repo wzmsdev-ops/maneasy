@@ -287,20 +287,30 @@
     const [{ data }, { data: journals }] = await Promise.all([
       supabaseClient.from('task_items').select('*')
         .eq('user_email', currentUser.email)
-        .gte('start_date', monthStart)
         .lt('start_date', monthEnd)
+        .or(`end_date.gte.${monthStart},end_date.is.null`)
         .order('start_date'),
       supabaseClient.from('task_journals').select('*')
         .eq('user_email', currentUser.email)
         .gte('week_start', monthStart)
         .lt('week_start', monthEnd),
     ]);
-    calTasks = data || [];
+    // end_date 미입력(단일일) 건도 안전하게 처리하고, 실제로 이번 달과 겹치는 건만 남김
+    calTasks = (data || []).filter(t => {
+      const e = t.end_date || t.start_date;
+      return e >= monthStart && t.start_date < monthEnd;
+    });
     _journalMap = {};
     (journals || []).forEach(j => { _journalMap[j.week_start] = j; });
 
     document.getElementById('calMonthLabel').textContent = `${calYear}년 ${calMonth+1}월`;
     buildCalGrid();
+  }
+
+  /* 기간형 업무 포함 — 날짜가 start_date~end_date 범위 안에 있는지 체크 */
+  function isTaskOnDate(t, date) {
+    const e = t.end_date || t.start_date;
+    return t.start_date <= date && date <= e;
   }
 
   function buildCalGrid() {
@@ -338,7 +348,7 @@
 
     grid.innerHTML = cells.map(({ date, otherMonth }) => {
       const day  = new Date(date + 'T00:00:00').getDay();
-      const tasks = calTasks.filter(t => t.start_date === date);
+      const tasks = calTasks.filter(t => isTaskOnDate(t, date));
       const isSel = date === selectedDate;
       const isTod = date === today;
 
@@ -357,7 +367,9 @@
         const chipCls = ['cal-task-chip'];
         if (t.priority === 'HIGH') chipCls.push('high');
         if (t.status === 'DONE')   chipCls.push('done');
-        return `<div class="${chipCls.join(' ')}" title="${esc(t.title)}">${esc(t.title)}</div>`;
+        const isRange = t.end_date && t.end_date !== t.start_date;
+        const cont = isRange && date !== t.start_date;
+        return `<div class="${chipCls.join(' ')}" title="${esc(t.title)}${isRange?` (${fmt(t.start_date)}~${fmt(t.end_date)})`:''}">${cont?'▸ ':''}${esc(t.title)}</div>`;
       }).join('');
       const more = tasks.length > 3 ? `<div class="cal-task-chip more">+${tasks.length-3}건</div>` : '';
 
@@ -401,7 +413,7 @@
 
   async function renderDetailPanel(dateStr) {
     const body   = document.getElementById('calDetailBody');
-    const tasks  = calTasks.filter(t => t.start_date === dateStr);
+    const tasks  = calTasks.filter(t => isTaskOnDate(t, dateStr));
     const ws     = getWeekStart(dateStr);
     const we     = getWeekEnd(ws);
 
