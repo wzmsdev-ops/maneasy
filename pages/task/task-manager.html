@@ -197,22 +197,32 @@
     .team-week-label { font-size: 13px; font-weight: 700; color: #111827; min-width: 160px; text-align: center; }
     .team-grid {
       flex: 1; min-height: 0; overflow-y: auto;
-      display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-      gap: 10px; align-content: start;
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+      gap: 8px; align-content: start;
     }
     .team-member-card {
       background: #fff; border-radius: 10px; border: 1px solid #e5e7eb;
       display: flex; flex-direction: column; overflow: hidden;
+      height: 128px; cursor: pointer; transition: box-shadow 0.15s, border-color 0.15s;
     }
+    .team-member-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-color: #d1d5db; }
     .team-card-header {
       display: flex; align-items: center; justify-content: space-between;
-      padding: 10px 12px; border-bottom: 1px solid #e5e7eb; background: #f8fafc;
+      padding: 7px 10px; border-bottom: 1px solid #e5e7eb; background: #f8fafc; flex-shrink: 0;
     }
-    .team-card-name { font-size: 13px; font-weight: 700; color: #111827; }
-    .team-card-meta { font-size: 10px; color: #9ca3af; }
-    .team-card-body { padding: 10px 12px; flex: 1; overflow-y: auto; max-height: 240px; font-size: 11px; color: #374151; line-height: 1.6; }
-    .team-card-body .no-data { color: #9ca3af; text-align: center; padding: 20px 0; }
-    .team-card-footer { padding: 8px 12px; border-top: 1px solid #f0f0f0; display: flex; justify-content: flex-end; gap: 6px; }
+    .team-card-name { font-size: 12px; font-weight: 700; color: #111827; }
+    .team-card-meta { font-size: 9px; color: #9ca3af; }
+    .team-card-body { padding: 7px 10px; flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; gap: 4px; }
+    .team-cat-row { display: flex; flex-wrap: wrap; gap: 4px; overflow: hidden; max-height: 38px; }
+    .team-cat-chip {
+      font-size: 9px; font-weight: 600; color: #374151; background: #f3f4f6;
+      border-radius: 4px; padding: 2px 6px; white-space: nowrap;
+    }
+    .team-card-body .no-data { color: #9ca3af; font-size: 10px; }
+    .team-card-metaline {
+      font-size: 9px; color: #6b7280; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .team-card-footer { padding: 5px 10px; border-top: 1px solid #f0f0f0; display: flex; justify-content: flex-end; gap: 4px; flex-shrink: 0; cursor: default; }
     .journal-status { font-size: 10px; padding: 2px 8px; border-radius: 4px; font-weight: 600; }
     .journal-status.open   { background: #fff7ed; color: #ea580c; }
     .journal-status.closed { background: #f0fdf4; color: #16a34a; }
@@ -384,6 +394,21 @@
       <button class="btn btn-primary" id="searchBtn">검색</button>
     </div>
     <div id="searchGrid"></div>
+  </div>
+
+  <!-- 팀원 업무 상세 모달 -->
+  <div class="m-modal" id="memberDetailModal">
+    <div class="m-modal-backdrop" onclick="closeMemberDetail()"></div>
+    <div class="m-modal-dialog" style="width:480px;max-height:80vh;display:flex;flex-direction:column;">
+      <div class="m-modal-head">
+        <span class="m-modal-title" id="memberDetailTitle"><i class="ti ti-user"></i> 팀원 업무</span>
+        <button class="m-modal-close" onclick="closeMemberDetail()"><i class="ti ti-x"></i></button>
+      </div>
+      <div class="m-modal-body" id="memberDetailBody" style="overflow-y:auto;flex:1;"></div>
+      <div class="m-modal-foot">
+        <button class="btn btn-sm" onclick="closeMemberDetail()">닫기</button>
+      </div>
+    </div>
   </div>
 
   <!-- 업무 등록/수정 모달 -->
