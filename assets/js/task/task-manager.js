@@ -277,13 +277,6 @@
     const d   = new Date(dateStr + 'T00:00:00');
     const dow = d.getDay();
     const isSun = dow === 0;
-    const isSat = dow === 6;
-    const isThisWeekSun = isSun;
-    const isNextWeekSun = false;
-
-    const jKey      = isSat ? 'sat_work_this' : 'early_work_this';
-    const jKeyNext  = isSat ? 'sat_work_next'  : 'early_work_next';
-    const isChecked = calJournal ? calJournal[jKey] === 'Y' : false;
 
     // 업무 목록
     const taskHtml = tasks.length
@@ -298,18 +291,6 @@
           <div class="task-item-meta">${CATEGORIES[t.category]||t.category||''} ${t.end_date&&t.end_date!==t.start_date?'~ '+fmt(t.end_date):''}</div>
         </div>`).join('')
       : `<div style="text-align:center;color:#9ca3af;font-size:11px;padding:12px 0;">등록된 업무가 없습니다.</div>`;
-
-    // 근태 섹션 (일, 토만)
-    const attendHtml = (isSun || isSat) ? `
-      <div class="attend-section">
-        <div class="attend-title">${isSat ? '🗓 토요근무' : '☀ 조기출근'} (이번 주)</div>
-        <div class="attend-checks">
-          <label class="attend-check">
-            <input type="checkbox" id="cbAttend" ${calJournal?.[jKey]==='Y'?'checked':''} onchange="saveAttend('${jKey}', '${ws}', '${we}', this.checked)">
-            <span>${isSat ? '토요근무 있음' : '조기출근 있음'}</span>
-          </label>
-        </div>
-      </div>` : '';
 
     // 이슈/건의 (일요일에만 — 주 시작)
     const issueHtml = isSun ? `
@@ -329,7 +310,7 @@
         </div>
       </div>` : '';
 
-    body.innerHTML = taskHtml + attendHtml + attWeekHtml + issueHtml;
+    body.innerHTML = taskHtml + attWeekHtml + issueHtml;
   }
 
   /* ── 근태 / 이슈 저장 ──────────────────────────── */
