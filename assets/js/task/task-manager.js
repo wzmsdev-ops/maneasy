@@ -83,6 +83,8 @@
     // 엑셀 버튼 manager/admin만
     if (isManager) {
       document.getElementById('exportExcelBtn').style.display = '';
+      document.getElementById('teamPdfBtn').style.display = '';
+      document.getElementById('teamPdfBtn').addEventListener('click', printTeamReport);
       document.getElementById('bulkCloseBtn').style.display = '';
       document.getElementById('bulkCloseBtn').addEventListener('click', bulkCloseJournals);
       document.getElementById('manageCatBtn').style.display = '';
@@ -808,6 +810,13 @@
       // 전원 마감 여부 — 전체 마감 전에는 개별 출력도 막음
       const allClosed = members.every(m => (journals||[]).find(j => j.user_email === m.email)?.status === 'CLOSED');
       _teamAllClosed = allClosed;
+      const pdfBtnEl = document.getElementById('teamPdfBtn');
+      if (pdfBtnEl) {
+        pdfBtnEl.disabled = !allClosed;
+        pdfBtnEl.title = allClosed ? '' : '팀원 전원이 마감된 이후에 출력할 수 있습니다.';
+        pdfBtnEl.style.opacity = allClosed ? '1' : '0.45';
+        pdfBtnEl.style.cursor  = allClosed ? 'pointer' : 'not-allowed';
+      }
 
       grid.innerHTML = members.map(m => {
         const mTasks   = (tasks||[]).filter(t => t.user_email === m.email);
@@ -1195,6 +1204,87 @@
   };
 
   /* ══ 엑셀 출력 (기존 로직 이식) ══════════════════ */
+  /** 엑셀/PDF 공통 — 팀원·업무·일지를 의원별/카테고리별로 묶어서 반환 */
+  async function buildTeamReportData() {
+    const we = getWeekEnd(teamWeekStart);
+    const nextWS = offsetWeek(teamWeekStart, 1);
+    const nextWE = getWeekEnd(nextWS);
+
+    let exMemberQuery = supabaseClient.from('user_profiles_with_email')
+      .select('id, user_name, email, clinic_code, clinic_name, team_code, team_group_code')
+      .eq('active', 'Y').order('user_name');
+    exMemberQuery = currentUser.team_group_code
+      ? exMemberQuery.eq('team_group_code', currentUser.team_group_code)
+      : exMemberQuery.eq('team_code', currentUser.team_code);
+    const { data: members } = await exMemberQuery;
+    if (!members?.length) return null;
+
+    const emails = members.map(m => m.email);
+
+    const [{ data: tasks }, { data: nextTasks }, { data: journals }, { data: nextJournals }] = await Promise.all([
+      supabaseClient.from('task_items').select('*').in('user_email', emails).gte('start_date', teamWeekStart).lte('start_date', we),
+      supabaseClient.from('task_items').select('*').in('user_email', emails).gte('start_date', nextWS).lte('start_date', nextWE),
+      supabaseClient.from('task_journals').select('*').in('user_email', emails).eq('week_start', teamWeekStart),
+      supabaseClient.from('task_journals').select('*').in('user_email', emails).eq('week_start', nextWS),
+    ]);
+
+    if (!Object.keys(CATEGORIES).length) await loadCategories();
+
+    const taskClinicMap   = {};
+    const memberClinicMap = {};
+
+    members.forEach(m => {
+      const mc = m.clinic_name || '기타';
+      if (!memberClinicMap[mc]) memberClinicMap[mc] = [];
+      memberClinicMap[mc].push({
+        ...m,
+        journal:      (journals||[]).find(j => j.user_email === m.email) || null,
+        next_journal: (nextJournals||[]).find(j => j.user_email === m.email) || null,
+      });
+      [...(tasks||[]), ...(nextTasks||[])].filter(t => t.user_email === m.email).forEach(t => {
+        const tc = t.work_clinic_name || t.clinic_name || m.clinic_name || '기타';
+        if (!taskClinicMap[tc]) taskClinicMap[tc] = [];
+        if (!taskClinicMap[tc].find(x => x.task_id === t.task_id)) taskClinicMap[tc].push(t);
+      });
+    });
+
+    const clinicSet = new Set([...Object.keys(taskClinicMap), ...Object.keys(memberClinicMap)]);
+    const clinics   = Array.from(clinicSet).sort();
+    const cats      = Object.entries(CATEGORIES);
+
+    const DOW = ['일','월','화','수','목','금','토'];
+    const ST  = { TODO:'예정', IN_PROGRESS:'진행중', DONE:'완료' };
+
+    function buildTaskText(taskList, catCode, isHigh, isNext) {
+      if (!taskList?.length) return '';
+      const ws = isNext ? nextWS : teamWeekStart;
+      const we2 = isNext ? nextWE : getWeekEnd(teamWeekStart);
+      const filtered = taskList.filter(t => {
+        const s = t.start_date||'', e = t.end_date||s;
+        if (e < ws || s > we2) return false;
+        if (catCode && t.category !== catCode) return false;
+        const high = t.priority === 'HIGH';
+        if (isHigh === true && !high) return false;
+        if (isHigh === false && high) return false;
+        return true;
+      });
+      if (!filtered.length) return '';
+      const lines = [];
+      filtered.sort((a,b) => (a.start_date||'').localeCompare(b.start_date||''));
+      filtered.forEach(t => {
+        const d = new Date((t.start_date||'')+'T00:00:00');
+        const dow = isNaN(d.getTime())? '' : DOW[d.getDay()];
+        const mm = (t.start_date||'').slice(5,7), dd = (t.start_date||'').slice(8,10);
+        lines.push(`  ${mm}/${dd} (${dow})`);
+        lines.push(`  • ${t.title||''}${t.priority==='HIGH'?' *':''} [${ST[t.status]||''}]`);
+        if (t.description?.trim()) t.description.trim().split('\n').forEach(l => { if(l.trim()) lines.push('    '+l.trim()); });
+      });
+      return lines.join('\n');
+    }
+
+    return { we, nextWS, nextWE, members, taskClinicMap, memberClinicMap, clinics, cats, buildTaskText };
+  }
+
   async function exportExcel() {
     if (!window.XLSX) { showMessage('엑셀 라이브러리를 불러오지 못했습니다.', 'error'); return; }
     const btn = document.getElementById('exportExcelBtn');
@@ -1202,84 +1292,9 @@
       if (btn) { btn.disabled = true; btn.textContent = '처리 중...'; }
       showGlobalLoading('데이터를 불러오는 중...');
 
-      const we = getWeekEnd(teamWeekStart);
-      const nextWS = offsetWeek(teamWeekStart, 1);
-      const nextWE = getWeekEnd(nextWS);
-
-      // 팀원 조회 — team_group_code(MSO 등 공유그룹)가 설정돼 있으면 의원 경계 넘어 조회
-      let exMemberQuery = supabaseClient.from('user_profiles_with_email')
-        .select('id, user_name, email, clinic_code, clinic_name, team_code, team_group_code')
-        .eq('active', 'Y').order('user_name');
-      exMemberQuery = currentUser.team_group_code
-        ? exMemberQuery.eq('team_group_code', currentUser.team_group_code)
-        : exMemberQuery.eq('team_code', currentUser.team_code);
-      const { data: members } = await exMemberQuery;
-      if (!members?.length) { showMessage('팀원이 없습니다.', 'error'); return; }
-
-      const emails = members.map(m => m.email);
-
-      const [{ data: tasks }, { data: nextTasks }, { data: journals }, { data: nextJournals }] = await Promise.all([
-        supabaseClient.from('task_items').select('*').in('user_email', emails).gte('start_date', teamWeekStart).lte('start_date', we),
-        supabaseClient.from('task_items').select('*').in('user_email', emails).gte('start_date', nextWS).lte('start_date', nextWE),
-        supabaseClient.from('task_journals').select('*').in('user_email', emails).eq('week_start', teamWeekStart),
-        supabaseClient.from('task_journals').select('*').in('user_email', emails).eq('week_start', nextWS),
-      ]);
-
-      // 카테고리 확인
-      if (!Object.keys(CATEGORIES).length) await loadCategories();
-
-      // 의원별 분류
-      const taskClinicMap   = {};  // work_clinic_name 기준
-      const memberClinicMap = {};  // 소속 clinic_name 기준
-
-      members.forEach(m => {
-        const mc = m.clinic_name || '기타';
-        if (!memberClinicMap[mc]) memberClinicMap[mc] = [];
-        memberClinicMap[mc].push({
-          ...m,
-          journal:      (journals||[]).find(j => j.user_email === m.email) || null,
-          next_journal: (nextJournals||[]).find(j => j.user_email === m.email) || null,
-        });
-        [...(tasks||[]), ...(nextTasks||[])].filter(t => t.user_email === m.email).forEach(t => {
-          const tc = t.work_clinic_name || t.clinic_name || m.clinic_name || '기타';
-          if (!taskClinicMap[tc]) taskClinicMap[tc] = [];
-          if (!taskClinicMap[tc].find(x => x.task_id === t.task_id)) taskClinicMap[tc].push(t);
-        });
-      });
-
-      const clinicSet = new Set([...Object.keys(taskClinicMap), ...Object.keys(memberClinicMap)]);
-      const clinics   = Array.from(clinicSet).sort();
-      const cats      = Object.entries(CATEGORIES);
-
-      const DOW = ['일','월','화','수','목','금','토'];
-      const ST  = { TODO:'예정', IN_PROGRESS:'진행중', DONE:'완료' };
-
-      function buildTaskText(taskList, catCode, isHigh, isNext) {
-        if (!taskList?.length) return '';
-        const ws = isNext ? nextWS : teamWeekStart;
-        const we = isNext ? nextWE : getWeekEnd(teamWeekStart);
-        const filtered = taskList.filter(t => {
-          const s = t.start_date||'', e = t.end_date||s;
-          if (e < ws || s > we) return false;
-          if (catCode && t.category !== catCode) return false;
-          const high = t.priority === 'HIGH';
-          if (isHigh === true && !high) return false;
-          if (isHigh === false && high) return false;
-          return true;
-        });
-        if (!filtered.length) return '';
-        const lines = [];
-        filtered.sort((a,b) => (a.start_date||'').localeCompare(b.start_date||''));
-        filtered.forEach(t => {
-          const d = new Date((t.start_date||'')+'T00:00:00');
-          const dow = isNaN(d.getTime())? '' : DOW[d.getDay()];
-          const mm = (t.start_date||'').slice(5,7), dd = (t.start_date||'').slice(8,10);
-          lines.push(`  ${mm}/${dd} (${dow})`);
-          lines.push(`  • ${t.title||''}${t.priority==='HIGH'?' *':''} [${ST[t.status]||''}]`);
-          if (t.description?.trim()) t.description.trim().split('\n').forEach(l => { if(l.trim()) lines.push('    '+l.trim()); });
-        });
-        return lines.join('\n');
-      }
+      const rd = await buildTeamReportData();
+      if (!rd) { showMessage('팀원이 없습니다.', 'error'); return; }
+      const { we, taskClinicMap, memberClinicMap, clinics, cats, buildTaskText } = rd;
 
       // 스타일 정의
       const FB   = { name:'맑은 고딕', sz:10 };
@@ -1301,8 +1316,14 @@
       const TC   = 2 + clinics.length;
       let r = 0;
 
+      const rowMaxLines = {}; // 행별 최대 줄 수 — 행 높이를 내용에 맞게 늘리기 위함
       const sc = (row, col, val, s) => {
         ws2[window.XLSX.utils.encode_cell({r:row,c:col})] = { v:val??'', t:'s', s };
+        if (typeof val === 'string' && val) {
+          // 줄바꿈 수 + 컬럼폭(약 60자) 기준 자동줄바꿈 예상치를 더해 줄 수 추정
+          const lines = val.split('\n').reduce((sum, line) => sum + Math.max(1, Math.ceil(line.length / 60)), 0);
+          rowMaxLines[row] = Math.max(rowMaxLines[row] || 1, lines);
+        }
       };
       const mg = (rs,re,cs,ce) => {
         if (!ws2['!merges']) ws2['!merges'] = [];
@@ -1412,7 +1433,11 @@
 
       ws2['!ref']  = window.XLSX.utils.encode_range({r:0,c:0},{r:r-1,c:TC-1});
       ws2['!cols'] = [{wch:16},{wch:11},...clinics.map(()=>({wch:65}))];
-      ws2['!rows'] = Array(r).fill(null).map((_,i) => i<3 ? {hpt:20} : {hpt:60});
+      ws2['!rows'] = Array(r).fill(null).map((_,i) => {
+        if (i < 3) return { hpt: 20 };
+        const lines = rowMaxLines[i] || 1;
+        return { hpt: Math.max(60, lines * 15 + 12) };
+      });
 
       window.XLSX.utils.book_append_sheet(wb, ws2, '주간업무보고');
       const ds = teamWeekStart.replace(/-/g,'');
@@ -1426,6 +1451,126 @@
       hideGlobalLoading();
     }
   }
+
+  /* ── 유틸 ─────────────────────────────────────── */
+  /** 전체 팀 주간업무보고 PDF/인쇄 — 엑셀과 동일한 의원x항목 매트릭스를 인쇄용 HTML로 출력. 전원 마감 후에만 허용 */
+  async function printTeamReport() {
+    if (!_teamAllClosed) { showMessage('팀원 전원이 마감된 이후에 출력할 수 있습니다.', 'error'); return; }
+    showGlobalLoading('데이터를 불러오는 중...');
+    try {
+      const rd = await buildTeamReportData();
+      if (!rd) { showMessage('팀원이 없습니다.', 'error'); return; }
+      const { we, taskClinicMap, memberClinicMap, clinics, cats, buildTaskText } = rd;
+
+      const nl2br = s => esc(s).replace(/\n/g, '<br>');
+
+      const rowsHtml = [];
+      const addRow = (label, items) => {
+        rowsHtml.push(`<tr>
+          <td class="lb" rowspan="1">${esc(label)}</td>
+          ${clinics.map((cl,i) => `<td>${items[i] || '-'}</td>`).join('')}
+        </tr>`);
+      };
+      const addRowPair = (label, getTxt) => {
+        rowsHtml.push(`<tr>
+          <td class="lb" rowspan="2">${esc(label)}</td>
+          <td class="sub">금주</td>
+          ${clinics.map(cl => `<td>${nl2br(getTxt(cl,false)) || '-'}</td>`).join('')}
+        </tr>
+        <tr>
+          <td class="sub">차주</td>
+          ${clinics.map(cl => `<td>${nl2br(getTxt(cl,true)) || '-'}</td>`).join('')}
+        </tr>`);
+      };
+
+      addRowPair('주요이슈', (cl,isNext) => buildTaskText(taskClinicMap[cl]||[], null, true, isNext));
+      cats.forEach(([ck,cn]) => addRowPair(cn, (cl,isNext) => buildTaskText(taskClinicMap[cl]||[], ck, false, isNext)));
+
+      // 조출/토요근무
+      rowsHtml.push(`<tr>
+        <td class="lb" rowspan="2">조출/토요근무</td>
+        <td class="sub">이번주</td>
+        ${clinics.map(cl => {
+          const mems = memberClinicMap[cl]||[];
+          const early = mems.filter(m => m.journal?.early_work_this==='Y').map(m=>m.user_name);
+          const sat   = mems.filter(m => m.journal?.sat_work_this==='Y').map(m=>m.user_name);
+          const lines = [early.length?'[조출] '+early.join(', '):'', sat.length?'[토요근무] '+sat.join(', '):''].filter(Boolean);
+          return `<td>${lines.length?nl2br(lines.join('\n')):'-'}</td>`;
+        }).join('')}
+      </tr>
+      <tr>
+        <td class="sub">다음주</td>
+        ${clinics.map(cl => {
+          const mems = memberClinicMap[cl]||[];
+          const early = mems.filter(m => m.next_journal?.early_work_this==='Y').map(m=>m.user_name);
+          const sat   = mems.filter(m => m.next_journal?.sat_work_this==='Y').map(m=>m.user_name);
+          const lines = [early.length?'[조출] '+early.join(', '):'', sat.length?'[토요근무] '+sat.join(', '):''].filter(Boolean);
+          return `<td>${lines.length?nl2br(lines.join('\n')):'-'}</td>`;
+        }).join('')}
+      </tr>`);
+
+      // 근태
+      rowsHtml.push(`<tr>
+        <td class="lb" rowspan="2">근태</td>
+        <td class="sub">금주</td>
+        ${clinics.map(cl => {
+          const lines = [];
+          (memberClinicMap[cl]||[]).forEach(m => {
+            if (m.journal?.attendance_this_week) { lines.push('• '+m.user_name); m.journal.attendance_this_week.split('\n').forEach(v=>lines.push('  '+v)); }
+          });
+          return `<td>${lines.length?nl2br(lines.join('\n')):'-'}</td>`;
+        }).join('')}
+      </tr>
+      <tr>
+        <td class="sub">차주</td>
+        ${clinics.map(cl => {
+          const lines = [];
+          (memberClinicMap[cl]||[]).forEach(m => {
+            const val = m.next_journal?.attendance_this_week || m.journal?.attendance_next_week || '';
+            if (val) { lines.push('• '+m.user_name); val.split('\n').forEach(v=>lines.push('  '+v)); }
+          });
+          return `<td>${lines.length?nl2br(lines.join('\n')):'-'}</td>`;
+        }).join('')}
+      </tr>`);
+
+      // 이슈/건의
+      addRow('이슈/건의', clinics.map(cl => {
+        const lines = (memberClinicMap[cl]||[]).filter(m => m.journal?.issues).map(m => `• ${m.user_name}: ${m.journal.issues}`);
+        return lines.length ? nl2br(lines.join('\n')) : '-';
+      }));
+
+      const period = `${teamWeekStart.slice(0,4)}년 ${fmt(teamWeekStart)} ~ ${fmt(we)}`;
+      const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>주간 업무보고 - ${esc(period)}</title>
+      <style>
+        body{font-family:'맑은 고딕',sans-serif;padding:24px;color:#111827;}
+        h1{font-size:18px;margin:0 0 4px;text-align:center;}
+        .period{font-size:13px;color:#6b7280;text-align:center;margin-bottom:18px;}
+        table{width:100%;border-collapse:collapse;table-layout:fixed;}
+        th,td{border:1px solid #d1d5db;padding:6px 8px;font-size:11px;vertical-align:top;word-break:break-word;}
+        th{background:#1f3864;color:#fff;text-align:center;font-size:12px;}
+        td.lb{background:#dbe6f5;font-weight:700;text-align:center;vertical-align:middle;width:80px;}
+        td.sub{background:#f3f6fb;font-weight:600;text-align:center;vertical-align:middle;width:46px;}
+        @media print { .no-print{display:none;} @page{size:landscape;margin:12mm;} }
+      </style></head><body>
+        <h1>주간 업무보고</h1>
+        <div class="period">${esc(period)}</div>
+        <table>
+          <thead><tr><th colspan="2">구분</th>${clinics.map(cl=>`<th>${esc(cl)}</th>`).join('')}</tr></thead>
+          <tbody>${rowsHtml.join('')}</tbody>
+        </table>
+        <div class="no-print" style="margin-top:20px;text-align:center;">
+          <button onclick="window.print()" style="padding:8px 16px;cursor:pointer;">인쇄 / PDF로 저장</button>
+        </div>
+      </body></html>`;
+
+      const win = window.open('', '_blank');
+      win.document.write(html);
+      win.document.close();
+    } finally {
+      hideGlobalLoading();
+    }
+  }
+
 
   /* ── 유틸 ─────────────────────────────────────── */
   function esc(v) {
