@@ -1046,12 +1046,17 @@
     const from    = document.getElementById('searchFrom').value;
     const to      = document.getElementById('searchTo').value;
     const status  = document.getElementById('searchStatus').value;
+    const scope   = document.getElementById('searchScope').value; // 'both' | 'title' | 'desc'
 
     let q = supabaseClient.from('task_items').select('*').eq('user_email', currentUser.email);
     if (from)    q = q.gte('start_date', from);
     if (to)      q = q.lte('start_date', to);
     if (status)  q = q.eq('status', status);
-    if (keyword) q = q.or(`title.ilike.%${keyword}%,description.ilike.%${keyword}%`);
+    if (keyword) {
+      if (scope === 'title')      q = q.ilike('title', `%${keyword}%`);
+      else if (scope === 'desc')  q = q.ilike('description', `%${keyword}%`);
+      else                        q = q.or(`title.ilike.%${keyword}%,description.ilike.%${keyword}%`);
+    }
     q = q.order('start_date', { ascending: false }).limit(200);
 
     const { data, error } = await q;
@@ -1062,17 +1067,22 @@
     rows.forEach(t => { _searchTaskCache[t.task_id] = t; });
 
     const colDefs = [
-      { headerName: '상태', field: 'status', width: 80, flex: 0,
-        valueFormatter: p => STATUS_LABEL[p.value] || p.value },
-      { headerName: '', field: 'priority', width: 36, flex: 0,
-        valueFormatter: p => p.value === 'HIGH' ? '⚡' : '' },
-      { headerName: '제목', field: 'title', flex: 2, minWidth: 160,
-        cellStyle: { justifyContent: 'flex-start', textAlign: 'left' } },
-      { headerName: '카테고리', field: 'category', flex: 1, minWidth: 90,
-        valueFormatter: p => CATEGORIES[p.value] || p.value || '' },
       { headerName: '기간', flex: 1, minWidth: 130,
         valueGetter: p => p.data.end_date && p.data.end_date !== p.data.start_date
           ? `${p.data.start_date} ~ ${p.data.end_date}` : p.data.start_date },
+      { headerName: '상태', field: 'status', width: 80, flex: 0,
+        valueFormatter: p => STATUS_LABEL[p.value] || p.value },
+      { headerName: '카테고리', field: 'category', flex: 1, minWidth: 90,
+        valueFormatter: p => CATEGORIES[p.value] || p.value || '' },
+      { headerName: '제목', field: 'title', flex: 2, minWidth: 160,
+        cellStyle: { justifyContent: 'flex-start', textAlign: 'left' },
+        valueFormatter: p => (p.data.priority === 'HIGH' ? '⚡ ' : '') + p.value },
+      { headerName: '내용', field: 'description', flex: 3, minWidth: 200,
+        cellStyle: { justifyContent: 'flex-start', textAlign: 'left' },
+        valueFormatter: p => {
+          const v = (p.value || '').replace(/\n/g, ' ');
+          return v.length > 60 ? v.slice(0, 60) + '...' : v;
+        } },
     ];
 
     if (!_searchGridApi) {
