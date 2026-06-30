@@ -154,8 +154,11 @@
     }
     .po-actionbar input[type=date], .m-filter-bar input[type=date] { flex-shrink: 0; }
     .po-actionbar .spacer { flex: 0; }
-    
-    .m-modal-dialog { width: 520px; }</style>
+    .m-modal-dialog--form   { width:calc(100vw - 80px); max-width:1600px; height:calc(100vh - 48px); }
+    .m-modal-dialog--detail { width:760px; max-width:calc(100vw - 32px); max-height:calc(100vh - 48px); }
+    .m-modal-dialog--detail-wide { width:1100px; max-width:calc(100vw - 32px); max-height:calc(100vh - 48px); }
+    .m-modal-dialog--wide   { width:880px; max-width:calc(100vw - 32px); height:calc(100vh - 48px); }
+    </style>
 </head>
 <body>
 <div class="po-page">
