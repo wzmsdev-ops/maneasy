@@ -184,7 +184,12 @@
     ══════════════════════════════════════ -->
     <div id="panel-history" class="us-main-panel">
       <div class="us-card">
-        <div class="us-toolbar">
+        <div class="us-toolbar" style="display:flex;align-items:center;gap:8px;">
+          <div id="deptBadgeHistory" class="us-dept-badge" style="display:none;">
+            <i class="ti ti-building"></i>
+            <span id="deptBadgeTextHistory">-</span>
+          </div>
+          <div style="flex:1;"></div>
           <input type="date" id="dateFrom" />
           <span style="font-size:12px;color:#9ca3af;">~</span>
           <input type="date" id="dateTo" />
