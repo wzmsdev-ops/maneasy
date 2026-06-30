@@ -3,394 +3,442 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>관리이지</title>
-  <link rel="icon" href="data:,">
-  <link rel="stylesheet" href="assets/css/common.css" />
-  <link rel="stylesheet" href="assets/css/shell.css" />
-  <link rel="stylesheet" href="assets/font/tabler-icons/tabler-icons.min.css" />
+  <title>사인물 신청</title>
+  <link rel="stylesheet" href="../../assets/css/common.css" />
+  <link rel="stylesheet" href="../../assets/css/pages/equipment-form.css" />
+  <link rel="stylesheet" href="../../assets/font/tabler-icons/tabler-icons.min.css" />
+  <style>html, body { height: 100%; margin: 0; }</style>
+  <script>
+    if (new URLSearchParams(location.search).get('shell') === '1')
+      document.documentElement.classList.add('in-shell');
+  </script>
+  <style>
+    html, body { background:#f0f2f5; }
+
+    /* ── 액션바 ── */
+    .ap-actionbar {
+      display:flex; align-items:center; gap:8px;
+      background:#fff; border:1px solid #e5e7eb; border-radius:8px;
+      padding:7px 12px; flex-shrink:0; height:44px; box-sizing:border-box;
+    }
+    .ap-actionbar .spacer { flex:1; }
+
+    /* ── 탭 ── */
+    .ap-type-tabs { display:flex; gap:2px; background:#e5e7eb; border-radius:8px; padding:3px; flex-shrink:0; }
+    .ap-type-tabs .tab-btn {
+      flex:1; height:34px; border:none; background:transparent; border-radius:6px;
+      font-size:12px; font-weight:600; color:#6b7280; cursor:pointer; transition:background .15s, color .15s;
+      display:flex; align-items:center; justify-content:center;
+    }
+    .ap-type-tabs .tab-btn:hover { background:rgba(255,255,255,0.6); color:#374151; }
+    .ap-type-tabs .tab-btn.active { background:#fff; color:var(--navy); box-shadow:0 1px 3px rgba(0,0,0,0.08); }
+
+    /* ── 공통 ── */
+    .eform-grid { grid-template-columns: repeat(2, 1fr); }
+    .eform-full { grid-column: 1 / -1; }
+    .ap-checkbox-row { display:flex; align-items:center; gap:8px; }
+    .ap-checkbox-row label { font-size:12px; color:#374151; cursor:pointer; }
+    .ap-sr-only { position:absolute; opacity:0; width:0; height:0; }
+
+    /* ── 카드 선택 그리드 ── */
+    .ap-card-grid { display:grid; grid-template-columns:repeat(4, 1fr); gap:6px; }
+    .ap-card-grid.col2 { grid-template-columns:repeat(2, 1fr); }
+    .ap-card-grid.col3 { grid-template-columns:repeat(3, 1fr); }
+    .ap-pick-card {
+      display:flex; flex-direction:column; align-items:center; gap:2px;
+      padding:7px 4px; border:1.5px solid #e5e7eb; border-radius:7px;
+      cursor:pointer; text-align:center; transition:all .15s; font-size:11px; background:#fff;
+    }
+    .ap-pick-card:hover { border-color:var(--blue); }
+    .ap-pick-card.is-selected { border-color:var(--navy); background:var(--blue-soft); }
+    .ap-pick-badge { font-size:12px; font-weight:800; color:var(--navy); }
+    .ap-pick-sub  { font-size:9px; color:#6b7280; }
+    .ap-pick-icon { font-size:14px; }
+    .ap-pick-title { font-weight:700; color:#111827; font-size:11px; }
+    .ap-pick-desc { font-size:9px; color:#9ca3af; }
+    .ap-pick-shape { font-size:14px; font-weight:800; color:var(--navy); }
+
+    .ap-sub-title { font-size:11px; font-weight:700; color:#6b7280; margin:10px 0 5px; }
+
+    /* ── 좌 컬럼 스크롤 ── */
+    .ap-left-body { flex:1; min-height:0; overflow-y:auto; }
+
+    /* ── 우: 명판 이미지 미리보기 패널 ── */
+    .ap-np-preview-panel {
+      flex:1; display:flex; flex-direction:column; min-height:0; overflow:hidden;
+    }
+    .ap-np-preview-grid {
+      flex:1; min-height:0; display:grid;
+      grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr;
+      gap:8px; padding:14px;
+    }
+    .ap-np-preview-item {
+      display:flex; flex-direction:column; gap:4px; min-height:0;
+    }
+    .ap-np-preview-item label {
+      font-size:10px; font-weight:700; color:#9ca3af; text-align:center; flex-shrink:0;
+    }
+    .ap-np-preview-item img {
+      flex:1; min-height:0; width:100%; object-fit:contain;
+      border:2px solid #e5e7eb; border-radius:8px; display:block; background:#fff;
+      transition: border-color .2s;
+    }
+    .ap-np-preview-item.is-selected img { border-color:var(--navy); }
+    /* 레이아웃 이미지는 하단에 가로로 */
+    .ap-np-layout-img {
+      flex-shrink:0; padding:0 14px 10px;
+    }
+    .ap-np-layout-img label { font-size:10px; font-weight:700; color:#9ca3af; display:block; margin-bottom:4px; }
+    .ap-np-layout-img img { width:100%; border:1px solid #e5e7eb; border-radius:8px; display:block; background:#fff; }
+
+    /* ── 하단 첨부파일: 컴팩트 ── */
+    .ap-file-compact-row {
+      flex-shrink:0; display:flex; align-items:center; gap:10px;
+      background:#fff; border:1px solid #e5e7eb; border-radius:8px;
+      padding:8px 14px; box-sizing:border-box;
+    }
+    .ap-file-compact-row .ap-file-section-label {
+      font-size:11px; font-weight:700; color:#374151; white-space:nowrap; flex-shrink:0;
+      display:flex; align-items:center; gap:4px;
+    }
+    .ap-file-compact-row .ap-file-divider { width:1px; height:20px; background:#e5e7eb; flex-shrink:0; }
+    .ap-file-compact-row .ap-file-inline-list { flex:1; min-width:0; display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
+    .ap-file-chip { display:flex; align-items:center; gap:4px; padding:2px 8px; background:#f3f4f6; border:1px solid #e5e7eb; border-radius:999px; font-size:11px; }
+    .ap-file-chip-remove { border:none; background:none; color:#ef4444; cursor:pointer; font-size:12px; line-height:1; }
+    .ap-file-empty-label { font-size:11px; color:#9ca3af; }
+
+    /* ── 일반 사인물 파일첨부 패널 (eform-photo-body 자식) ── */
+    .ap-file-list-panel {
+      background:#f0f2f5; border:1px solid #e5e7eb; border-radius:8px;
+      height:100%; min-height:0; overflow-y:auto; padding:10px; box-sizing:border-box;
+      display:flex; flex-direction:column; gap:6px;
+    }
+    .ap-file-upload-panel { display:flex; flex-direction:column; gap:8px; height:100%; min-height:0; }
+    .ap-file-input-hidden { position:absolute; width:1px; height:1px; opacity:0; }
+    .ap-file-dropzone {
+      flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px;
+      border:2px dashed #d1d5db; border-radius:8px; cursor:pointer; transition:border-color .15s, background .15s;
+    }
+    .ap-file-dropzone:hover { border-color:#2563eb; background:#eff6ff; }
+    .ap-file-dropzone i { font-size:28px; color:#9ca3af; transition:color .15s; }
+    .ap-file-dropzone:hover i { color:#2563eb; }
+    .ap-file-drop-title { font-size:12px; font-weight:600; color:#374151; }
+    .ap-file-drop-sub   { font-size:11px; color:#9ca3af; }
+
+    /* ── 명판 컴팩트 첨부 ── */
+    .ap-file-compact-row {
+      flex-shrink:0; display:flex; align-items:center; gap:10px;
+      background:#fff; border:1px solid #e5e7eb; border-radius:8px;
+      padding:8px 14px; box-sizing:border-box;
+    }
+    .ap-file-section-label { font-size:11px; font-weight:700; color:#374151; white-space:nowrap; flex-shrink:0; display:flex; align-items:center; gap:4px; }
+    .ap-file-divider { width:1px; height:20px; background:#e5e7eb; flex-shrink:0; }
+    .ap-file-empty-label { font-size:11px; color:#9ca3af; }
+  </style>
 </head>
-<body>
+<body class="equipment-form-page">
+<div class="eform-page">
 
-<div class="app-shell">
+  <!-- 액션바 -->
+  <div class="ap-actionbar">
+    <span style="font-size:12px;font-weight:700;color:#374151;"><i class="ti ti-rubber-stamp" style="margin-right:4px;"></i>사인물 / 명판 제작 신청</span>
+    <div class="spacer"></div>
+    <button type="button" class="btn btn-sm" onclick="parent.shellNavigate && parent.shellNavigate('signage/history')">
+      <i class="ti ti-list-check"></i> 신청내역 보기
+    </button>
+    <button type="button" class="btn btn-sm btn-primary" id="srSaveBtn">
+      <i class="ti ti-send"></i> 신청 제출
+    </button>
+  </div>
 
-  <nav class="sidebar" id="sidebar" role="navigation" aria-label="메인 메뉴">
-    <div class="sb-brand">
-      <img class="sb-brand-img"
-           src="assets/images/logo.png"
-           alt="관리이지" />
-    </div>
-    <div class="sb-user">
-      <div class="sb-user-info">
-        <div class="sb-user-line" id="sbUserLine">로딩 중...</div>
-        <div class="sb-user-role" id="sbUserRole"></div>
+  <!-- 탭 -->
+  <div class="ap-type-tabs" id="apTypeTabs">
+    <button type="button" class="tab-btn active" data-type="SIGN">일반 사인물</button>
+    <button type="button" class="tab-btn" data-type="NAMEPLATE">규격 명판</button>
+  </div>
+
+  <!-- ══ 일반 사인물 패널 ══ -->
+  <div id="srPanelSign" class="eform-body eform-body--2col" style="flex:1;min-height:0;">
+    <div class="eform-top-row" style="flex:1;min-height:0;">
+
+      <!-- 좌: 기본정보 -->
+      <div class="eform-col eform-col--stretch">
+        <div class="eform-section" style="flex:1;display:flex;flex-direction:column;min-height:0;">
+          <div class="eform-section-head">
+            <i class="ti ti-info-circle"></i><span>기본 정보</span>
+            <span class="eform-section-desc">신청자 및 공통 정보</span>
+          </div>
+          <div class="ap-left-body">
+            <div class="eform-grid">
+              <div class="form-field eform-full">
+                <label class="form-label required">제목</label>
+                <input type="text" id="sr_title" class="input" placeholder="예: [A3 포맥스], [바닥 스티커] 등 제작 품목명을 입력하세요." required />
+              </div>
+              <div class="form-field">
+                <label class="form-label">의원</label>
+                <input type="text" id="sr_clinic_display" class="input" readonly />
+              </div>
+              <div class="form-field">
+                <label class="form-label">부서</label>
+                <input type="text" id="sr_dept_display" class="input" readonly />
+              </div>
+              <div class="form-field">
+                <label class="form-label required">이름</label>
+                <input type="text" id="sr_requester_name" class="input" required />
+              </div>
+              <div class="form-field">
+                <label class="form-label required">연락처</label>
+                <input type="tel" id="sr_contact" class="input" placeholder="010-0000-0000" required />
+              </div>
+              <div class="form-field">
+                <label class="form-label required">수량</label>
+                <input type="number" id="sr_quantity" class="input" min="1" step="1" value="1" required />
+              </div>
+              <div class="form-field">
+                <label class="form-label">긴급 여부</label>
+                <select id="sr_is_urgent" class="input">
+                  <option value="N">일반</option>
+                  <option value="Y">🚨 긴급</option>
+                </select>
+              </div>
+              <div class="form-field eform-full" id="srUrgentReasonField" style="display:none;">
+                <label class="form-label required">긴급 사유</label>
+                <input type="text" id="sr_urgent_reason" class="input" />
+              </div>
+              <div class="form-field eform-full">
+                <div class="ap-checkbox-row">
+                  <input type="checkbox" id="sr_draft_confirm" />
+                  <label for="sr_draft_confirm">시안 제작 후 확인 받고 싶습니다</label>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 우: 일반 사인물 상세 -->
+      <div class="eform-col eform-col--stretch">
+        <div class="eform-section" style="flex:1;display:flex;flex-direction:column;min-height:0;">
+          <div class="eform-section-head">
+            <i class="ti ti-sign-right"></i><span>일반 사인물 상세</span>
+            <span class="eform-section-desc">배너, 간판, 안내판 등 맞춤 제작</span>
+          </div>
+          <div class="ap-left-body">
+            <div class="eform-grid">
+              <div class="form-field eform-full">
+                <label class="form-label required">상세내역</label>
+                <textarea id="sr_text_content" class="input textarea" rows="3"></textarea>
+              </div>
+              <div class="form-field">
+                <label class="form-label required">사이즈</label>
+                <input type="text" id="sr_sign_size" class="input" placeholder="예: 900 × 600 × 5 mm" />
+              </div>
+              <div class="form-field">
+                <label class="form-label required">형태/종류</label>
+                <input type="text" id="sr_sign_type" class="input" placeholder="예: 현수막, 아크릴 판넬" />
+              </div>
+              <div class="form-field">
+                <label class="form-label required">설치 환경</label>
+                <select id="sr_install_env" class="input">
+                  <option value="">선택하세요</option>
+                  <option value="INDOOR">실내</option>
+                  <option value="OUTDOOR">실외</option>
+                </select>
+              </div>
+              <div class="form-field">
+                <label class="form-label required">설치 위치 상세</label>
+                <input type="text" id="sr_install_location" class="input" />
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
-    <div class="sb-nav">
 
-      <!-- 의료장비 관리 -->
-      <button class="sb-item sb-item-parent" data-group="equipment">
-        <div class="sb-item-inner"><i class="ti ti-device-desktop-analytics"></i><span>의료장비 관리</span></div>
-        <i class="ti ti-chevron-right sb-item-arrow"></i>
-      </button>
-      <div class="sb-submenu" data-group="equipment">
-        <button class="sb-sub-item" data-page="equipment/dashboard" onclick="navigate('equipment/dashboard')">
-          <i class="ti ti-layout-dashboard"></i><span>대시보드</span>
-        </button>
-        <button class="sb-sub-item" data-page="equipment/list" onclick="navigate('equipment/list')">
-          <i class="ti ti-list"></i><span>장비 목록</span>
-        </button>
-        <button class="sb-sub-item" data-page="equipment/form" onclick="navigate('equipment/form')" id="sbItemEquipmentForm">
-          <i class="ti ti-plus"></i><span>장비 등록</span>
-        </button>
+    <!-- 일반 사인물 하단: 첨부파일 (eform-photo-row 패턴) -->
+    <div class="eform-section eform-photo-row">
+      <div class="eform-section-head">
+        <i class="ti ti-paperclip"></i><span>첨부파일</span>
+        <span class="eform-section-desc">설치위치 사진 등</span>
       </div>
-
-      <!-- 자재관리 -->
-      <button class="sb-item sb-item-parent" data-group="material">
-        <div class="sb-item-inner"><i class="ti ti-box"></i><span>자재관리</span></div>
-        <i class="ti ti-chevron-right sb-item-arrow"></i>
-      </button>
-      <div class="sb-submenu" data-group="material">
-        <button class="sb-sub-item" data-page="materials/purchase-request" onclick="navigate('materials/purchase-request')" id="sbItemPurchaseRequest">
-          <i class="ti ti-shopping-cart"></i><span>발주요청</span>
-        </button>
-        <button class="sb-sub-item" data-page="materials/procurement" onclick="navigate('materials/procurement')" id="sbItemProcurement" style="display:none;">
-          <i class="ti ti-file-invoice"></i><span>발주 관리</span>
-        </button>
-        <button class="sb-sub-item" data-page="materials/stock" onclick="navigate('materials/stock')" id="sbItemStock" style="display:none;">
-          <i class="ti ti-building-warehouse"></i><span>재고 관리</span>
-        </button>
-        <button class="sb-sub-item" data-page="materials/use-stock" onclick="navigate('materials/use-stock')" id="sbItemUseStock">
-          <i class="ti ti-clipboard-check"></i><span>사용처리</span>
-        </button>
-        <div class="sb-divider"></div>
-        <button class="sb-sub-item" data-page="materials/material-stats" onclick="navigate('materials/material-stats')" id="sbItemMaterialStats">
-          <i class="ti ti-chart-bar"></i><span>자재 통계</span>
-        </button>
-      </div>
-
-      <!-- 사인물 신청 -->
-      <button class="sb-item sb-item-parent" data-group="signage">
-        <div class="sb-item-inner"><i class="ti ti-rubber-stamp"></i><span>사인물 신청</span></div>
-        <i class="ti ti-chevron-right sb-item-arrow"></i>
-      </button>
-      <div class="sb-submenu" data-group="signage">
-        <button class="sb-sub-item" data-page="signage/apply" onclick="navigate('signage/apply')" id="sbItemSignageApply">
-          <i class="ti ti-pencil"></i><span>신청</span>
-        </button>
-        <button class="sb-sub-item" data-page="signage/history" onclick="navigate('signage/history')" id="sbItemSignageHistory">
-          <i class="ti ti-list-check"></i><span>신청내역</span>
-        </button>
-      </div>
-
-      <!-- 업무일정 관리 -->
-      <div class="sb-divider" style="margin:6px 0;"></div>
-      <button class="sb-item" data-page="task/task-manager" onclick="navigate('task/task-manager')" id="sbItemTask">
-        <div class="sb-item-inner"><i class="ti ti-calendar-event"></i><span>업무일정 관리</span></div>
-      </button>
-
-      <!-- 마스터 관리 -->
-      <div class="sb-divider sb-admin-only" id="sbDividerMaster" style="display:none;margin:6px 0;"></div>
-      <button class="sb-item sb-item-parent sb-admin-only" data-group="master" id="sbGroupMaster" style="display:none;">
-        <div class="sb-item-inner"><i class="ti ti-settings"></i><span>마스터 관리</span></div>
-        <i class="ti ti-chevron-right sb-item-arrow"></i>
-      </button>
-      <div class="sb-submenu sb-admin-only" data-group="master">
-        <button class="sb-sub-item" data-page="master/org" onclick="navigate('master/org')" id="sbItemMasterOrg">
-          <i class="ti ti-building-hospital"></i><span>의원·부서·사용자</span>
-        </button>
-        <button class="sb-sub-item" data-page="master/supply" onclick="navigate('master/supply')" id="sbItemMasterSupply">
-          <i class="ti ti-package"></i><span>자재·거래처</span>
-        </button>
-      </div>
-
-    </div>
-    <div class="sb-footer">
-      <div id="sbVersionTag" style="font-size:10px;color:var(--sb-text);opacity:0.4;margin-bottom:6px;letter-spacing:0.02em;"></div>
-      <div style="display:flex;align-items:center;gap:6px;">
-        <button class="sb-logout" onclick="doLogout()" style="flex:1;">
-          <i class="ti ti-logout"></i><span>로그아웃</span>
-        </button>
-        <button onclick="clearAppCache()" title="캐시 초기화"
-          style="background:none;border:none;cursor:pointer;padding:6px 4px;color:var(--sb-text);opacity:0.5;transition:opacity 0.15s;flex-shrink:0;"
-          onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.5'">
-          <i class="ti ti-refresh" style="font-size:15px;"></i>
-        </button>
+      <div class="eform-photo-body">
+        <div class="ap-file-list-panel" id="srFileListSign">
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:#9ca3af;">
+            <i class="ti ti-paperclip" style="font-size:28px;"></i>
+            <span style="font-size:12px;font-weight:600;">첨부된 파일이 없습니다</span>
+          </div>
+        </div>
+        <div class="ap-file-upload-panel">
+          <input type="file" id="srFileSign" class="ap-file-input-hidden" multiple accept="image/*,.pdf" />
+          <label for="srFileSign" class="ap-file-dropzone">
+            <i class="ti ti-cloud-upload"></i>
+            <span class="ap-file-drop-title">파일을 끌어다 놓거나 클릭하여 선택</span>
+            <span class="ap-file-drop-sub">JPG, PNG, PDF · 파일당 10MB, 전체 20MB 이하</span>
+          </label>
+        </div>
       </div>
     </div>
-  </nav>
+  </div>
 
-  <div class="sb-overlay" id="sbOverlay" onclick="closeSidebar()"></div>
+  <!-- ══ 규격 명판 패널 ══ -->
+  <div id="srPanelNameplate" class="eform-body eform-body--2col" style="flex:1;min-height:0;display:none;">
+    <div class="eform-top-row" style="flex:1;min-height:0;">
 
-  <div class="shell-main">
-    <header class="shell-topbar">
-      <button class="shell-topbar-hamburger" onclick="openSidebar()" aria-label="메뉴 열기">
-        <i class="ti ti-menu-2"></i>
-      </button>
-      <div class="shell-breadcrumb">
-        <span class="shell-breadcrumb-app" id="breadcrumbApp">—</span>
-        <span class="shell-breadcrumb-sep" id="breadcrumbSep" style="display:none">›</span>
-        <span class="shell-breadcrumb-page" id="breadcrumbPage"></span>
+      <!-- 좌: 기본정보 + 명판 선택 옵션 (스크롤) -->
+      <div class="eform-col eform-col--stretch">
+        <div class="eform-section" style="flex:1;display:flex;flex-direction:column;min-height:0;">
+          <div class="eform-section-head">
+            <i class="ti ti-info-circle"></i><span>기본 정보 &amp; 명판 옵션</span>
+          </div>
+          <div class="ap-left-body">
+            <div class="eform-grid">
+              <div class="form-field eform-full">
+                <label class="form-label required">제목</label>
+                <input type="text" id="sr_title_np" class="input" placeholder="예: [명패] MD / 홍길동 / 부인과" required />
+              </div>
+              <div class="form-field">
+                <label class="form-label required">이름</label>
+                <input type="text" id="sr_requester_name_np" class="input" required />
+              </div>
+              <div class="form-field">
+                <label class="form-label required">연락처</label>
+                <input type="tel" id="sr_contact_np" class="input" placeholder="010-0000-0000" required />
+              </div>
+              <div class="form-field">
+                <label class="form-label required">수량</label>
+                <input type="number" id="sr_quantity_np" class="input" min="1" step="1" value="1" required />
+              </div>
+              <div class="form-field">
+                <label class="form-label">긴급 여부</label>
+                <select id="sr_is_urgent_np" class="input">
+                  <option value="N">일반</option>
+                  <option value="Y">🚨 긴급</option>
+                </select>
+              </div>
+              <div class="form-field eform-full" id="srUrgentReasonNpField" style="display:none;">
+                <label class="form-label required">긴급 사유</label>
+                <input type="text" id="sr_urgent_reason_np" class="input" />
+              </div>
+            </div>
+
+            <!-- 명판 옵션들 -->
+            <div style="padding:0 14px 14px;">
+
+              <p class="ap-sub-title">명판 타입</p>
+              <div class="ap-card-grid" id="srNpTypeGrid">
+                <label class="ap-pick-card" id="srNpCard_A"><input type="radio" name="sr_np_type" value="A" class="ap-sr-only" /><div class="ap-pick-badge">A</div><div class="ap-pick-sub">5cm</div></label>
+                <label class="ap-pick-card" id="srNpCard_B"><input type="radio" name="sr_np_type" value="B" class="ap-sr-only" /><div class="ap-pick-badge">B</div><div class="ap-pick-sub">4cm</div></label>
+                <label class="ap-pick-card" id="srNpCard_C"><input type="radio" name="sr_np_type" value="C" class="ap-sr-only" /><div class="ap-pick-badge">C</div><div class="ap-pick-sub">3cm</div></label>
+                <label class="ap-pick-card" id="srNpCard_D"><input type="radio" name="sr_np_type" value="D" class="ap-sr-only" /><div class="ap-pick-badge">D</div><div class="ap-pick-sub">2.5cm</div></label>
+              </div>
+
+              <div id="srNpSubSection" style="display:none;">
+                <p class="ap-sub-title">세부 디자인</p>
+                <div class="ap-card-grid" id="srNpSubGrid"></div>
+              </div>
+
+              <div id="srMethodSection" style="display:none;">
+                <p class="ap-sub-title">제작 방식</p>
+                <div class="ap-card-grid col2">
+                  <label class="ap-pick-card" id="srMethodCard_NEW">
+                    <input type="radio" name="sr_np_method" value="NEW" class="ap-sr-only" />
+                    <span class="ap-pick-icon">🆕</span><span class="ap-pick-title">신규 제작</span>
+                  </label>
+                  <label class="ap-pick-card" id="srMethodCard_REUSE">
+                    <input type="radio" name="sr_np_method" value="REUSE" class="ap-sr-only" />
+                    <span class="ap-pick-icon">♻️</span><span class="ap-pick-title">기존 활용</span>
+                  </label>
+                </div>
+              </div>
+
+              <div id="srLayoutSection" style="display:none;">
+                <p class="ap-sub-title">문구 레이아웃</p>
+                <div class="ap-card-grid col3" id="srLayoutGrid"></div>
+              </div>
+
+              <div id="srNpTextSection" style="display:none;">
+                <p class="ap-sub-title">명판 문구</p>
+                <div class="eform-grid" id="srNpTextFields" style="padding:0;"></div>
+                <p class="ap-sub-title">자석 부착</p>
+                <div class="ap-card-grid col2">
+                  <label class="ap-pick-card" id="srMagnetCard_Y">
+                    <input type="radio" name="sr_magnet" value="Y" class="ap-sr-only" />
+                    <span class="ap-pick-icon">🧲</span><span class="ap-pick-title">있음</span>
+                  </label>
+                  <label class="ap-pick-card" id="srMagnetCard_N">
+                    <input type="radio" name="sr_magnet" value="N" class="ap-sr-only" />
+                    <span class="ap-pick-icon">📌</span><span class="ap-pick-title">없음</span>
+                  </label>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
       </div>
-    </header>
-    <div class="shell-content">
-      <iframe class="shell-iframe" id="shellFrame" src="" title="콘텐츠 영역"></iframe>
+
+      <!-- 우: 명판 이미지 미리보기 (전체 고정 표시) -->
+      <div class="eform-col eform-col--stretch">
+        <div class="eform-section" style="flex:1;display:flex;flex-direction:column;min-height:0;overflow:hidden;">
+          <div class="eform-section-head">
+            <i class="ti ti-id-badge"></i><span>명판 타입 미리보기</span>
+            <span class="eform-section-desc">타입 선택 시 해당 이미지 강조</span>
+          </div>
+          <div class="ap-np-preview-grid">
+            <div class="ap-np-preview-item" id="srPreviewItem_A">
+              <label>A 타입 — 5cm (20/16cm)</label>
+              <img src="../../assets/images/nameplate/A.jpeg" alt="A타입" />
+            </div>
+            <div class="ap-np-preview-item" id="srPreviewItem_B">
+              <label>B 타입 — 4cm (20/18cm)</label>
+              <img src="../../assets/images/nameplate/B.jpeg" alt="B타입" />
+            </div>
+            <div class="ap-np-preview-item" id="srPreviewItem_C">
+              <label>C 타입 — 3cm (20/18cm)</label>
+              <img src="../../assets/images/nameplate/C.jpeg" alt="C타입" />
+            </div>
+            <div class="ap-np-preview-item" id="srPreviewItem_D">
+              <label>D 타입 — 2.5cm (20cm)</label>
+              <img src="../../assets/images/nameplate/D.jpeg" alt="D타입" />
+            </div>
+          </div>
+          <div class="ap-np-layout-img">
+            <label>문구 레이아웃 안내</label>
+            <img src="../../assets/images/nameplate/layout.jpeg" alt="레이아웃 안내" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 명판 하단: 컴팩트 첨부파일 -->
+    <div class="ap-file-compact-row">
+      <span class="ap-file-section-label"><i class="ti ti-paperclip"></i> 명판 예시 첨부</span>
+      <div class="ap-file-divider"></div>
+      <input type="file" id="srFileNameplate" class="ap-sr-only" multiple accept="image/*,.pdf" />
+      <label for="srFileNameplate" class="btn btn-sm" style="cursor:pointer;flex-shrink:0;">
+        <i class="ti ti-plus"></i> 파일 선택
+      </label>
+      <div class="ap-file-compact-row__list" id="srFileListNameplate" style="flex:1;display:flex;flex-wrap:wrap;gap:6px;align-items:center;min-width:0;">
+        <span class="ap-file-empty-label">첨부된 파일이 없습니다 (선택)</span>
+      </div>
     </div>
   </div>
 
 </div>
 
-<script src="assets/libs/supabase.js"></script>
-<script src="assets/js/core/version.js"></script>
-  <script src="assets/js/core/config.js"></script>
-<script src="assets/js/core/utils.js"></script>
-<script src="assets/js/core/supabase.js"></script>
-<script src="assets/js/core/auth.js"></script>
-<script>
-'use strict';
+<div id="globalLoading" aria-hidden="true">
+  <div class="global-loading__dialog">
+    <div class="global-loading__spinner"></div>
+    <div class="global-loading__text" id="globalLoadingText">불러오는 중...</div>
+  </div>
+</div>
 
-const MENU_META = {
-  'equipment/dashboard': { app: '의료장비 관리', page: '대시보드' },
-  'equipment/list':      { app: '의료장비 관리', page: '장비 목록' },
-  'equipment/form':      { app: '의료장비 관리', page: '장비 등록·수정' },
-  'equipment/detail':    { app: '의료장비 관리', page: '장비 상세' },
-  'task/task-manager':       { app: '업무일정 관리', page: '업무일정·일지' },
-  'master/org':             { app: '마스터 관리', page: '의원·부서·사용자' },
-  'master/supply':          { app: '마스터 관리', page: '자재·거래처' },
-  'materials/purchase-request':{ app: '자재관리', page: '발주요청' },
-  'materials/use-stock':       { app: '자재관리', page: '사용처리' },
-  'materials/procurement':     { app: '자재관리', page: '발주 관리' },
-  'materials/stock':           { app: '자재관리', page: '재고 관리' },
-  'materials/material-stats':  { app: '자재관리', page: '자재 통계' },
-  'signage/apply':             { app: '사인물 신청', page: '신청' },
-  'signage/history':           { app: '사인물 신청', page: '신청내역' },
-};
-
-/* ── Flyout 서브메뉴 ── */
-let _flyout = null;
-let _flyoutTimer = null;
-
-function initFlyout() {
-  document.querySelectorAll('.sb-item-parent').forEach(btn => {
-    btn.addEventListener('mouseenter', () => showFlyout(btn));
-    btn.addEventListener('mouseleave', () => scheduleFlyoutClose());
-  });
-  document.addEventListener('click', e => {
-    if (!e.target.closest('.sb-flyout') && !e.target.closest('.sb-item-parent')) hideFlyout();
-  });
-}
-
-function showFlyout(btn) {
-  clearTimeout(_flyoutTimer);
-  hideFlyout(true);
-
-  const group   = btn.dataset.group;
-  const submenu = document.querySelector(`.sb-submenu[data-group="${group}"]`);
-  if (!submenu) return;
-  const children = Array.from(submenu.children).filter(el => {
-    if (el.classList.contains('sb-sub-item')) return el.style.display !== 'none';
-    if (el.classList.contains('sb-divider')) return true;
-    return false;
-  });
-  if (!children.some(el => el.classList.contains('sb-sub-item'))) return;
-
-  const fly = document.createElement('div');
-  fly.className = 'sb-flyout';
-  _flyout = fly;
-
-  // 라벨
-  const lbl = document.createElement('div');
-  lbl.style.cssText = 'padding:6px 16px 4px;font-size:10px;font-weight:700;opacity:0.5;text-transform:uppercase;letter-spacing:0.07em;color:#e2e8f0;pointer-events:none;';
-  lbl.textContent = btn.querySelector('span')?.textContent || '';
-  fly.appendChild(lbl);
-
-  children.forEach(item => {
-    if (item.classList.contains('sb-divider')) {
-      const div = document.createElement('div');
-      div.className = 'sb-divider';
-      fly.appendChild(div);
-      return;
-    }
-    const fi = document.createElement('button');
-    fi.className = 'sb-sub-item' + (item.classList.contains('active') ? ' active' : '');
-    fi.innerHTML = item.innerHTML;
-    fi.onclick = () => { item.click(); hideFlyout(); };
-    fly.appendChild(fi);
-  });
-
-  fly.addEventListener('mouseenter', () => clearTimeout(_flyoutTimer));
-  fly.addEventListener('mouseleave', () => scheduleFlyoutClose());
-
-  document.body.appendChild(fly);
-
-  const rect    = btn.getBoundingClientRect();
-  const sidebar = document.querySelector('.sidebar').getBoundingClientRect();
-  fly.style.left = (sidebar.right + 4) + 'px';
-
-  const flyH = fly.offsetHeight;
-  const top  = Math.min(rect.top, window.innerHeight - flyH - 8);
-  fly.style.top = Math.max(8, top) + 'px';
-}
-
-function scheduleFlyoutClose() {
-  _flyoutTimer = setTimeout(hideFlyout, 180);
-}
-
-function hideFlyout(immediate) {
-  if (immediate) clearTimeout(_flyoutTimer);
-  if (_flyout) { _flyout.remove(); _flyout = null; }
-}
-
-document.addEventListener('DOMContentLoaded', async () => {
-  const verEl = document.getElementById('sbVersionTag');
-  if (verEl) verEl.textContent = (typeof APP_VERSION !== 'undefined') ? `v${APP_VERSION}` : '';
-
-  const session = await auth.requireAuth();
-  if (!session) return;
-
-  const user = await auth.getSession();
-  if (user) {
-    const name   = user.user_name || user.email;
-    const clinic = user.clinic_name ? ` · ${user.clinic_name}` : '';
-    document.getElementById('sbUserLine').textContent = name + clinic;
-
-    // 역할 표시
-    const roleEl = document.getElementById('sbUserRole');
-    if (roleEl) {
-      const roleLabel = { admin: '관리자', edit: '편집자', manager: '담당자', user: '일반' };
-      roleEl.textContent = roleLabel[user.role] || user.role || '';
-    }
-
-    // 역할별 기본 권한 (allowed_pages가 null인 사용자에게 적용 — org.js의 ROLE_DEFAULT_PAGES와 동일하게 유지)
-    const ROLE_BASE_PAGES = [
-      'equipment/dashboard', 'equipment/list', 'equipment/detail',
-      'materials/purchase-request', 'materials/use-stock', 'materials/material-stats',
-      'task/task-manager', 'signage/apply', 'signage/history',
-    ];
-    const ROLE_DEFAULT_PAGES = {
-      user:    [...ROLE_BASE_PAGES],
-      edit:    [...ROLE_BASE_PAGES, 'equipment/form'],
-      manager: [...ROLE_BASE_PAGES, 'equipment/form', 'materials/procurement', 'materials/stock'],
-      admin:   [...ROLE_BASE_PAGES, 'equipment/form', 'materials/procurement', 'materials/stock', 'master/org', 'master/supply'],
-    };
-    const ALL_PAGE_KEYS = Object.keys(MENU_META);
-    const roleDefaultArr = ROLE_DEFAULT_PAGES[user.role] || ROLE_DEFAULT_PAGES.user;
-    const pp = user.page_perms || {};
-    const hasCustomPerms = Object.keys(pp).length > 0;
-    // page_perms에 명시적으로 들어있는 키는 그 레벨을 따르고,
-    // 새로 추가된 페이지처럼 page_perms에 아직 없는 키는 역할 기본값으로 보완한다.
-    const allowedPages = ALL_PAGE_KEYS.filter(function(k) {
-      if (hasCustomPerms && Object.prototype.hasOwnProperty.call(pp, k)) {
-        return pp[k] && pp[k] !== '접근불가';
-      }
-      return roleDefaultArr.includes(k);
-    });
-    window.__allowedPages = allowedPages; // navigate()에서 직접 URL 진입 막을 때도 재사용
-
-    // data-page를 가진 모든 사이드바 항목에 범용으로 적용 (개별 사용자마다 다를 수 있으므로 하드코딩 대신 권한 목록으로 판단)
-    document.querySelectorAll('.sb-sub-item[data-page]').forEach(el => {
-      el.style.display = allowedPages.includes(el.dataset.page) ? '' : 'none';
-    });
-    // 마스터 관리 그룹(상위 메뉴/구분선)은 그 안에 보이는 페이지가 하나라도 있을 때만 노출
-    const masterGroupVisible = allowedPages.includes('master/org') || allowedPages.includes('master/supply');
-    if (masterGroupVisible) {
-      document.getElementById('sbGroupMaster').style.display = '';
-      document.getElementById('sbDividerMaster').style.display = '';
-    }
-  }
-
-  const params = new URLSearchParams(location.search);
-  initFlyout();
-  navigate(params.get('page') || 'equipment/dashboard', true);
-});
-
-function navigate(page, tab, skipHistory, extraQuery) {
-  if (!page) return;
-
-  const pagePathOnly = page.split('?')[0];
-  if (window.__allowedPages && !window.__allowedPages.includes(pagePathOnly) && pagePathOnly !== 'equipment/detail') {
-    alert('이 페이지에 접근할 권한이 없습니다.');
-    return;
-  }
-
-  // extraQuery 객체가 있으면 쿼리스트링으로 변환해서 page에 합침
-  if (extraQuery && typeof extraQuery === 'object') {
-    var qs = Object.entries(extraQuery).map(function([k, v]) {
-      return encodeURIComponent(k) + '=' + encodeURIComponent(v);
-    }).join('&');
-    if (qs) page = page + '?' + qs;
-  }
-
-  const pagePath  = page.split('?')[0];
-  const pageQuery = page.split('?')[1] || '';
-
-  const meta = MENU_META[pagePath] || { app: pagePath, page: '' };
-  document.getElementById('breadcrumbApp').textContent  = meta.app;
-  document.getElementById('breadcrumbPage').textContent = meta.page;
-  document.getElementById('breadcrumbSep').style.display = meta.page ? '' : 'none';
-
-  const _ver = (typeof APP_VERSION !== 'undefined') ? APP_VERSION : '';
-  const _vq  = _ver ? ('v=' + _ver) : '';
-  const _q   = [pageQuery, _vq].filter(Boolean).join('&');
-  document.getElementById('shellFrame').src =
-    `${CONFIG.SITE_BASE_URL}/pages/${pagePath}.html${_q ? '?' + _q : ''}`;
-
-  document.querySelectorAll('.sb-item.active, .sb-sub-item.active').forEach(el => el.classList.remove('active'));
-  const _activeItem = document.querySelector(`.sb-sub-item[data-page="${pagePath}"]`);
-  if (_activeItem) {
-    _activeItem.classList.add('active');
-    // 부모 그룹 버튼도 active
-    const _group = _activeItem.closest('.sb-submenu')?.dataset.group;
-    if (_group) document.querySelector(`.sb-item-parent[data-group="${_group}"]`)?.classList.add('active');
-  } else {
-    document.querySelector(`.sb-item[data-page="${pagePath}"]`)?.classList.add('active');
-  }
-
-  if (!skipHistory) history.pushState({ page }, '', `?page=${page}`);
-  closeSidebar();
-}
-
-function openSidebar() {
-  document.getElementById('sidebar').classList.add('is-open');
-  document.getElementById('sbOverlay').classList.add('is-visible');
-}
-function closeSidebar() {
-  document.getElementById('sidebar').classList.remove('is-open');
-  document.getElementById('sbOverlay').classList.remove('is-visible');
-}
-async function doLogout() { await auth.logout(); }
-function clearAppCache() {
-  if (!confirm('캐시를 초기화하고 페이지를 새로고침합니다.')) return;
-  // 현재 페이지 기억
-  var frame = document.getElementById('shellFrame');
-  var currentSrc = frame?.src || '';
-  // 캐시 클리어 후 재로드
-  if ('caches' in window) {
-    caches.keys().then(function(names) {
-      names.forEach(function(name) { caches.delete(name); });
-    });
-  }
-  // iframe 강제 새로고침
-  if (frame && currentSrc) {
-    var sep = currentSrc.includes('?') ? '&' : '?';
-    frame.src = currentSrc + sep + '_t=' + Date.now();
-  }
-  // 전체 페이지 새로고침
-  setTimeout(function() { location.reload(true); }, 100);
-}
-
-window.shellNavigate = navigate;
-window.addEventListener('popstate', e => {
-  if (e.state?.page) navigate(e.state.page, true);
-});
-</script>
-
-<style>
-  /* 사용자 역할 표시 */
-  .sb-user-role {
-    font-size: 10px;
-    color: rgba(255,255,255,0.4);
-    margin-top: 2px;
-  }
-</style>
+<script src="../../assets/libs/supabase.js"></script>
+<script src="../../assets/js/core/config.js"></script>
+<script src="../../assets/js/core/utils.js"></script>
+<script src="../../assets/js/core/supabase.js"></script>
+<script src="../../assets/js/core/auth.js"></script>
+<script src="../../assets/js/core/db.js"></script>
+<script src="../../assets/js/signage/apply.js"></script>
 </body>
 </html>
