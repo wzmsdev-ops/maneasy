@@ -155,10 +155,10 @@
     // 의원/부서 목록 로드
     const [{ data: cl }, { data: dp }] = await Promise.all([
       supabaseClient.from('clinics').select('clinic_code,clinic_name').order('sort_order'),
-      supabaseClient.from('departments').select('team_code,dept_name,clinic_id,clinics(clinic_code)').order('sort_order'),
+      supabaseClient.from('departments').select('dept_code,dept_name,clinic_id,clinics(clinic_code)').order('sort_order'),
     ]);
     _catClinics = cl || [];
-    _catDepts   = (dp || []).map(d => ({ team_code: d.team_code, team_name: d.dept_name, clinic_code: d.clinics?.clinic_code || '' }));
+    _catDepts   = (dp || []).map(d => ({ team_code: d.dept_code, team_name: d.dept_name, clinic_code: d.clinics?.clinic_code || '' }));
 
     const cSel = document.getElementById('catClinicSel');
     cSel.innerHTML = _catClinics.map(c => `<option value="${esc(c.clinic_code)}">${esc(c.clinic_name)}</option>`).join('');
