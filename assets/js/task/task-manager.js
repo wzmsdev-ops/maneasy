@@ -510,16 +510,36 @@
 
     showGlobalLoading('팀 현황을 불러오는 중...');
     try {
-      // 팀원 조회
+      // 팀원 조회 — 정렬은 JS에서 처리(권한 기준)
       const { data: members } = await supabaseClient.from('user_profiles_with_email')
-        .select('id, user_name, email, clinic_code, clinic_name, team_code')
-        .eq('team_code', currentUser.team_code).eq('active', 'Y').order('user_name');
+        .select('id, user_name, email, clinic_code, clinic_name, team_code, allowed_pages, role')
+        .eq('team_code', currentUser.team_code).eq('active', 'Y');
 
       if (!members?.length) {
         document.getElementById('teamGrid').innerHTML =
           '<div style="color:#9ca3af;font-size:12px;padding:20px;">팀원이 없습니다.</div>';
         return;
       }
+
+      const LEVELS = ['접근불가','user','edit','manager','admin'];
+      // 업무일정 페이지 권한 레벨 산출 — allowed_pages가 null이면 role 기본값으로 판단
+      function getTaskLevel(m) {
+        const perms = m.allowed_pages || {};
+        const roleDefault = { user:'user', edit:'edit', manager:'manager', admin:'admin' };
+        const lvStr = Array.isArray(perms)
+          ? (perms.includes('task/task-manager') ? (m.role || 'user') : '접근불가')
+          : (perms['task/task-manager'] || roleDefault[m.role] || 'user');
+        return LEVELS.indexOf(lvStr);
+      }
+
+      // 정렬: manager 이상 먼저(내림차순), 같은 레벨끼리는 이름 오름차순
+      members.sort(function(a, b) {
+        var la = getTaskLevel(a), lb = getTaskLevel(b);
+        var managerIdx = LEVELS.indexOf('manager');
+        var aIsManager = la >= managerIdx, bIsManager = lb >= managerIdx;
+        if (aIsManager !== bIsManager) return aIsManager ? -1 : 1;
+        return (a.user_name || '').localeCompare(b.user_name || '', 'ko');
+      });
 
       const emails = members.map(m => m.email);
 
