@@ -520,8 +520,15 @@
         </div>
       </div>` : '';
 
+    // 마감된 주 안내 — 수정은 가능하지만 출력물엔 반영되지 않음을 알림
+    const closedBanner = calJournal?.status === 'CLOSED' ? `
+      <div style="background:#fef2f2;border:1px solid #fecaca;color:#991b1b;font-size:11px;
+        border-radius:6px;padding:7px 10px;display:flex;align-items:center;gap:6px;">
+        <i class="ti ti-lock"></i> 이 주는 마감되었습니다. 계속 수정할 수 있지만, 마감 시점에 저장된 출력물에는 반영되지 않습니다.
+      </div>` : '';
+
     body.innerHTML =
-      `<div class="cal-detail-tasks">${taskHtml}</div>` +
+      `<div class="cal-detail-tasks">${closedBanner}${taskHtml}</div>` +
       (isSun ? `<div class="cal-detail-fixed">${attWeekHtml}${issueHtml}</div>` : '');
   }
 
@@ -701,6 +708,23 @@
   };
 
   /* ══ 팀 현황 ═════════════════════════════════════ */
+  let _teamJournalMap = {}; // { email: journal row } — 출력 버튼에서 스냅샷 읽기용
+  let _teamMemberInfoMap = {}; // { email: { user_name, clinic_name } }
+
+  /** 마감 시점 스냅샷(journal.content) 이후 라이브 데이터가 바뀌었는지 체크 */
+  function isJournalDirty(journal, liveTasks) {
+    if (!journal || journal.status !== 'CLOSED' || !journal.closed_at) return false;
+    const closedAt = new Date(journal.closed_at).getTime();
+    if (journal.updated_at && new Date(journal.updated_at).getTime() > closedAt + 500) return true;
+    for (const t of liveTasks) {
+      if (t.updated_at && new Date(t.updated_at).getTime() > closedAt + 500) return true;
+    }
+    let snapTaskCount = 0;
+    try { snapTaskCount = (JSON.parse(journal.content || '{}').tasks || []).length; } catch (e) {}
+    if (snapTaskCount !== liveTasks.length) return true;
+    return false;
+  }
+
   async function loadTeamView() {
     const we = getWeekEnd(teamWeekStart);
     document.getElementById('teamWeekLabel').textContent =
@@ -761,10 +785,15 @@
       ]);
 
       const grid = document.getElementById('teamGrid');
+      _teamJournalMap = {};
+      _teamMemberInfoMap = {};
       grid.innerHTML = members.map(m => {
         const mTasks   = (tasks||[]).filter(t => t.user_email === m.email);
         const journal  = (journals||[]).find(j => j.user_email === m.email);
         const isClosed = journal?.status === 'CLOSED';
+        const isDirty  = isJournalDirty(journal, mTasks);
+        _teamJournalMap[m.email] = journal || null;
+        _teamMemberInfoMap[m.email] = { user_name: m.user_name, clinic_name: m.clinic_name };
 
         // 업무 요약 — 카테고리별 그룹
         const grouped = {};
@@ -792,25 +821,35 @@
 
         const issueInfo = journal?.issues ? `<div style="margin-top:8px;padding:6px;background:#fffbeb;border-radius:4px;font-size:10px;color:#92400e;">${esc(journal.issues)}</div>` : '';
 
+        const dirtyBadge = (isClosed && isDirty)
+          ? `<span style="font-size:9px;color:#dc2626;font-weight:700;margin-left:5px;" title="마감 이후 업무/근태/이슈가 추가되거나 수정됐습니다. 출력물에는 마감 시점 데이터만 반영됩니다.">⚠ 마감 후 수정됨</span>` : '';
+
+        const outputBtns = isClosed
+          ? `<button class="btn btn-sm" style="font-size:11px;height:26px;" onclick="printJournalOutput('${m.email}')"><i class="ti ti-printer"></i> 화면출력</button>
+             <button class="btn btn-sm" style="font-size:11px;height:26px;" onclick="exportJournalExcel('${m.email}')"><i class="ti ti-file-spreadsheet"></i> 엑셀출력</button>`
+          : '';
+        const manageBtn = isManager
+          ? (isClosed
+              ? `<button class="btn btn-sm" style="font-size:11px;height:26px;" onclick="reopenJournal('${m.email}')">마감해제</button>`
+              : `<button class="btn btn-sm btn-primary" style="font-size:11px;height:26px;" onclick="closeJournal('${m.email}')">마감</button>`)
+          : '';
+        const footerHtml = (outputBtns || manageBtn)
+          ? `<div class="team-card-footer">${outputBtns}${manageBtn}</div>` : '';
+
         return `<div class="team-member-card">
           <div class="team-card-header">
             <div>
               <div class="team-card-name">${esc(m.user_name)}</div>
               <div class="team-card-meta">${esc(m.clinic_name||'')} · ${mTasks.length}건</div>
             </div>
-            <span class="journal-status ${isClosed?'closed':'open'}">${isClosed?'마감':'작성중'}</span>
+            <span class="journal-status ${isClosed?'closed':'open'}">${isClosed?'마감':'작성중'}</span>${dirtyBadge}
           </div>
           <div class="team-card-body">
             ${taskHtml}
             ${attendInfo ? `<div style="font-size:10px;color:#6b7280;margin-top:6px;padding-top:6px;border-top:1px solid #f0f0f0;">${esc(attendInfo)}</div>` : ''}
             ${issueInfo}
           </div>
-          ${isManager ? `<div class="team-card-footer">
-            ${isClosed
-              ? `<button class="btn btn-sm" style="font-size:11px;height:26px;" onclick="reopenJournal('${m.email}')">마감해제</button>`
-              : `<button class="btn btn-sm btn-primary" style="font-size:11px;height:26px;" onclick="closeJournal('${m.email}')">마감</button>`
-            }
-          </div>` : ''}
+          ${footerHtml}
         </div>`;
       }).join('');
     } finally {
@@ -819,27 +858,55 @@
   }
 
   window.closeJournal = async function(email) {
-    if (!confirm(`${email} 님의 업무일지를 마감하시겠습니까?`)) return;
-    // journal이 없으면 생성
-    const { data: j } = await supabaseClient.from('task_journals').select('id')
-      .eq('user_email', email).eq('week_start', teamWeekStart).maybeSingle();
-    if (j) {
-      await supabaseClient.from('task_journals').update({
-        status: 'CLOSED', closed_at: new Date().toISOString(),
-        closed_by: currentUser.email, updated_at: new Date().toISOString()
-      }).eq('id', j.id);
+    if (!confirm(`${email} 님의 업무일지를 마감하시겠습니까?\n현재 시점의 업무/근태/이슈가 출력물로 고정 저장됩니다.\n(마감 후에도 본인은 계속 수정할 수 있지만, 출력물에는 반영되지 않습니다.)`)) return;
+
+    const we = getWeekEnd(teamWeekStart);
+    const nowIso = new Date().toISOString();
+
+    const [{ data: liveTasks }, { data: jRow }] = await Promise.all([
+      supabaseClient.from('task_items').select('*').eq('user_email', email)
+        .gte('start_date', teamWeekStart).lte('start_date', we).order('start_date'),
+      supabaseClient.from('task_journals').select('*')
+        .eq('user_email', email).eq('week_start', teamWeekStart).maybeSingle(),
+    ]);
+    const memberInfo = _teamMemberInfoMap[email] || {};
+
+    const snapshot = {
+      captured_at:    nowIso,
+      user_email:     email,
+      user_name:      memberInfo.user_name || '',
+      clinic_name:    memberInfo.clinic_name || '',
+      week_start:     teamWeekStart,
+      week_end:       we,
+      tasks: (liveTasks || []).map(t => ({
+        category: CATEGORIES[t.category] || t.category || '기타',
+        title: t.title, status: t.status, priority: t.priority,
+        start_date: t.start_date, end_date: t.end_date, description: t.description || '',
+      })),
+      early_work_this:       jRow?.early_work_this || 'N',
+      sat_work_this:         jRow?.sat_work_this   || 'N',
+      attendance_this_week:  jRow?.attendance_this_week || '',
+      issues:                jRow?.issues || '',
+    };
+
+    const payload = {
+      status: 'CLOSED', closed_at: nowIso, closed_by: currentUser.email,
+      updated_at: nowIso, content: JSON.stringify(snapshot),
+    };
+
+    if (jRow) {
+      await supabaseClient.from('task_journals').update(payload).eq('id', jRow.id);
     } else {
       await supabaseClient.from('task_journals').insert({
-        user_email: email, week_start: teamWeekStart, week_end: getWeekEnd(teamWeekStart),
-        status: 'CLOSED', closed_at: new Date().toISOString(), closed_by: currentUser.email
+        user_email: email, week_start: teamWeekStart, week_end: we, ...payload,
       });
     }
-    showMessage('마감됐습니다.', 'success');
+    showMessage('마감됐습니다. 현재 시점 데이터가 출력물로 저장됐습니다.', 'success');
     loadTeamView();
   };
 
   window.reopenJournal = async function(email) {
-    if (!confirm(`마감을 해제하시겠습니까?`)) return;
+    if (!confirm(`마감을 해제하시겠습니까? (이전 마감 시점 출력물은 그대로 보관됩니다)`)) return;
     await supabaseClient.from('task_journals').update({
       status: 'OPEN', closed_at: null, closed_by: null, updated_at: new Date().toISOString()
     }).eq('user_email', email).eq('week_start', teamWeekStart);
@@ -847,7 +914,90 @@
     loadTeamView();
   };
 
-  /* ══ 업무 검색 ══════════════════════════════════ */
+  /** 마감 시점 스냅샷 읽기 (없으면 null) */
+  function getJournalSnapshot(email) {
+    const journal = _teamJournalMap[email];
+    if (!journal?.content) return null;
+    try { return JSON.parse(journal.content); } catch (e) { return null; }
+  }
+
+  window.printJournalOutput = function(email) {
+    const snap = getJournalSnapshot(email);
+    if (!snap) { showMessage('출력할 마감 데이터가 없습니다.', 'error'); return; }
+
+    const grouped = {};
+    snap.tasks.forEach(t => { (grouped[t.category] = grouped[t.category] || []).push(t); });
+    const taskRows = Object.entries(grouped).map(([cat, ts]) => `
+      <tr><td colspan="3" style="background:#f3f4f6;font-weight:700;padding:6px 8px;font-size:12px;">${esc(cat)}</td></tr>
+      ${ts.map(t => `
+        <tr>
+          <td style="padding:5px 8px;font-size:12px;">${esc(t.title)}${t.priority==='HIGH'?' ⚡':''}</td>
+          <td style="padding:5px 8px;font-size:11px;color:#6b7280;text-align:center;">${STATUS_LABEL[t.status]||t.status}</td>
+          <td style="padding:5px 8px;font-size:11px;color:#6b7280;text-align:center;">${esc(t.start_date)}${t.end_date&&t.end_date!==t.start_date?' ~ '+esc(t.end_date):''}</td>
+        </tr>`).join('')}
+    `).join('') || '<tr><td colspan="3" style="padding:10px;text-align:center;color:#9ca3af;">등록된 업무가 없습니다.</td></tr>';
+
+    const attendInfo = [
+      snap.early_work_this==='Y' ? '조기출근' : '',
+      snap.sat_work_this==='Y'   ? '토요근무' : '',
+      snap.attendance_this_week  || '',
+    ].filter(Boolean).join(' | ') || '-';
+
+    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>업무일지 - ${esc(snap.user_name)}</title>
+    <style>
+      body{font-family:'맑은 고딕',sans-serif;padding:24px;color:#111827;}
+      h1{font-size:18px;margin:0 0 4px;} .meta{font-size:12px;color:#6b7280;margin-bottom:16px;}
+      table{width:100%;border-collapse:collapse;margin-bottom:16px;}
+      td{border:1px solid #e5e7eb;}
+      .section-title{font-size:13px;font-weight:700;margin:16px 0 6px;}
+      .box{border:1px solid #e5e7eb;border-radius:6px;padding:10px;font-size:12px;white-space:pre-wrap;}
+      @media print { .no-print{display:none;} }
+    </style></head><body>
+      <h1>업무일지 (마감)</h1>
+      <div class="meta">${esc(snap.user_name)} · ${esc(snap.clinic_name||'')} &nbsp;|&nbsp; ${esc(snap.week_start)} ~ ${esc(snap.week_end)} &nbsp;|&nbsp; 마감시각: ${new Date(snap.captured_at).toLocaleString('ko-KR')}</div>
+      <table>${taskRows}</table>
+      <div class="section-title">근태사항</div>
+      <div class="box">${esc(attendInfo)}</div>
+      <div class="section-title">이슈 / 건의사항</div>
+      <div class="box">${esc(snap.issues || '-')}</div>
+      <div class="no-print" style="margin-top:20px;">
+        <button onclick="window.print()" style="padding:8px 16px;cursor:pointer;">인쇄</button>
+      </div>
+    </body></html>`;
+
+    const win = window.open('', '_blank');
+    win.document.write(html);
+    win.document.close();
+  };
+
+  window.exportJournalExcel = function(email) {
+    if (!window.XLSX) { showMessage('엑셀 라이브러리를 불러오지 못했습니다.', 'error'); return; }
+    const snap = getJournalSnapshot(email);
+    if (!snap) { showMessage('출력할 마감 데이터가 없습니다.', 'error'); return; }
+
+    const attendInfo = [
+      snap.early_work_this==='Y' ? '조기출근' : '',
+      snap.sat_work_this==='Y'   ? '토요근무' : '',
+      snap.attendance_this_week  || '',
+    ].filter(Boolean).join(' | ') || '-';
+
+    const rows = [
+      ['업무일지 (마감)'],
+      [`${snap.user_name} · ${snap.clinic_name||''}`, `${snap.week_start} ~ ${snap.week_end}`, `마감: ${new Date(snap.captured_at).toLocaleString('ko-KR')}`],
+      [],
+      ['카테고리', '업무', '상태', '기간'],
+      ...snap.tasks.map(t => [t.category, t.title + (t.priority==='HIGH'?' (긴급)':''), STATUS_LABEL[t.status]||t.status, t.end_date&&t.end_date!==t.start_date?`${t.start_date}~${t.end_date}`:t.start_date]),
+      [],
+      ['근태사항', attendInfo],
+      ['이슈/건의사항', snap.issues || '-'],
+    ];
+
+    const ws = window.XLSX.utils.aoa_to_sheet(rows);
+    ws['!cols'] = [{wch:14},{wch:32},{wch:10},{wch:18}];
+    const wb = window.XLSX.utils.book_new();
+    window.XLSX.utils.book_append_sheet(wb, ws, '업무일지');
+    window.XLSX.writeFile(wb, `업무일지_${snap.user_name}_${snap.week_start}.xlsx`);
+  };
   async function runSearch() {
     const keyword = document.getElementById('searchKeyword').value.trim();
     const from    = document.getElementById('searchFrom').value;
