@@ -91,6 +91,7 @@
 
     </div>
     <div class="sb-footer">
+      <div id="sbVersionTag" style="font-size:10px;color:var(--sb-text);opacity:0.4;margin-bottom:6px;letter-spacing:0.02em;"></div>
       <div style="display:flex;align-items:center;gap:6px;">
         <button class="sb-logout" onclick="doLogout()" style="flex:1;">
           <i class="ti ti-logout"></i><span>로그아웃</span>
@@ -224,6 +225,9 @@ function hideFlyout(immediate) {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
+  const verEl = document.getElementById('sbVersionTag');
+  if (verEl) verEl.textContent = (typeof APP_VERSION !== 'undefined') ? `v${APP_VERSION}` : '';
+
   const session = await auth.requireAuth();
   if (!session) return;
 
