@@ -181,22 +181,31 @@
     const firstDay = new Date(calYear, calMonth, 1).getDay(); // 0=일
     const lastDate = new Date(calYear, calMonth+1, 0).getDate();
 
-    // 앞 빈칸 (이전 달)
+    // 앞 빈칸 (이전 달) — toISOString 대신 로컬 날짜 포맷 사용 (UTC 변환 오류 방지)
     const prevLastDate = new Date(calYear, calMonth, 0).getDate();
     const cells = [];
 
+    function localDateStr(y, m, d) {
+      return `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    }
+
     for (let i = firstDay-1; i >= 0; i--) {
-      const d = new Date(calYear, calMonth-1, prevLastDate-i);
-      cells.push({ date: d.toISOString().slice(0,10), otherMonth: true });
+      const dd = prevLastDate - i;
+      let pm = calMonth; // 0-based 이전 달
+      let py = calYear;
+      if (pm === 0) { pm = 12; py--; } // 1월이면 이전 해 12월
+      cells.push({ date: localDateStr(py, pm, dd), otherMonth: true });
     }
     for (let d = 1; d <= lastDate; d++) {
-      cells.push({ date: `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`, otherMonth: false });
+      cells.push({ date: localDateStr(calYear, calMonth+1, d), otherMonth: false });
     }
     // 뒤 빈칸 (다음 달)
     let next = 1;
+    let nm = calMonth + 2; // 1-based 다음 달
+    let ny = calYear;
+    if (nm > 12) { nm = 1; ny++; }
     while (cells.length % 7 !== 0) {
-      const d = new Date(calYear, calMonth+1, next++);
-      cells.push({ date: d.toISOString().slice(0,10), otherMonth: true });
+      cells.push({ date: localDateStr(ny, nm, next++), otherMonth: true });
     }
 
     grid.innerHTML = cells.map(({ date, otherMonth }) => {
