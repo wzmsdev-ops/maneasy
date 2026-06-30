@@ -73,7 +73,11 @@
     document.getElementById('taskModal').addEventListener('click', e => {  });
 
     // 엑셀 버튼 manager/admin만
-    if (isManager) document.getElementById('exportExcelBtn').style.display = '';
+    if (isManager) {
+      document.getElementById('exportExcelBtn').style.display = '';
+      document.getElementById('manageCatBtn').style.display = '';
+      document.getElementById('manageCatBtn').addEventListener('click', openCatModal);
+    }
 
     // 검색 기본 날짜
     const fromEl = document.getElementById('searchFrom');
@@ -126,7 +130,12 @@
 
   /* ── 카테고리 / 의원 로드 ──────────────────────── */
   async function loadCategories() {
-    const { data } = await supabaseClient.from('task_categories').select('*').eq('use_yn', true).order('category_name');
+    if (!currentUser.clinic_code || !currentUser.team_code) return;
+    const { data } = await supabaseClient.from('task_categories').select('*')
+      .eq('clinic_code', currentUser.clinic_code)
+      .eq('team_code', currentUser.team_code)
+      .eq('use_yn', true)
+      .order('sort_order').order('category_name');
     CATEGORIES = {};
     (data || []).forEach(c => { CATEGORIES[c.category_code] = c.category_name; });
     updateCategorySelect();
@@ -137,6 +146,125 @@
     sel.innerHTML = '<option value="">카테고리 없음</option>' +
       Object.entries(CATEGORIES).map(([k,v]) => `<option value="${esc(k)}">${esc(v)}</option>`).join('');
   }
+
+  /* ── 카테고리 관리 모달 ─────────────────────────── */
+  let _catClinics = [];   // [{ clinic_code, clinic_name }]
+  let _catDepts   = [];   // [{ team_code, team_name, clinic_code }]
+
+  async function openCatModal() {
+    // 의원/부서 목록 로드
+    const [{ data: cl }, { data: dp }] = await Promise.all([
+      supabaseClient.from('clinics').select('clinic_code,clinic_name').order('sort_order'),
+      supabaseClient.from('departments').select('team_code,dept_name,clinic_id,clinics(clinic_code)').order('sort_order'),
+    ]);
+    _catClinics = cl || [];
+    _catDepts   = (dp || []).map(d => ({ team_code: d.team_code, team_name: d.dept_name, clinic_code: d.clinics?.clinic_code || '' }));
+
+    const cSel = document.getElementById('catClinicSel');
+    cSel.innerHTML = _catClinics.map(c => `<option value="${esc(c.clinic_code)}">${esc(c.clinic_name)}</option>`).join('');
+    // 본인 의원으로 초기 선택
+    if (currentUser.clinic_code) cSel.value = currentUser.clinic_code;
+    onCatClinicChange();
+    document.getElementById('catModal').classList.add('is-open');
+  }
+
+  function onCatClinicChange() {
+    const clinicCode = document.getElementById('catClinicSel').value;
+    const depts = _catDepts.filter(d => d.clinic_code === clinicCode);
+    const tSel = document.getElementById('catTeamSel');
+    tSel.innerHTML = depts.map(d => `<option value="${esc(d.team_code)}">${esc(d.team_name)}</option>`).join('');
+    if (currentUser.team_code && depts.find(d => d.team_code === currentUser.team_code)) {
+      tSel.value = currentUser.team_code;
+    }
+    loadCatList();
+  }
+
+  async function loadCatList() {
+    const clinicCode = document.getElementById('catClinicSel').value;
+    const teamCode   = document.getElementById('catTeamSel').value;
+    if (!clinicCode || !teamCode) return;
+
+    const { data } = await supabaseClient.from('task_categories').select('*')
+      .eq('clinic_code', clinicCode).eq('team_code', teamCode)
+      .order('sort_order').order('category_name');
+
+    const wrap = document.getElementById('catListWrap');
+    if (!data?.length) {
+      wrap.innerHTML = '<div style="padding:20px;text-align:center;color:#9ca3af;font-size:12px;">등록된 카테고리가 없습니다</div>';
+      return;
+    }
+    wrap.innerHTML = (data).map((c, i) => `
+      <div style="display:flex;align-items:center;gap:8px;padding:7px 12px;border-bottom:1px solid #f3f4f6;font-size:12px;" data-cat-id="${c.id}">
+        <span style="flex:1;font-weight:600;color:#374151;">${esc(c.category_name)}</span>
+        <input type="text" value="${esc(c.category_name)}" data-id="${c.id}"
+          style="display:none;flex:1;height:26px;padding:0 8px;border:1px solid #2563eb;border-radius:4px;font-size:12px;outline:none;"
+          class="cat-edit-input" />
+        <button class="tbl-btn" onclick="startCatEdit('${c.id}')" data-edit="${c.id}" style="font-size:11px;">수정</button>
+        <button class="tbl-btn" onclick="saveCatEdit('${c.id}')" data-save="${c.id}" style="display:none;font-size:11px;background:#2563eb;color:#fff;border-color:#2563eb;">저장</button>
+        <button class="tbl-btn tbl-btn--danger" onclick="deleteCatItem('${c.id}')" style="font-size:11px;">삭제</button>
+      </div>`).join('');
+  }
+
+  function startCatEdit(id) {
+    const row = document.querySelector(`[data-cat-id="${id}"]`);
+    if (!row) return;
+    row.querySelector('span').style.display = 'none';
+    row.querySelector('.cat-edit-input').style.display = '';
+    row.querySelector(`[data-edit="${id}"]`).style.display = 'none';
+    row.querySelector(`[data-save="${id}"]`).style.display = '';
+    row.querySelector('.cat-edit-input').focus();
+  }
+
+  async function saveCatEdit(id) {
+    const row = document.querySelector(`[data-cat-id="${id}"]`);
+    const newName = row.querySelector('.cat-edit-input').value.trim();
+    if (!newName) { alert('카테고리명을 입력하세요.'); return; }
+    const { error } = await supabaseClient.from('task_categories').update({ category_name: newName }).eq('id', id);
+    if (error) { alert('저장 실패: ' + error.message); return; }
+    await loadCatList();
+    await loadCategories();
+  }
+
+  async function deleteCatItem(id) {
+    if (!confirm('이 카테고리를 삭제하시겠습니까?')) return;
+    const { error } = await supabaseClient.from('task_categories').delete().eq('id', id);
+    if (error) { alert('삭제 실패: ' + error.message); return; }
+    await loadCatList();
+    await loadCategories();
+  }
+
+  async function addCatItem() {
+    const nameEl = document.getElementById('catNewName');
+    const name = nameEl.value.trim();
+    if (!name) { alert('카테고리명을 입력하세요.'); return; }
+    const clinicCode = document.getElementById('catClinicSel').value;
+    const teamCode   = document.getElementById('catTeamSel').value;
+    if (!clinicCode || !teamCode) { alert('의원과 부서를 선택하세요.'); return; }
+    // category_code: 타임스탬프 기반 고유값
+    const code = 'CAT_' + Date.now();
+    const { error } = await supabaseClient.from('task_categories').insert({
+      clinic_code: clinicCode, team_code: teamCode,
+      category_code: code, category_name: name, use_yn: true, sort_order: 999,
+    });
+    if (error) { alert('추가 실패: ' + error.message); return; }
+    nameEl.value = '';
+    await loadCatList();
+    await loadCategories();
+  }
+
+  function closeCatModal() {
+    document.getElementById('catModal').classList.remove('is-open');
+  }
+  window.openCatModal    = openCatModal;
+  window.closeCatModal   = closeCatModal;
+  window.onCatClinicChange = onCatClinicChange;
+  window.loadCatList     = loadCatList;
+  window.startCatEdit    = startCatEdit;
+  window.saveCatEdit     = saveCatEdit;
+  window.deleteCatItem   = deleteCatItem;
+  window.addCatItem      = addCatItem;
+
+
   async function loadClinics() {
     const { data } = await supabaseClient.from('clinics').select('clinic_code, clinic_name').order('clinic_name');
     clinicOptions = (data || []).map(c => ({ code: c.clinic_code, name: c.clinic_name }));
