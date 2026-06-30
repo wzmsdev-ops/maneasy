@@ -1618,10 +1618,11 @@ body.in-shell {
 .m-modal-backdrop { position: absolute; inset: 0; background: rgba(11,22,48,0.45); }
 .m-modal-dialog {
   position: relative; z-index: 1; background: #fff; border-radius: 8px;
-  width: 440px; max-width: calc(100vw - 32px); max-height: calc(100vh - 64px);
+  max-width: calc(100vw - 32px); max-height: calc(100vh - 64px);
   display: flex; flex-direction: column;
   box-shadow: 0 20px 60px rgba(0,0,0,0.16); border: 1px solid #e5e7eb; overflow: hidden;
 }
+/* width는 각 페이지 인라인 style로 지정 */
 .m-modal-dialog--wide { width: calc(100vw - 48px); max-width: 1100px; height: calc(100vh - 80px); }
 .m-modal-head {
   display: flex; align-items: center; justify-content: space-between;
