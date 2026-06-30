@@ -516,15 +516,20 @@ document.addEventListener('DOMContentLoaded', async function() {
     if (dept) { myDeptId = dept.id; myDeptName = dept.dept_name; }
   }
 
-  var badge = document.getElementById('deptBadge');
+  var badge  = document.getElementById('deptBadge');
+  var badgeH = document.getElementById('deptBadgeHistory');
+  function setBadge(el, textEl, name, isError) {
+    if (!el) return;
+    el.style.display = '';
+    if (isError) { el.style.background='#fef2f2'; el.style.color='#b91c1c'; el.style.borderColor='#fecaca'; }
+    if (textEl) textEl.textContent = name;
+  }
   if (myDeptName) {
-    if (badge) { badge.style.display = ''; document.getElementById('deptBadgeText').textContent = myDeptName; }
+    setBadge(badge,  document.getElementById('deptBadgeText'),        myDeptName, false);
+    setBadge(badgeH, document.getElementById('deptBadgeTextHistory'), myDeptName, false);
   } else {
-    if (badge) {
-      badge.style.display = '';
-      badge.style.background = '#fef2f2'; badge.style.color = '#b91c1c'; badge.style.borderColor = '#fecaca';
-      document.getElementById('deptBadgeText').textContent = '소속 부서 정보 없음';
-    }
+    setBadge(badge,  document.getElementById('deptBadgeText'),        '소속 부서 정보 없음', true);
+    setBadge(badgeH, document.getElementById('deptBadgeTextHistory'), '소속 부서 정보 없음', true);
     var submitBtn = document.getElementById('useSubmitBtn');
     if (submitBtn) submitBtn.disabled = true;
   }
