@@ -109,6 +109,32 @@ window.db = (function () {
     if (error) console.warn('[db:deletePhoto]', error);
   }
 
+  // ── 범용 비공개 파일 업로드 (signage-files 등 private 버킷) ──
+  async function uploadFile(bucket, file, pathPrefix) {
+    const safeName = String(file.name || 'file').replace(/[^\w.\-가-힣]/g, '_');
+    const path = `${pathPrefix}/${Date.now()}_${safeName}`;
+    const { error } = await supabaseClient.storage
+      .from(bucket)
+      .upload(path, file, { upsert: false, contentType: file.type || 'application/octet-stream' });
+    if (error) handleError(error, `uploadFile:${bucket}`);
+    return { path, name: file.name, size: file.size };
+  }
+
+  async function deleteFile(bucket, path) {
+    if (!path) return;
+    const { error } = await supabaseClient.storage.from(bucket).remove([path]);
+    if (error) console.warn('[db:deleteFile]', error);
+  }
+
+  // private 버킷은 getPublicUrl이 통하지 않으므로 signed URL 발급 (기본 1시간)
+  async function getSignedUrl(bucket, path, expiresIn = 3600) {
+    const { data, error } = await supabaseClient.storage
+      .from(bucket)
+      .createSignedUrl(path, expiresIn);
+    if (error) { console.warn('[db:getSignedUrl]', error); return ''; }
+    return data?.signedUrl || '';
+  }
+
   return {
     select,
     selectOne,
@@ -117,5 +143,8 @@ window.db = (function () {
     remove,
     uploadPhoto,
     deletePhoto,
+    uploadFile,
+    deleteFile,
+    getSignedUrl,
   };
 })();

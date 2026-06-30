@@ -33,5 +33,5 @@ const CONFIG = {
   CACHE_VERSION: '20260626_01',
 
   // GAS Web App URL (가입/승인 알림 메일 발송)
-  GAS_NOTIFY_URL: '',
+  GAS_NOTIFY_URL: 'https://script.google.com/macros/s/AKfycby4LMuwlpA_1-ehuBZpyNEOoesmo8ULGO5bnOt1vRcUoS0VTV88WE6oMrbVewicDRwOfg/exec',
 };
