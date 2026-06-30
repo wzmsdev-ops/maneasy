@@ -40,6 +40,7 @@ window.auth = (function () {
       department:  profile?.department  || '',
       active:      profile?.active      || 'N',
       allowed_pages: profile?.allowed_pages || null,
+      page_perms:    profile?.page_perms    || null,
     };
   }
 
