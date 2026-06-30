@@ -511,7 +511,9 @@
         </div>
       </div>` : '';
 
-    body.innerHTML = taskHtml + attWeekHtml + issueHtml;
+    body.innerHTML =
+      `<div class="cal-detail-tasks">${taskHtml}</div>` +
+      (isSun ? `<div class="cal-detail-fixed">${attWeekHtml}${issueHtml}</div>` : '');
   }
 
   /* ── 근태 / 이슈 저장 ──────────────────────────── */
