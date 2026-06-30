@@ -28,6 +28,11 @@
   let CATEGORIES    = {};  // { code: name }
   let clinicOptions = [];  // [{ code, name }]
 
+  // 업무검색
+  let _searchGridApi   = null;
+  let _searchTaskCache = {}; // task_id -> task — 검색 결과는 calTasks에 없으므로 모달 조회용 별도 캐시
+  let _taskModalSource = null; // 'search' | null — 저장/삭제 후 어디를 새로고침할지 판단
+
   // 업무 모달
   let editingTaskId  = null;
   let modalPriority  = 'MEDIUM';
@@ -117,6 +122,7 @@
     document.querySelectorAll('.task-tab').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
     document.querySelectorAll('.task-panel').forEach(p => p.classList.toggle('active', p.id === 'panel' + cap(tab)));
     if (tab === 'team') loadTeamView();
+    if (tab === 'search') runSearch();
   }
   function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
 
@@ -593,8 +599,9 @@
   };
 
   /* ══ 업무 모달 ═══════════════════════════════════ */
-  window.openTaskModal = async function(taskId) {
+  window.openTaskModal = async function(taskId, opts) {
     editingTaskId = taskId;
+    _taskModalSource = opts?.source || null;
     document.getElementById('taskModalTitle').textContent = taskId ? '업무 수정' : '업무 추가';
     document.getElementById('deleteTaskBtn').style.display = taskId ? '' : 'none';
 
@@ -602,7 +609,7 @@
     updateClinicSelect('');
 
     if (taskId) {
-      const task = calTasks.find(t => t.task_id === taskId);
+      const task = calTasks.find(t => t.task_id === taskId) || _searchTaskCache[taskId];
       if (task) {
         document.getElementById('mtTitle').value     = task.title || '';
         document.getElementById('mtStartDate').value = task.start_date || '';
@@ -697,6 +704,7 @@
     closeTaskModal();
     await renderCalendar();
     if (selectedDate) renderDetailPanel(selectedDate);
+    if (_taskModalSource === 'search') await runSearch();
   };
 
   window.deleteTask = async function() {
@@ -707,6 +715,7 @@
     closeTaskModal();
     await renderCalendar();
     if (selectedDate) renderDetailPanel(selectedDate);
+    if (_taskModalSource === 'search') await runSearch();
   };
 
   /* ══ 팀 현황 ═════════════════════════════════════ */
@@ -1048,23 +1057,32 @@
     const { data, error } = await q;
     if (error) { showMessage('검색 실패: ' + error.message, 'error'); return; }
 
-    const results = document.getElementById('searchResults');
-    if (!data?.length) {
-      results.innerHTML = '<div style="text-align:center;color:#9ca3af;font-size:12px;padding:40px;">검색 결과가 없습니다.</div>';
-      return;
+    const rows = data || [];
+    _searchTaskCache = {};
+    rows.forEach(t => { _searchTaskCache[t.task_id] = t; });
+
+    const colDefs = [
+      { headerName: '상태', field: 'status', width: 80, flex: 0,
+        valueFormatter: p => STATUS_LABEL[p.value] || p.value },
+      { headerName: '', field: 'priority', width: 36, flex: 0,
+        valueFormatter: p => p.value === 'HIGH' ? '⚡' : '' },
+      { headerName: '제목', field: 'title', flex: 2, minWidth: 160,
+        cellStyle: { justifyContent: 'flex-start', textAlign: 'left' } },
+      { headerName: '카테고리', field: 'category', flex: 1, minWidth: 90,
+        valueFormatter: p => CATEGORIES[p.value] || p.value || '' },
+      { headerName: '기간', flex: 1, minWidth: 130,
+        valueGetter: p => p.data.end_date && p.data.end_date !== p.data.start_date
+          ? `${p.data.start_date} ~ ${p.data.end_date}` : p.data.start_date },
+    ];
+
+    if (!_searchGridApi) {
+      _searchGridApi = createMgGrid('searchGrid', colDefs, rows, {
+        pageSize: 20, fit: true, noRowsText: '검색 결과가 없습니다.',
+        onRowClick: row => openTaskModal(row.task_id, { source: 'search' }),
+      });
+    } else {
+      updateMgGrid(_searchGridApi, rows);
     }
-    results.innerHTML = `<div style="font-size:11px;color:#6b7280;padding:8px 0;">${data.length}건</div>` +
-      data.map(t => `
-        <div class="task-item-card ${t.status==='DONE'?'done':''} ${t.priority==='HIGH'?'high':''}"
-             style="margin-bottom:6px;" onclick="jumpToDate('${t.start_date}')">
-          <div class="task-item-title">
-            <span class="task-status-badge ${t.status}">${STATUS_LABEL[t.status]||t.status}</span>
-            ${t.priority==='HIGH'?'<span style="color:#dc2626;">⚡</span>':''}
-            ${esc(t.title)}
-          </div>
-          <div class="task-item-meta">${t.start_date} ${CATEGORIES[t.category]||t.category||''}</div>
-          ${t.description?`<div style="font-size:11px;color:#6b7280;margin-top:3px;">${esc(t.description.slice(0,60))}${t.description.length>60?'...':''}</div>`:''}
-        </div>`).join('');
   }
 
   window.jumpToDate = function(dateStr) {
