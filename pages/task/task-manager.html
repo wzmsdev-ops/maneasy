@@ -274,6 +274,7 @@
       height: 28px; font-size: 12px; border: 1px solid #e5e7eb; border-radius: 6px;
       padding: 0 8px; box-sizing: border-box; color: #374151; background: #fff;
     }
+    .task-search-date { width: 122px; }
     .task-search-bar .btn { height: 28px; padding: 0 14px; font-size: 12px; }
     #searchGrid { flex: 1; min-height: 0; }
     .m-modal-dialog { width: 560px; }
@@ -362,19 +363,24 @@
   <!-- 탭3: 업무검색 -->
   <div class="task-panel" id="panelSearch">
     <div class="task-search-bar">
-      <div class="task-search-keyword">
-        <i class="ti ti-search"></i>
-        <input type="text" id="searchKeyword" placeholder="업무 제목 또는 내용 검색" />
-      </div>
-      <input type="date" id="searchFrom">
-      <span style="color:#9ca3af;font-size:12px;">~</span>
-      <input type="date" id="searchTo">
       <select id="searchStatus">
         <option value="">전체 상태</option>
         <option value="TODO">예정</option>
         <option value="IN_PROGRESS">진행중</option>
         <option value="DONE">완료</option>
       </select>
+      <input type="date" id="searchFrom" class="task-search-date">
+      <span style="color:#9ca3af;font-size:12px;">~</span>
+      <input type="date" id="searchTo" class="task-search-date">
+      <select id="searchScope">
+        <option value="both">제목+내용</option>
+        <option value="title">제목</option>
+        <option value="desc">내용</option>
+      </select>
+      <div class="task-search-keyword">
+        <i class="ti ti-search"></i>
+        <input type="text" id="searchKeyword" placeholder="검색어 입력" />
+      </div>
       <button class="btn btn-primary" id="searchBtn">검색</button>
     </div>
     <div id="searchGrid"></div>
