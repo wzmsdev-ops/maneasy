@@ -818,7 +818,7 @@
         _teamMemberInfoMap[m.email] = { user_name: m.user_name, clinic_name: m.clinic_name };
         _teamTasksMap[m.email] = mTasks;
 
-        // 업무 요약 — 카테고리별 건수만 (세부내용은 클릭해서 모달로 확인)
+        // 업무 카테고리 요약 — 건수만 (세부내용은 클릭해서 모달로 확인)
         const grouped = {};
         mTasks.forEach(t => {
           const cat = CATEGORIES[t.category] || t.category || '기타';
@@ -826,15 +826,20 @@
         });
         const catSummary = Object.entries(grouped)
           .map(([cat, n]) => `<span class="team-cat-chip">${esc(cat)} ${n}</span>`).join('')
-          || '<span class="no-data">등록된 업무가 없습니다.</span>';
+          || (mTasks.length ? '' : '<span class="no-data">등록된 업무가 없습니다.</span>');
 
-        const attendInfo = journal ? [
-          journal.early_work_this==='Y' ? '조기출근' : '',
-          journal.sat_work_this==='Y'   ? '토요근무' : '',
-          journal.attendance_this_week  ? journal.attendance_this_week : '',
-        ].filter(Boolean).join(' | ') : '';
+        // 근태 — 조기출근/토요근무 뱃지 + 근태사항 텍스트
+        const earlyOn = journal?.early_work_this === 'Y';
+        const satOn   = journal?.sat_work_this   === 'Y';
+        const attendText = journal?.attendance_this_week || '';
 
-        const metaLine = attendInfo ? `🕒 ${attendInfo}` : '';
+        const attendRow = `<div class="team-attend-row">
+          <span class="team-attend-badge${earlyOn?' on':''}">조기출근</span>
+          <span class="team-attend-badge${satOn?' on sat':''}">토요근무</span>
+        </div>`;
+        const attendTextHtml = attendText
+          ? `<div class="team-attend-text">${esc(attendText)}</div>`
+          : `<div class="team-attend-text empty">등록된 근태사항이 없습니다.</div>`;
 
         const dirtyBadge = (isClosed && isDirty)
           ? `<span style="font-size:9px;color:#dc2626;font-weight:700;margin-left:5px;" title="마감 이후 업무/근태/이슈가 추가되거나 수정됐습니다. 출력물에는 마감 시점 데이터만 반영됩니다.">⚠</span>` : '';
@@ -856,13 +861,14 @@
           <div class="team-card-header">
             <div>
               <div class="team-card-name">${esc(m.user_name)}</div>
-              <div class="team-card-meta">${esc(m.clinic_name||'')}</div>
+              <div class="team-card-meta">${esc(m.clinic_name||'')} · ${mTasks.length}건</div>
             </div>
             <span class="journal-status ${isClosed?'closed':'open'}">${isClosed?'마감':'작성중'}</span>${dirtyBadge}
           </div>
           <div class="team-card-body">
-            <div class="team-cat-row">${catSummary}</div>
-            ${metaLine ? `<div class="team-card-metaline">${esc(metaLine)}</div>` : ''}
+            ${attendRow}
+            ${attendTextHtml}
+            ${catSummary ? `<div class="team-cat-row">${catSummary}</div>` : ''}
           </div>
           ${footerHtml}
         </div>`;
