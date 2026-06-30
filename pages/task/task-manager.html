@@ -183,10 +183,11 @@
     .issue-section textarea:focus { outline: none; border-color: #2563eb; }
 
     /* ══ 탭2: 팀 현황 ══ */
-    #panelTeam { flex-direction: column; gap: 8px; }
+    #panelTeam { flex-direction: column; gap: 10px; }
     .team-toolbar {
       display: flex; align-items: center; flex-shrink: 0;
-      position: relative; height: 36px;
+      position: relative; height: 40px; box-sizing: border-box;
+      background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 0 12px;
     }
     .team-week-nav-wrap {
       position: absolute; left: 50%; transform: translateX(-50%);
