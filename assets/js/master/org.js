@@ -150,7 +150,7 @@ function fillDeptSelect(selId, placeholder, clinicId, selectedId) {
     : deptCache;
   sel.innerHTML = `<option value="">${placeholder}</option>` +
     filtered.map(d =>
-      `<option value="${d.id}" data-code="${ts(d.dept_code)}" data-name="${ts(d.dept_name)}">${ts(d.dept_name)}</option>`
+      `<option value="${d.id}" data-code="${ts(d.dept_code)}" data-name="${ts(d.dept_name)}" data-team-group="${ts(d.team_group_code||'')}">${ts(d.dept_name)}</option>`
     ).join('');
   if (selectedId) sel.value = selectedId;
 }
@@ -321,6 +321,8 @@ function renderDepts(rows, filterClinicId) {
       { headerName: '부서명',   field: 'dept_name',  flex: 2, minWidth: 100 },
       { headerName: '소속 의원', flex: 1, minWidth: 100,
         valueGetter: p => p.data.clinics?.clinic_name || '-' },
+      { headerName: '공유그룹', field: 'team_group_code', flex: 1, minWidth: 90,
+        valueGetter: p => p.data.team_group_code || '-' },
       { headerName: '순서',     field: 'sort_order', flex: 0, width: 60 },
       { headerName: '상태',     field: 'active',     flex: 0, width: 70,
         cellRenderer: p => { const s = document.createElement('span'); s.innerHTML = badgeActive(p.value); return s; } },
@@ -359,7 +361,7 @@ function syncDeptFilter() {
 function openAddDept() {
   editingDeptId = null;
   setVal('d_clinic_id', '');
-  ['d_dept_code','d_dept_name'].forEach(id => setVal(id, ''));
+  ['d_dept_code','d_dept_name','d_team_group_code'].forEach(id => setVal(id, ''));
   setVal('d_sort_order', '0');
   setVal('d_active', 'Y');
   // 현재 부서 탭 필터에 의원이 선택돼 있으면 모달에 미리 세팅
@@ -376,6 +378,7 @@ function openEditDept(id) {
   setVal('d_clinic_id',  row.clinic_id || '');
   setVal('d_dept_code',  row.dept_code);
   setVal('d_dept_name',  row.dept_name);
+  setVal('d_team_group_code', row.team_group_code || '');
   setVal('d_sort_order', row.sort_order ?? 0);
   setVal('d_active',     row.active);
   document.getElementById('deptModalTitle').textContent = '부서 수정';
@@ -393,6 +396,7 @@ async function saveDept() {
     })(),
     dept_name:  val('d_dept_name'),
     clinic_id:  clinicId,
+    team_group_code: val('d_team_group_code').trim(),
     sort_order: Number(val('d_sort_order') || 0),
     active:     val('d_active'),
     updated_at: new Date().toISOString(),
@@ -707,6 +711,7 @@ async function saveUser() {
   const deptOpt  = deptSel?.options[deptSel.selectedIndex];
   const team_code = deptOpt?.dataset.code || '';
   const team_name = deptOpt?.dataset.name || '';
+  const team_group_code = deptOpt?.dataset.teamGroup || '';
 
   const useDefault = document.getElementById('u_perm_useDefault')?.checked;
   const page_perms = useDefault ? null : (getPagePermsFromGrid() || {});
@@ -719,6 +724,7 @@ async function saveUser() {
     clinic_name,
     team_code,
     team_name,
+    team_group_code,
     department:  val('u_department'),
     active:      val('u_active'),
     page_perms:  page_perms || {},
