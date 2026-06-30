@@ -7,15 +7,16 @@
   <link rel="stylesheet" href="../../assets/css/common.css" />
   <link rel="stylesheet" href="../../assets/css/pages/equipment-form.css" />
   <link rel="stylesheet" href="../../assets/font/tabler-icons/tabler-icons.min.css" />
+  <style>html, body { height: 100%; margin: 0; }</style>
   <script>
     if (new URLSearchParams(location.search).get('shell') === '1')
       document.documentElement.classList.add('in-shell');
   </script>
   <style>
-    html, body { height:100%; margin:0; background:#f0f2f5; }
-    .ap-page { display:flex; flex-direction:column; height:100%; overflow-y:auto; padding:10px 14px 24px; gap:8px; box-sizing:border-box; }
+    html, body { background:#f0f2f5; }
+    .ap-page { display:flex; flex-direction:column; height:100%; overflow:hidden; padding:8px 14px; gap:8px; box-sizing:border-box; }
 
-    /* 제작 종류 탭 (procurement 패턴과 동일) */
+    /* 제작 종류 탭 (procurement 패턴) */
     .ap-type-tabs { display:flex; gap:2px; background:#e5e7eb; border-radius:8px; padding:3px; flex-shrink:0; }
     .ap-type-tabs .tab-btn {
       flex:1; height:34px; border:none; background:transparent; border-radius:6px;
@@ -26,8 +27,13 @@
     .ap-type-tabs .tab-btn:hover { background:rgba(255,255,255,0.6); color:#374151; }
     .ap-type-tabs .tab-btn.active { background:#fff; color:var(--navy); box-shadow:0 1px 3px rgba(0,0,0,0.08); }
 
-    /* eform-grid 안에서 3열은 과해서 본 페이지는 2열만 사용 */
-    .eform-grid { grid-template-columns: repeat(2, 1fr); }
+    /* 2단 본문 */
+    .ap-row { flex:1; min-height:0; display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+    .ap-col { display:flex; flex-direction:column; min-height:0; overflow:hidden; }
+    .ap-col .eform-section { flex:1; display:flex; flex-direction:column; min-height:0; overflow:hidden; }
+    .ap-col .eform-section-head { flex-shrink:0; }
+    .ap-col-body { flex:1; min-height:0; overflow-y:auto; }
+    .ap-col .eform-grid { grid-template-columns: repeat(2, 1fr); align-content:start; }
     .eform-full { grid-column: 1 / -1; }
 
     .ap-checkbox-row { display:flex; align-items:center; gap:8px; }
@@ -38,28 +44,28 @@
     .ap-card-grid.col2 { grid-template-columns:repeat(2, 1fr); }
     .ap-pick-card {
       display:flex; flex-direction:column; align-items:center; gap:3px;
-      padding:10px 6px; border:1.5px solid #e5e7eb; border-radius:8px;
+      padding:8px 6px; border:1.5px solid #e5e7eb; border-radius:8px;
       cursor:pointer; text-align:center; transition:all .15s; font-size:11px; background:#fff;
     }
     .ap-pick-card:hover { border-color:var(--blue); }
     .ap-pick-card.is-selected { border-color:var(--navy); background:var(--blue-soft); }
-    .ap-pick-badge { font-size:14px; font-weight:800; color:var(--navy); }
+    .ap-pick-badge { font-size:13px; font-weight:800; color:var(--navy); }
     .ap-pick-sub  { font-size:10px; color:#6b7280; }
-    .ap-pick-icon { font-size:18px; }
+    .ap-pick-icon { font-size:16px; }
     .ap-pick-title { font-weight:700; color:#111827; }
     .ap-pick-desc { font-size:10px; color:#9ca3af; }
-    .ap-pick-shape { font-size:18px; font-weight:800; color:var(--navy); }
+    .ap-pick-shape { font-size:16px; font-weight:800; color:var(--navy); }
     .ap-sr-only { position:absolute; opacity:0; width:0; height:0; }
 
-    .ap-subsection-title { font-size:11px; font-weight:700; color:#6b7280; margin:14px 0 8px; padding:0 14px; }
-    .ap-subsection-title:first-child { margin-top:0; }
+    .ap-subsection-title { font-size:11px; font-weight:700; color:#6b7280; margin:12px 0 6px; padding:0 14px; }
+    .ap-subsection-title:first-child { margin-top:12px; }
     .ap-np-body { padding:0 14px 14px; }
 
-    .ap-np-img-wrap { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:0 0 14px; }
+    .ap-np-img-wrap { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:0 0 4px; }
     .ap-np-img-wrap img { width:100%; border:1px solid #e5e7eb; border-radius:8px; display:block; }
 
-    .ap-upload-row { display:flex; align-items:center; gap:10px; flex-wrap:wrap; padding:10px; border:1px dashed #d1d5db; border-radius:8px; background:#fafafa; }
-    .ap-file-list { display:flex; flex-direction:column; gap:4px; margin-top:8px; }
+    .ap-upload-row { display:flex; align-items:center; gap:10px; flex-wrap:wrap; padding:8px; border:1px dashed #d1d5db; border-radius:8px; background:#fafafa; }
+    .ap-file-list { display:flex; flex-direction:column; gap:4px; margin-top:6px; }
     .ap-file-item { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:5px 10px; background:#fff; border:1px solid #e5e7eb; border-radius:6px; font-size:11px; }
     .ap-file-item-remove { border:none; background:none; color:#ef4444; cursor:pointer; font-size:13px; }
   </style>
@@ -73,184 +79,195 @@
     <button type="button" class="tab-btn" data-type="NAMEPLATE"><i class="ti ti-id-badge"></i> 규격 명판</button>
   </div>
 
-  <!-- 기본 정보 -->
-  <div class="eform-section">
-    <div class="eform-section-head">
-      <i class="ti ti-info-circle"></i>
-      <span>기본 정보</span>
-      <span class="eform-section-desc">신청자 및 공통 정보</span>
-      <div class="eform-section-head-actions">
-        <button type="button" class="btn btn-sm" onclick="parent.shellNavigate && parent.shellNavigate('signage/history')">
-          <i class="ti ti-list-check"></i> 신청내역 보기
-        </button>
-      </div>
-    </div>
-    <div class="eform-grid">
-      <div class="form-field eform-full">
-        <label class="form-label required">제목</label>
-        <input type="text" id="sr_title" class="input" placeholder="예: [A3 포맥스], [바닥 스티커] 등 제작 품목명을 입력하세요." required />
-      </div>
-      <div class="form-field">
-        <label class="form-label">의원</label>
-        <input type="text" id="sr_clinic_display" class="input" readonly />
-      </div>
-      <div class="form-field">
-        <label class="form-label">부서</label>
-        <input type="text" id="sr_dept_display" class="input" readonly />
-      </div>
-      <div class="form-field">
-        <label class="form-label required">이름</label>
-        <input type="text" id="sr_requester_name" class="input" required />
-      </div>
-      <div class="form-field">
-        <label class="form-label required">연락처</label>
-        <input type="tel" id="sr_contact" class="input" placeholder="010-0000-0000" required />
-      </div>
-      <div class="form-field">
-        <label class="form-label required">수량</label>
-        <input type="number" id="sr_quantity" class="input" min="1" step="1" value="1" required />
-      </div>
-      <div class="form-field">
-        <label class="form-label">긴급 여부</label>
-        <select id="sr_is_urgent" class="input">
-          <option value="N">일반</option>
-          <option value="Y">🚨 긴급</option>
-        </select>
-      </div>
-      <div class="form-field eform-full" id="srUrgentReasonField" style="display:none;">
-        <label class="form-label required">긴급 사유</label>
-        <input type="text" id="sr_urgent_reason" class="input" />
-      </div>
-      <div class="form-field eform-full">
-        <div class="ap-checkbox-row">
-          <input type="checkbox" id="sr_draft_confirm" />
-          <label for="sr_draft_confirm">시안 제작 후 확인 받고 싶습니다</label>
+  <!-- 2단 본문 -->
+  <div class="ap-row">
+
+    <!-- 좌: 기본 정보 -->
+    <div class="ap-col">
+      <div class="eform-section">
+        <div class="eform-section-head">
+          <i class="ti ti-info-circle"></i>
+          <span>기본 정보</span>
+          <span class="eform-section-desc">신청자 및 공통 정보</span>
+          <div class="eform-section-head-actions">
+            <button type="button" class="btn btn-sm" onclick="parent.shellNavigate && parent.shellNavigate('signage/history')">
+              <i class="ti ti-list-check"></i> 신청내역 보기
+            </button>
+            <button type="button" class="btn btn-sm btn-primary" id="srSaveBtn">
+              <i class="ti ti-send"></i> 신청 제출
+            </button>
+          </div>
+        </div>
+        <div class="ap-col-body">
+          <div class="eform-grid">
+            <div class="form-field eform-full">
+              <label class="form-label required">제목</label>
+              <input type="text" id="sr_title" class="input" placeholder="예: [A3 포맥스], [바닥 스티커] 등 제작 품목명을 입력하세요." required />
+            </div>
+            <div class="form-field">
+              <label class="form-label">의원</label>
+              <input type="text" id="sr_clinic_display" class="input" readonly />
+            </div>
+            <div class="form-field">
+              <label class="form-label">부서</label>
+              <input type="text" id="sr_dept_display" class="input" readonly />
+            </div>
+            <div class="form-field">
+              <label class="form-label required">이름</label>
+              <input type="text" id="sr_requester_name" class="input" required />
+            </div>
+            <div class="form-field">
+              <label class="form-label required">연락처</label>
+              <input type="tel" id="sr_contact" class="input" placeholder="010-0000-0000" required />
+            </div>
+            <div class="form-field">
+              <label class="form-label required">수량</label>
+              <input type="number" id="sr_quantity" class="input" min="1" step="1" value="1" required />
+            </div>
+            <div class="form-field">
+              <label class="form-label">긴급 여부</label>
+              <select id="sr_is_urgent" class="input">
+                <option value="N">일반</option>
+                <option value="Y">🚨 긴급</option>
+              </select>
+            </div>
+            <div class="form-field eform-full" id="srUrgentReasonField" style="display:none;">
+              <label class="form-label required">긴급 사유</label>
+              <input type="text" id="sr_urgent_reason" class="input" />
+            </div>
+            <div class="form-field eform-full">
+              <div class="ap-checkbox-row">
+                <input type="checkbox" id="sr_draft_confirm" />
+                <label for="sr_draft_confirm">시안 제작 후 확인 받고 싶습니다</label>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
-  </div>
 
-  <!-- STEP A: 일반 사인물 -->
-  <div id="srPanelSign" class="eform-section">
-    <div class="eform-section-head">
-      <i class="ti ti-sign-right"></i>
-      <span>일반 사인물 상세</span>
-      <span class="eform-section-desc">배너, 간판, 안내판 등 맞춤 제작 사인물</span>
-    </div>
-    <div class="eform-grid">
-      <div class="form-field eform-full">
-        <label class="form-label required">상세내역</label>
-        <textarea id="sr_text_content" class="input textarea" rows="3"></textarea>
-      </div>
-      <div class="form-field">
-        <label class="form-label required">사이즈</label>
-        <input type="text" id="sr_sign_size" class="input" placeholder="예: 900 × 600 × 5 mm" />
-      </div>
-      <div class="form-field">
-        <label class="form-label required">형태/종류</label>
-        <input type="text" id="sr_sign_type" class="input" placeholder="예: 현수막, 아크릴 판넬" />
-      </div>
-      <div class="form-field">
-        <label class="form-label required">설치 환경</label>
-        <select id="sr_install_env" class="input">
-          <option value="">선택하세요</option>
-          <option value="INDOOR">실내</option>
-          <option value="OUTDOOR">실외</option>
-        </select>
-      </div>
-      <div class="form-field">
-        <label class="form-label required">설치 위치 상세</label>
-        <input type="text" id="sr_install_location" class="input" />
-      </div>
-      <div class="form-field eform-full">
-        <label class="form-label">첨부파일 (설치위치 사진 등)</label>
-        <div class="ap-upload-row">
-          <input type="file" id="srFileSign" multiple accept="image/*,.pdf" />
+    <!-- 우: 상세 -->
+    <div class="ap-col">
+
+      <!-- STEP A: 일반 사인물 -->
+      <div id="srPanelSign" class="eform-section">
+        <div class="eform-section-head">
+          <i class="ti ti-sign-right"></i>
+          <span>일반 사인물 상세</span>
+          <span class="eform-section-desc">배너, 간판, 안내판 등 맞춤 제작 사인물</span>
         </div>
-        <div class="ap-file-list" id="srFileListSign"></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- STEP B: 규격 명판 -->
-  <div id="srPanelNameplate" class="eform-section" style="display:none;">
-    <div class="eform-section-head">
-      <i class="ti ti-id-badge"></i>
-      <span>규격 명판 상세</span>
-      <span class="eform-section-desc">A~D 타입 규격 명판, 사이즈 자동 적용</span>
-    </div>
-
-    <div class="ap-np-body">
-      <p class="ap-subsection-title">명판 타입 선택</p>
-      <div class="ap-card-grid" id="srNpTypeGrid">
-        <label class="ap-pick-card" id="srNpCard_A"><input type="radio" name="sr_np_type" value="A" class="ap-sr-only" /><div class="ap-pick-badge">A</div><div class="ap-pick-sub">5cm (20/16)</div></label>
-        <label class="ap-pick-card" id="srNpCard_B"><input type="radio" name="sr_np_type" value="B" class="ap-sr-only" /><div class="ap-pick-badge">B</div><div class="ap-pick-sub">4cm (20/18)</div></label>
-        <label class="ap-pick-card" id="srNpCard_C"><input type="radio" name="sr_np_type" value="C" class="ap-sr-only" /><div class="ap-pick-badge">C</div><div class="ap-pick-sub">3cm (20/18)</div></label>
-        <label class="ap-pick-card" id="srNpCard_D"><input type="radio" name="sr_np_type" value="D" class="ap-sr-only" /><div class="ap-pick-badge">D</div><div class="ap-pick-sub">2.5cm (20)</div></label>
-      </div>
-
-      <div id="srNpSubSection" style="display:none;">
-        <p class="ap-subsection-title">세부 디자인 선택</p>
-        <div class="ap-card-grid" id="srNpSubGrid"></div>
-      </div>
-
-      <div id="srNpImgWrap" class="ap-np-img-wrap" style="display:none; margin-top:14px;">
-        <img id="srNpDesignImg" alt="명판 디자인" />
-        <img id="srNpLayoutImg" alt="문구 레이아웃" />
-      </div>
-
-      <div id="srMethodSection" style="display:none;">
-        <p class="ap-subsection-title">제작 방식</p>
-        <div class="ap-card-grid col2">
-          <label class="ap-pick-card" id="srMethodCard_NEW">
-            <input type="radio" name="sr_np_method" value="NEW" class="ap-sr-only" />
-            <span class="ap-pick-icon">🆕</span><span class="ap-pick-title">명판 신규 제작</span>
-            <span class="ap-pick-desc">전체 새로 제작</span>
-          </label>
-          <label class="ap-pick-card" id="srMethodCard_REUSE">
-            <input type="radio" name="sr_np_method" value="REUSE" class="ap-sr-only" />
-            <span class="ap-pick-icon">♻️</span><span class="ap-pick-title">기존 명판 활용</span>
-            <span class="ap-pick-desc">스티커만 교체</span>
-          </label>
+        <div class="ap-col-body">
+          <div class="eform-grid">
+            <div class="form-field eform-full">
+              <label class="form-label required">상세내역</label>
+              <textarea id="sr_text_content" class="input textarea" rows="3"></textarea>
+            </div>
+            <div class="form-field">
+              <label class="form-label required">사이즈</label>
+              <input type="text" id="sr_sign_size" class="input" placeholder="예: 900 × 600 × 5 mm" />
+            </div>
+            <div class="form-field">
+              <label class="form-label required">형태/종류</label>
+              <input type="text" id="sr_sign_type" class="input" placeholder="예: 현수막, 아크릴 판넬" />
+            </div>
+            <div class="form-field">
+              <label class="form-label required">설치 환경</label>
+              <select id="sr_install_env" class="input">
+                <option value="">선택하세요</option>
+                <option value="INDOOR">실내</option>
+                <option value="OUTDOOR">실외</option>
+              </select>
+            </div>
+            <div class="form-field">
+              <label class="form-label required">설치 위치 상세</label>
+              <input type="text" id="sr_install_location" class="input" />
+            </div>
+            <div class="form-field eform-full">
+              <label class="form-label">첨부파일 (설치위치 사진 등)</label>
+              <div class="ap-upload-row">
+                <input type="file" id="srFileSign" multiple accept="image/*,.pdf" />
+              </div>
+              <div class="ap-file-list" id="srFileListSign"></div>
+            </div>
+          </div>
         </div>
       </div>
 
-      <div id="srLayoutSection" style="display:none;">
-        <p class="ap-subsection-title">문구 레이아웃</p>
-        <div class="ap-card-grid col2" id="srLayoutGrid"></div>
-      </div>
-
-      <div id="srNpTextSection" style="display:none;">
-        <p class="ap-subsection-title">명판 문구</p>
-        <div class="eform-grid" id="srNpTextFields" style="padding:0;"></div>
-
-        <p class="ap-subsection-title">자석 부착</p>
-        <div class="ap-card-grid col2">
-          <label class="ap-pick-card" id="srMagnetCard_Y">
-            <input type="radio" name="sr_magnet" value="Y" class="ap-sr-only" />
-            <span class="ap-pick-icon">🧲</span><span class="ap-pick-title">있음 (탈부착)</span>
-          </label>
-          <label class="ap-pick-card" id="srMagnetCard_N">
-            <input type="radio" name="sr_magnet" value="N" class="ap-sr-only" />
-            <span class="ap-pick-icon">📌</span><span class="ap-pick-title">없음 (고정)</span>
-          </label>
+      <!-- STEP B: 규격 명판 -->
+      <div id="srPanelNameplate" class="eform-section" style="display:none;">
+        <div class="eform-section-head">
+          <i class="ti ti-id-badge"></i>
+          <span>규격 명판 상세</span>
+          <span class="eform-section-desc">A~D 타입 규격 명판, 사이즈 자동 적용</span>
         </div>
 
-        <p class="ap-subsection-title">명판 예시 첨부 (선택)</p>
-        <div class="ap-upload-row">
-          <input type="file" id="srFileNameplate" multiple accept="image/*,.pdf" />
-        </div>
-        <div class="ap-file-list" id="srFileListNameplate"></div>
-      </div>
-    </div>
-  </div>
+        <div class="ap-col-body">
+          <div class="ap-np-body">
+            <p class="ap-subsection-title">명판 타입 선택</p>
+            <div class="ap-card-grid" id="srNpTypeGrid">
+              <label class="ap-pick-card" id="srNpCard_A"><input type="radio" name="sr_np_type" value="A" class="ap-sr-only" /><div class="ap-pick-badge">A</div><div class="ap-pick-sub">5cm (20/16)</div></label>
+              <label class="ap-pick-card" id="srNpCard_B"><input type="radio" name="sr_np_type" value="B" class="ap-sr-only" /><div class="ap-pick-badge">B</div><div class="ap-pick-sub">4cm (20/18)</div></label>
+              <label class="ap-pick-card" id="srNpCard_C"><input type="radio" name="sr_np_type" value="C" class="ap-sr-only" /><div class="ap-pick-badge">C</div><div class="ap-pick-sub">3cm (20/18)</div></label>
+              <label class="ap-pick-card" id="srNpCard_D"><input type="radio" name="sr_np_type" value="D" class="ap-sr-only" /><div class="ap-pick-badge">D</div><div class="ap-pick-sub">2.5cm (20)</div></label>
+            </div>
 
-  <!-- 제출 -->
-  <div class="eform-section">
-    <div class="eform-section-head" style="justify-content:flex-end;">
-      <button type="button" class="btn btn-sm btn-primary" id="srSaveBtn">
-        <i class="ti ti-send"></i> 신청 제출
-      </button>
+            <div id="srNpSubSection" style="display:none;">
+              <p class="ap-subsection-title">세부 디자인 선택</p>
+              <div class="ap-card-grid" id="srNpSubGrid"></div>
+            </div>
+
+            <div id="srNpImgWrap" class="ap-np-img-wrap" style="display:none; margin-top:12px;">
+              <img id="srNpDesignImg" alt="명판 디자인" />
+              <img id="srNpLayoutImg" alt="문구 레이아웃" />
+            </div>
+
+            <div id="srMethodSection" style="display:none;">
+              <p class="ap-subsection-title">제작 방식</p>
+              <div class="ap-card-grid col2">
+                <label class="ap-pick-card" id="srMethodCard_NEW">
+                  <input type="radio" name="sr_np_method" value="NEW" class="ap-sr-only" />
+                  <span class="ap-pick-icon">🆕</span><span class="ap-pick-title">명판 신규 제작</span>
+                  <span class="ap-pick-desc">전체 새로 제작</span>
+                </label>
+                <label class="ap-pick-card" id="srMethodCard_REUSE">
+                  <input type="radio" name="sr_np_method" value="REUSE" class="ap-sr-only" />
+                  <span class="ap-pick-icon">♻️</span><span class="ap-pick-title">기존 명판 활용</span>
+                  <span class="ap-pick-desc">스티커만 교체</span>
+                </label>
+              </div>
+            </div>
+
+            <div id="srLayoutSection" style="display:none;">
+              <p class="ap-subsection-title">문구 레이아웃</p>
+              <div class="ap-card-grid col2" id="srLayoutGrid"></div>
+            </div>
+
+            <div id="srNpTextSection" style="display:none;">
+              <p class="ap-subsection-title">명판 문구</p>
+              <div class="eform-grid" id="srNpTextFields" style="padding:0;"></div>
+
+              <p class="ap-subsection-title">자석 부착</p>
+              <div class="ap-card-grid col2">
+                <label class="ap-pick-card" id="srMagnetCard_Y">
+                  <input type="radio" name="sr_magnet" value="Y" class="ap-sr-only" />
+                  <span class="ap-pick-icon">🧲</span><span class="ap-pick-title">있음 (탈부착)</span>
+                </label>
+                <label class="ap-pick-card" id="srMagnetCard_N">
+                  <input type="radio" name="sr_magnet" value="N" class="ap-sr-only" />
+                  <span class="ap-pick-icon">📌</span><span class="ap-pick-title">없음 (고정)</span>
+                </label>
+              </div>
+
+              <p class="ap-subsection-title">명판 예시 첨부 (선택)</p>
+              <div class="ap-upload-row">
+                <input type="file" id="srFileNameplate" multiple accept="image/*,.pdf" />
+              </div>
+              <div class="ap-file-list" id="srFileListNameplate"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
 
