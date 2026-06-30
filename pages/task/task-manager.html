@@ -42,12 +42,12 @@
       border: 1px solid #e5e7eb;
     }
     .cal-header {
-      display: flex; align-items: center; justify-content: space-between;
+      display: flex; align-items: center; justify-content: center;
       padding: 10px 14px; border-bottom: 1px solid #e5e7eb; flex-shrink: 0;
-      background: #f8fafc;
+      background: #f8fafc; position: relative;
     }
     .cal-month-label { font-size: 15px; font-weight: 700; color: #111827; }
-    .cal-nav { display: flex; gap: 4px; align-items: center; }
+    .cal-nav { display: flex; gap: 4px; align-items: center; position: absolute; right: 14px; }
     .cal-nav-btn {
       width: 28px; height: 28px; border: 1px solid #e5e7eb; border-radius: 6px;
       background: #fff; cursor: pointer; display: flex; align-items: center;
@@ -170,8 +170,12 @@
     /* ══ 탭2: 팀 현황 ══ */
     #panelTeam { flex-direction: column; gap: 8px; }
     .team-toolbar {
-      display: flex; align-items: center; gap: 8px; flex-shrink: 0;
-      position: relative; justify-content: center;
+      display: flex; align-items: center; flex-shrink: 0;
+      position: relative; height: 36px;
+    }
+    .team-week-nav-wrap {
+      position: absolute; left: 50%; transform: translateX(-50%);
+      display: flex; align-items: center; gap: 8px;
     }
     .team-week-nav { display: flex; align-items: center; gap: 4px; }
     .team-week-label { font-size: 13px; font-weight: 700; color: #111827; min-width: 160px; text-align: center; }
@@ -292,12 +296,14 @@
   <!-- 탭2: 팀 현황 -->
   <div class="task-panel" id="panelTeam">
     <div class="team-toolbar">
-      <div class="team-week-nav">
-        <button class="cal-nav-btn" id="teamPrevBtn"><i class="ti ti-chevron-left"></i></button>
-        <span class="team-week-label" id="teamWeekLabel"></span>
-        <button class="cal-nav-btn" id="teamNextBtn"><i class="ti ti-chevron-right"></i></button>
+      <div class="team-week-nav-wrap">
+        <div class="team-week-nav">
+          <button class="cal-nav-btn" id="teamPrevBtn"><i class="ti ti-chevron-left"></i></button>
+          <span class="team-week-label" id="teamWeekLabel"></span>
+          <button class="cal-nav-btn" id="teamNextBtn"><i class="ti ti-chevron-right"></i></button>
+        </div>
+        <button class="btn btn-sm" id="teamTodayBtn">이번 주</button>
       </div>
-      <button class="btn btn-sm" id="teamTodayBtn">이번 주</button>
       <button class="btn btn-sm btn-primary" id="exportExcelBtn" style="display:none;position:absolute;right:0;">
         <i class="ti ti-download"></i> 엑셀 출력
       </button>
