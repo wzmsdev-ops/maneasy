@@ -38,6 +38,10 @@ const PAGE_GROUPS = [
   { app: '업무일정 관리', pages: [
     { key: 'task/task-manager', label: '업무일정·일지' },
   ]},
+  { app: '사인물 신청', pages: [
+    { key: 'signage/request', label: '신청하기' },
+    { key: 'signage/manage',  label: '사인물 관리' },
+  ]},
   { app: '마스터 관리', pages: [
     { key: 'master/org',    label: '의원·부서·사용자' },
     { key: 'master/supply', label: '자재·거래처' },
@@ -59,6 +63,8 @@ const ROLE_DEFAULT_PAGES = {
     'materials/stock':             '접근불가',
     'materials/material-stats':    'user',
     'task/task-manager':        'user',
+    'signage/request':          'user',
+    'signage/manage':           '접근불가',
     'master/org':               '접근불가',
     'master/supply':            '접근불가',
   },
@@ -73,6 +79,8 @@ const ROLE_DEFAULT_PAGES = {
     'materials/stock':             'manager',
     'materials/material-stats':    'user',
     'task/task-manager':        'admin',
+    'signage/request':          'user',
+    'signage/manage':           'admin',
     'master/org':               'admin',
     'master/supply':            'admin',
   },
