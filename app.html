@@ -68,6 +68,20 @@
         </button>
       </div>
 
+      <!-- 사인물 신청 -->
+      <button class="sb-item sb-item-parent" data-group="signage">
+        <div class="sb-item-inner"><i class="ti ti-stamp"></i><span>사인물 신청</span></div>
+        <i class="ti ti-chevron-right sb-item-arrow"></i>
+      </button>
+      <div class="sb-submenu" data-group="signage">
+        <button class="sb-sub-item" data-page="signage/request" onclick="navigate('signage/request')" id="sbItemSignageRequest">
+          <i class="ti ti-pencil"></i><span>신청하기</span>
+        </button>
+        <button class="sb-sub-item" data-page="signage/manage" onclick="navigate('signage/manage')" id="sbItemSignageManage" style="display:none;">
+          <i class="ti ti-checklist"></i><span>사인물 관리</span>
+        </button>
+      </div>
+
       <!-- 업무일정 관리 -->
       <div class="sb-divider" style="margin:6px 0;"></div>
       <button class="sb-item" data-page="task/task-manager" onclick="navigate('task/task-manager')" id="sbItemTask">
@@ -147,6 +161,8 @@ const MENU_META = {
   'materials/procurement':     { app: '자재관리', page: '발주 관리' },
   'materials/stock':           { app: '자재관리', page: '재고 관리' },
   'materials/material-stats':  { app: '자재관리', page: '자재 통계' },
+  'signage/request':           { app: '사인물 신청', page: '신청하기' },
+  'signage/manage':            { app: '사인물 신청', page: '사인물 관리' },
 };
 
 /* ── Flyout 서브메뉴 ── */
@@ -248,13 +264,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     const ROLE_BASE_PAGES = [
       'equipment/dashboard', 'equipment/list', 'equipment/detail',
       'materials/purchase-request', 'materials/use-stock', 'materials/material-stats',
-      'task/task-manager',
+      'task/task-manager', 'signage/request',
     ];
     const ROLE_DEFAULT_PAGES = {
       user:    [...ROLE_BASE_PAGES],
       edit:    [...ROLE_BASE_PAGES, 'equipment/form'],
-      manager: [...ROLE_BASE_PAGES, 'equipment/form', 'materials/procurement', 'materials/stock'],
-      admin:   [...ROLE_BASE_PAGES, 'equipment/form', 'materials/procurement', 'materials/stock', 'master/org', 'master/supply'],
+      manager: [...ROLE_BASE_PAGES, 'equipment/form', 'materials/procurement', 'materials/stock', 'signage/manage'],
+      admin:   [...ROLE_BASE_PAGES, 'equipment/form', 'materials/procurement', 'materials/stock', 'master/org', 'master/supply', 'signage/manage'],
     };
     const allowedPages = user.allowed_pages && user.allowed_pages.length
       ? user.allowed_pages
