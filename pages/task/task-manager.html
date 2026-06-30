@@ -47,6 +47,7 @@
       background: #f8fafc; position: relative;
     }
     .cal-month-label { font-size: 15px; font-weight: 700; color: #111827; }
+    .cal-header-left { position: absolute; left: 14px; display: flex; align-items: center; }
     .cal-nav { display: flex; gap: 4px; align-items: center; position: absolute; right: 14px; }
     .cal-nav-btn {
       width: 28px; height: 28px; border: 1px solid #e5e7eb; border-radius: 6px;
@@ -262,6 +263,9 @@
     <!-- 달력 -->
     <div class="cal-wrap">
       <div class="cal-header">
+        <div class="cal-header-left">
+          <button class="btn btn-sm" id="manageCatBtn" style="display:none;height:26px;padding:0 10px;font-size:11px;"><i class="ti ti-tags"></i> 카테고리</button>
+        </div>
         <span class="cal-month-label" id="calMonthLabel"></span>
         <div class="cal-nav">
           <button class="cal-nav-btn" id="calPrevBtn"><i class="ti ti-chevron-left"></i></button>
@@ -283,7 +287,6 @@
       <div class="cal-detail-header">
         <span class="cal-detail-date" id="calDetailDate">날짜를 선택하세요</span>
         <div style="display:flex;gap:6px;align-items:center;">
-          <button class="btn btn-sm" id="manageCatBtn" style="display:none;height:26px;padding:0 10px;font-size:11px;"><i class="ti ti-tags"></i> 카테고리</button>
           <button class="btn btn-sm btn-primary" id="addTaskBtn" style="height:26px;padding:0 10px;font-size:11px;" disabled>+ 업무추가</button>
         </div>
       </div>
