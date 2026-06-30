@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>업무일정 관리</title>
   <link rel="stylesheet" href="../../assets/css/common.css" />
+  <link rel="stylesheet" href="../../assets/libs/ag-grid/ag-grid.min.css" />
+  <link rel="stylesheet" href="../../assets/libs/ag-grid/ag-theme-alpine.min.css" />
+  <link rel="stylesheet" href="../../assets/css/ag-grid-custom.css" />
   <link rel="stylesheet" href="../../assets/css/pages/task-manager.css" />
   <link rel="stylesheet" href="../../assets/font/tabler-icons/tabler-icons.min.css" />
   <style>
@@ -249,8 +252,29 @@
     .cal-attend-btn.on.sat  { background: #eff6ff; border-color: #93c5fd; color: #2563eb; }
 
     /* 검색 탭 */
-    #panelSearch { flex-direction: column; gap: 8px; }
-    .search-bar { display: flex; gap: 6px; flex-shrink: 0; }
+    #panelSearch { flex-direction: column; gap: 10px; }
+    .task-search-bar {
+      display: flex; align-items: center; gap: 8px;
+      background: #fff; border: 1px solid #e5e7eb; border-radius: 8px;
+      padding: 7px 12px; height: 40px; box-sizing: border-box; flex-shrink: 0;
+    }
+    .task-search-keyword {
+      position: relative; flex: 1; display: flex; align-items: center;
+    }
+    .task-search-keyword i {
+      position: absolute; left: 9px; color: #9ca3af; font-size: 14px;
+    }
+    .task-search-keyword input {
+      width: 100%; height: 28px; padding: 0 10px 0 30px; font-size: 12px;
+      border: 1px solid #e5e7eb; border-radius: 6px; box-sizing: border-box; outline: none;
+    }
+    .task-search-keyword input:focus { border-color: #2563eb; }
+    .task-search-bar select, .task-search-bar input[type=date] {
+      height: 28px; font-size: 12px; border: 1px solid #e5e7eb; border-radius: 6px;
+      padding: 0 8px; box-sizing: border-box; color: #374151; background: #fff;
+    }
+    .task-search-bar .btn { height: 28px; padding: 0 14px; font-size: 12px; }
+    #searchGrid { flex: 1; min-height: 0; }
     .m-modal-dialog { width: 560px; }
   </style>
 </head>
@@ -261,11 +285,11 @@
     <button class="task-tab active" data-tab="calendar" id="tabCalendar">
       <i class="ti ti-calendar"></i> 업무달력
     </button>
-    <button class="task-tab" data-tab="team" id="tabTeam">
-      <i class="ti ti-users"></i> 팀 현황
-    </button>
     <button class="task-tab" data-tab="search" id="tabSearch">
       <i class="ti ti-search"></i> 업무검색
+    </button>
+    <button class="task-tab" data-tab="team" id="tabTeam">
+      <i class="ti ti-users"></i> 팀 현황
     </button>
   </div>
 
@@ -336,20 +360,23 @@
 
   <!-- 탭3: 업무검색 -->
   <div class="task-panel" id="panelSearch">
-    <div class="search-bar">
-      <input type="text" class="input" id="searchKeyword" placeholder="업무 제목 또는 내용 검색" style="flex:1;height:34px;">
-      <input type="date" class="input" id="searchFrom" style="height:34px;width:130px;">
-      <span style="line-height:34px;color:#9ca3af;font-size:12px;">~</span>
-      <input type="date" class="input" id="searchTo" style="height:34px;width:130px;">
-      <select class="input" id="searchStatus" style="height:34px;width:100px;">
+    <div class="task-search-bar">
+      <div class="task-search-keyword">
+        <i class="ti ti-search"></i>
+        <input type="text" id="searchKeyword" placeholder="업무 제목 또는 내용 검색" />
+      </div>
+      <input type="date" id="searchFrom">
+      <span style="color:#9ca3af;font-size:12px;">~</span>
+      <input type="date" id="searchTo">
+      <select id="searchStatus">
         <option value="">전체 상태</option>
         <option value="TODO">예정</option>
         <option value="IN_PROGRESS">진행중</option>
         <option value="DONE">완료</option>
       </select>
-      <button class="btn btn-primary" id="searchBtn" style="height:34px;padding:0 16px;">검색</button>
+      <button class="btn btn-primary" id="searchBtn">검색</button>
     </div>
-    <div id="searchResults" style="flex:1;overflow-y:auto;"></div>
+    <div id="searchGrid"></div>
   </div>
 
   <!-- 업무 등록/수정 모달 -->
@@ -456,6 +483,7 @@
     </div>
   </div>
 
+  <script src="../../assets/libs/ag-grid/ag-grid-community.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
   <script src="../../assets/libs/supabase.js"></script>
   <script src="../../assets/js/core/config.js"></script>
