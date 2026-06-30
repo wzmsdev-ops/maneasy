@@ -239,7 +239,7 @@
       <span class="m-modal-title"><i class="ti ti-shield-check"></i> 부서별 안전재고 설정 <span id="ssDeptLabel" style="font-size:12px;font-weight:400;color:rgba(255,255,255,0.6);margin-left:8px;"></span></span>
       <button class="m-modal-close" onclick="closeSsSetting()"><i class="ti ti-x"></i></button>
     </div>
-    <div class="m-modal-body" style="padding:0;display:flex;flex-direction:column;overflow:hidden;">
+    <div class="m-modal-body" style="padding:0;gap:0;display:flex;flex-direction:column;overflow:hidden;">
       <div class="ss-toolbar">
         <select id="ssCategoryFilter" onchange="filterSsGrid()">
           <option value="">전체 카테고리</option>
@@ -248,10 +248,6 @@
           oninput="filterSsGrid()" />
         <button class="btn btn-sm btn-primary" onclick="filterSsGrid()">
           <i class="ti ti-search"></i> 조회
-        </button>
-        <div style="flex:1;"></div>
-        <button class="btn btn-sm btn-primary" onclick="saveSsAll()">
-          <i class="ti ti-device-floppy"></i> 전체 저장
         </button>
       </div>
       <div class="ss-grid-wrap">
@@ -284,7 +280,7 @@
       <button class="m-modal-close" onclick="closeModal('prModal')"><i class="ti ti-x"></i></button>
     </div>
 
-    <div class="m-modal-body" style="padding:0;display:flex;flex-direction:column;overflow:hidden;">
+    <div class="m-modal-body" style="padding:0;gap:0;display:flex;flex-direction:column;overflow:hidden;">
       <!-- 검색 툴바 -->
       <div class="pr-modal-toolbar">
         <select id="pr_category">
