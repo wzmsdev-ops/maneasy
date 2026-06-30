@@ -796,7 +796,7 @@
       // 팀원 업무 + 일지 병렬 조회
       const [{ data: tasks }, { data: journals }] = await Promise.all([
         supabaseClient.from('task_items').select('*').in('user_email', emails)
-          .gte('start_date', teamWeekStart).lte('start_date', we),
+          .gte('start_date', teamWeekStart).lte('start_date', we).order('start_date'),
         supabaseClient.from('task_journals').select('*').in('user_email', emails)
           .eq('week_start', teamWeekStart)
       ]);
@@ -931,25 +931,25 @@
     const we      = getWeekEnd(teamWeekStart);
 
     document.getElementById('memberDetailTitle').innerHTML =
-      `<i class="ti ti-user"></i> ${esc(info.user_name||'')} <span style="font-weight:400;color:#9ca3af;font-size:12px;">· ${esc(info.clinic_name||'')} · ${fmt(teamWeekStart)} ~ ${fmt(we)}</span>`;
+      `<i class="ti ti-user"></i> ${esc(info.user_name||'')} <span style="font-weight:400;color:#9ca3af;font-size:13px;">· ${esc(info.clinic_name||'')} · ${fmt(teamWeekStart)} ~ ${fmt(we)}</span>`;
 
     const grouped = {};
     tasks.forEach(t => { (grouped[CATEGORIES[t.category]||t.category||'기타'] = grouped[CATEGORIES[t.category]||t.category||'기타'] || []).push(t); });
 
     const taskHtml = Object.entries(grouped).map(([cat, ts]) => `
-      <div style="margin-bottom:10px;">
-        <div style="font-size:11px;font-weight:700;color:#6b7280;margin-bottom:5px;">${esc(cat)}</div>
+      <div style="margin-bottom:14px;">
+        <div style="font-size:13px;font-weight:700;color:#6b7280;margin-bottom:7px;">${esc(cat)}</div>
         ${ts.map(t => `
-          <div class="task-item-card ${t.status==='DONE'?'done':''} ${t.priority==='HIGH'?'high':''}" style="margin-bottom:6px;cursor:default;">
-            <div class="task-item-title">
-              <span class="task-status-badge ${t.status}">${STATUS_LABEL[t.status]||t.status}</span>
-              ${t.priority==='HIGH'?'<span style="color:#dc2626;font-size:10px;">⚡</span>':''}
+          <div class="task-item-card ${t.status==='DONE'?'done':''} ${t.priority==='HIGH'?'high':''}" style="margin-bottom:8px;cursor:default;padding:12px 14px;">
+            <div class="task-item-title" style="font-size:14px;">
+              <span class="task-status-badge ${t.status}" style="font-size:11px;padding:2px 7px;">${STATUS_LABEL[t.status]||t.status}</span>
+              ${t.priority==='HIGH'?'<span style="color:#dc2626;font-size:12px;">⚡</span>':''}
               ${esc(t.title)}
             </div>
-            <div class="task-item-meta">${t.start_date}${t.end_date&&t.end_date!==t.start_date?' ~ '+t.end_date:''}</div>
-            ${t.description?`<div style="font-size:11px;color:#6b7280;margin-top:4px;white-space:pre-wrap;">${esc(t.description)}</div>`:''}
+            <div class="task-item-meta" style="font-size:11px;">${t.start_date}${t.end_date&&t.end_date!==t.start_date?' ~ '+t.end_date:''}</div>
+            ${t.description?`<div style="font-size:12px;color:#6b7280;margin-top:6px;white-space:pre-wrap;line-height:1.5;">${esc(t.description)}</div>`:''}
           </div>`).join('')}
-      </div>`).join('') || '<div style="text-align:center;color:#9ca3af;font-size:12px;padding:30px 0;">등록된 업무가 없습니다.</div>';
+      </div>`).join('') || '<div style="text-align:center;color:#9ca3af;font-size:13px;padding:40px 0;">등록된 업무가 없습니다.</div>';
 
     const attendInfo = journal ? [
       journal.early_work_this==='Y' ? '조기출근' : '',
@@ -959,13 +959,13 @@
 
     document.getElementById('memberDetailBody').innerHTML = `
       ${taskHtml}
-      <div style="margin-top:14px;padding-top:12px;border-top:1px solid #f0f0f0;">
-        <div style="font-size:11px;font-weight:700;color:#374151;margin-bottom:5px;">📋 근태사항</div>
-        <div style="font-size:12px;color:#374151;">${esc(attendInfo || '-')}</div>
+      <div style="margin-top:18px;padding-top:14px;border-top:1px solid #f0f0f0;">
+        <div style="font-size:13px;font-weight:700;color:#374151;margin-bottom:6px;">📋 근태사항</div>
+        <div style="font-size:13px;color:#374151;line-height:1.5;">${esc(attendInfo || '-')}</div>
       </div>
-      <div style="margin-top:12px;">
-        <div style="font-size:11px;font-weight:700;color:#374151;margin-bottom:5px;">📝 이슈 / 건의사항</div>
-        <div style="font-size:12px;color:#374151;white-space:pre-wrap;">${esc(journal?.issues || '-')}</div>
+      <div style="margin-top:16px;">
+        <div style="font-size:13px;font-weight:700;color:#374151;margin-bottom:6px;">📝 이슈 / 건의사항</div>
+        <div style="font-size:13px;color:#374151;white-space:pre-wrap;line-height:1.5;">${esc(journal?.issues || '-')}</div>
       </div>`;
 
     document.getElementById('memberDetailModal').classList.add('is-open');
