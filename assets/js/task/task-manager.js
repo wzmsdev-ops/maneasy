@@ -844,11 +844,12 @@
         const dirtyBadge = (isClosed && isDirty)
           ? `<span style="font-size:9px;color:#dc2626;font-weight:700;margin-left:5px;" title="마감 이후 업무/근태/이슈가 추가되거나 수정됐습니다. 출력물에는 마감 시점 데이터만 반영됩니다.">⚠</span>` : '';
 
-        const outputBtns = (isClosed && allClosed)
-          ? `<button class="btn btn-sm" style="font-size:11px;height:24px;padding:0 8px;" onclick="printJournalOutput('${m.email}')"><i class="ti ti-printer"></i></button>
-             <button class="btn btn-sm" style="font-size:11px;height:24px;padding:0 8px;" onclick="exportJournalExcel('${m.email}')"><i class="ti ti-file-spreadsheet"></i></button>`
+        const excelBtn = `<button class="btn btn-sm" style="font-size:11px;height:24px;padding:0 8px;" onclick="exportJournalExcel('${m.email}')" title="엑셀 출력"><i class="ti ti-file-spreadsheet"></i></button>`;
+        const pdfBtn = (isClosed && allClosed)
+          ? `<button class="btn btn-sm" style="font-size:11px;height:24px;padding:0 8px;" onclick="printJournalOutput('${m.email}')" title="PDF 출력"><i class="ti ti-file-type-pdf"></i></button>`
           : (isClosed && !allClosed
-              ? `<span style="font-size:9px;color:#9ca3af;">전원 마감 후 출력</span>` : '');
+              ? `<span style="font-size:9px;color:#9ca3af;align-self:center;">전원 마감 후 PDF</span>` : '');
+        const outputBtns = excelBtn + pdfBtn;
         const manageBtn = isManager
           ? (isClosed
               ? `<button class="btn btn-sm" style="font-size:11px;height:24px;padding:0 8px;" onclick="reopenJournal('${m.email}')">마감해제</button>`
@@ -1067,11 +1068,38 @@
     win.document.close();
   };
 
-  window.exportJournalExcel = function(email) {
-    if (!_teamAllClosed) { showMessage('팀원 전원이 마감된 이후에 출력할 수 있습니다.', 'error'); return; }
-    if (!window.XLSX) { showMessage('엑셀 라이브러리를 불러오지 못했습니다.', 'error'); return; }
+  /** 마감 스냅샷이 있으면 그걸, 없으면 현재 라이브 데이터를 같은 모양으로 반환 (엑셀은 상시 출력 가능) */
+  function getJournalExportData(email) {
     const snap = getJournalSnapshot(email);
-    if (!snap) { showMessage('출력할 마감 데이터가 없습니다.', 'error'); return; }
+    if (snap) return { data: snap, isSnapshot: true };
+
+    const journal = _teamJournalMap[email];
+    const liveTasks = _teamTasksMap[email] || [];
+    const info = _teamMemberInfoMap[email] || {};
+    return {
+      isSnapshot: false,
+      data: {
+        captured_at: new Date().toISOString(),
+        user_name: info.user_name || '',
+        clinic_name: info.clinic_name || '',
+        week_start: teamWeekStart,
+        week_end: getWeekEnd(teamWeekStart),
+        tasks: liveTasks.map(t => ({
+          category: CATEGORIES[t.category] || t.category || '기타',
+          title: t.title, status: t.status, priority: t.priority,
+          start_date: t.start_date, end_date: t.end_date, description: t.description || '',
+        })),
+        early_work_this: journal?.early_work_this || 'N',
+        sat_work_this: journal?.sat_work_this || 'N',
+        attendance_this_week: journal?.attendance_this_week || '',
+        issues: journal?.issues || '',
+      },
+    };
+  }
+
+  window.exportJournalExcel = function(email) {
+    if (!window.XLSX) { showMessage('엑셀 라이브러리를 불러오지 못했습니다.', 'error'); return; }
+    const { data: snap, isSnapshot } = getJournalExportData(email);
 
     const attendInfo = [
       snap.early_work_this==='Y' ? '조기출근' : '',
@@ -1080,8 +1108,9 @@
     ].filter(Boolean).join(' | ') || '-';
 
     const rows = [
-      ['업무일지 (마감)'],
-      [`${snap.user_name} · ${snap.clinic_name||''}`, `${snap.week_start} ~ ${snap.week_end}`, `마감: ${new Date(snap.captured_at).toLocaleString('ko-KR')}`],
+      [isSnapshot ? '업무일지 (마감)' : '업무일지 (작성중 — 마감 전 임시 출력)'],
+      [`${snap.user_name} · ${snap.clinic_name||''}`, `${snap.week_start} ~ ${snap.week_end}`,
+        isSnapshot ? `마감: ${new Date(snap.captured_at).toLocaleString('ko-KR')}` : `출력: ${new Date(snap.captured_at).toLocaleString('ko-KR')}`],
       [],
       ['카테고리', '업무', '상태', '기간'],
       ...snap.tasks.map(t => [t.category, t.title + (t.priority==='HIGH'?' (긴급)':''), STATUS_LABEL[t.status]||t.status, t.end_date&&t.end_date!==t.start_date?`${t.start_date}~${t.end_date}`:t.start_date]),
@@ -1096,6 +1125,7 @@
     window.XLSX.utils.book_append_sheet(wb, ws, '업무일지');
     window.XLSX.writeFile(wb, `업무일지_${snap.user_name}_${snap.week_start}.xlsx`);
   };
+
   async function runSearch() {
     const keyword = document.getElementById('searchKeyword').value.trim();
     const from    = document.getElementById('searchFrom').value;
