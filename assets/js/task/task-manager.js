@@ -78,6 +78,8 @@
     // 엑셀 버튼 manager/admin만
     if (isManager) {
       document.getElementById('exportExcelBtn').style.display = '';
+      document.getElementById('bulkCloseBtn').style.display = '';
+      document.getElementById('bulkCloseBtn').addEventListener('click', bulkCloseJournals);
       document.getElementById('manageCatBtn').style.display = '';
       document.getElementById('manageCatBtn').addEventListener('click', openCatModal);
     }
@@ -710,6 +712,7 @@
   /* ══ 팀 현황 ═════════════════════════════════════ */
   let _teamJournalMap = {}; // { email: journal row } — 출력 버튼에서 스냅샷 읽기용
   let _teamMemberInfoMap = {}; // { email: { user_name, clinic_name } }
+  let _teamAllClosed = false; // 현재 표시 중인 주, 팀원 전원 마감 여부
 
   /** 마감 시점 스냅샷(journal.content) 이후 라이브 데이터가 바뀌었는지 체크 */
   function isJournalDirty(journal, liveTasks) {
@@ -787,6 +790,11 @@
       const grid = document.getElementById('teamGrid');
       _teamJournalMap = {};
       _teamMemberInfoMap = {};
+
+      // 전원 마감 여부 — 전체 마감 전에는 개별 출력도 막음
+      const allClosed = members.every(m => (journals||[]).find(j => j.user_email === m.email)?.status === 'CLOSED');
+      _teamAllClosed = allClosed;
+
       grid.innerHTML = members.map(m => {
         const mTasks   = (tasks||[]).filter(t => t.user_email === m.email);
         const journal  = (journals||[]).find(j => j.user_email === m.email);
@@ -824,10 +832,11 @@
         const dirtyBadge = (isClosed && isDirty)
           ? `<span style="font-size:9px;color:#dc2626;font-weight:700;margin-left:5px;" title="마감 이후 업무/근태/이슈가 추가되거나 수정됐습니다. 출력물에는 마감 시점 데이터만 반영됩니다.">⚠ 마감 후 수정됨</span>` : '';
 
-        const outputBtns = isClosed
+        const outputBtns = (isClosed && allClosed)
           ? `<button class="btn btn-sm" style="font-size:11px;height:26px;" onclick="printJournalOutput('${m.email}')"><i class="ti ti-printer"></i> 화면출력</button>
              <button class="btn btn-sm" style="font-size:11px;height:26px;" onclick="exportJournalExcel('${m.email}')"><i class="ti ti-file-spreadsheet"></i> 엑셀출력</button>`
-          : '';
+          : (isClosed && !allClosed
+              ? `<span style="font-size:10px;color:#9ca3af;">전원 마감 후 출력 가능</span>` : '');
         const manageBtn = isManager
           ? (isClosed
               ? `<button class="btn btn-sm" style="font-size:11px;height:26px;" onclick="reopenJournal('${m.email}')">마감해제</button>`
@@ -857,9 +866,8 @@
     }
   }
 
-  window.closeJournal = async function(email) {
-    if (!confirm(`${email} 님의 업무일지를 마감하시겠습니까?\n현재 시점의 업무/근태/이슈가 출력물로 고정 저장됩니다.\n(마감 후에도 본인은 계속 수정할 수 있지만, 출력물에는 반영되지 않습니다.)`)) return;
-
+  /** 한 명의 업무일지를 마감 — 스냅샷 캡처 후 저장 (confirm/메시지 없이, 재사용용 코어) */
+  async function captureAndCloseJournal(email) {
     const we = getWeekEnd(teamWeekStart);
     const nowIso = new Date().toISOString();
 
@@ -901,8 +909,32 @@
         user_email: email, week_start: teamWeekStart, week_end: we, ...payload,
       });
     }
+  }
+
+  window.closeJournal = async function(email) {
+    if (!confirm(`${email} 님의 업무일지를 마감하시겠습니까?\n현재 시점의 업무/근태/이슈가 출력물로 고정 저장됩니다.\n(마감 후에도 본인은 계속 수정할 수 있지만, 출력물에는 반영되지 않습니다.)`)) return;
+    await captureAndCloseJournal(email);
     showMessage('마감됐습니다. 현재 시점 데이터가 출력물로 저장됐습니다.', 'success');
     loadTeamView();
+  };
+
+  window.bulkCloseJournals = async function() {
+    const emails = Object.keys(_teamMemberInfoMap);
+    if (!emails.length) { showMessage('팀원이 없습니다.', 'error'); return; }
+    const pending = emails.filter(e => _teamJournalMap[e]?.status !== 'CLOSED');
+    if (!pending.length) { showMessage('이미 전원 마감되어 있습니다.', 'success'); return; }
+    if (!confirm(`아직 마감되지 않은 ${pending.length}명을 한꺼번에 마감하시겠습니까?\n각자의 현재 시점 데이터가 출력물로 고정 저장됩니다.`)) return;
+
+    showGlobalLoading('일괄 마감 처리 중...');
+    try {
+      for (const email of pending) {
+        await captureAndCloseJournal(email);
+      }
+      showMessage(`${pending.length}명 일괄 마감됐습니다.`, 'success');
+      loadTeamView();
+    } finally {
+      hideGlobalLoading();
+    }
   };
 
   window.reopenJournal = async function(email) {
@@ -922,6 +954,7 @@
   }
 
   window.printJournalOutput = function(email) {
+    if (!_teamAllClosed) { showMessage('팀원 전원이 마감된 이후에 출력할 수 있습니다.', 'error'); return; }
     const snap = getJournalSnapshot(email);
     if (!snap) { showMessage('출력할 마감 데이터가 없습니다.', 'error'); return; }
 
@@ -971,6 +1004,7 @@
   };
 
   window.exportJournalExcel = function(email) {
+    if (!_teamAllClosed) { showMessage('팀원 전원이 마감된 이후에 출력할 수 있습니다.', 'error'); return; }
     if (!window.XLSX) { showMessage('엑셀 라이브러리를 불러오지 못했습니다.', 'error'); return; }
     const snap = getJournalSnapshot(email);
     if (!snap) { showMessage('출력할 마감 데이터가 없습니다.', 'error'); return; }
