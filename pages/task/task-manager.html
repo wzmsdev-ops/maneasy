@@ -122,7 +122,18 @@
       background: #f8fafc; flex-shrink: 0;
     }
     .cal-detail-date { font-size: 13px; font-weight: 700; color: #111827; }
-    .cal-detail-body { flex: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 10px; }
+    .cal-detail-body {
+      flex: 1; min-height: 0; overflow: hidden;
+      display: flex; flex-direction: column;
+    }
+    .cal-detail-tasks {
+      flex: 1; min-height: 0; overflow-y: auto;
+      padding: 10px; display: flex; flex-direction: column; gap: 10px;
+    }
+    .cal-detail-fixed {
+      flex-shrink: 0; padding: 10px; border-top: 1px solid #e5e7eb;
+      background: #fafbfc; display: flex; flex-direction: column; gap: 10px;
+    }
 
     /* 업무 목록 */
     .task-item-card {
