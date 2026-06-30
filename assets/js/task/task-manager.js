@@ -853,19 +853,13 @@
         const dirtyBadge = (isClosed && isDirty)
           ? `<span style="font-size:9px;color:#dc2626;font-weight:700;margin-left:5px;" title="마감 이후 업무/근태/이슈가 추가되거나 수정됐습니다. 출력물에는 마감 시점 데이터만 반영됩니다.">⚠</span>` : '';
 
-        const excelBtn = `<button class="btn btn-sm" style="font-size:11px;height:24px;padding:0 8px;" onclick="exportJournalExcel('${m.email}')" title="엑셀 출력"><i class="ti ti-file-spreadsheet"></i></button>`;
-        const pdfBtn = (isClosed && allClosed)
-          ? `<button class="btn btn-sm" style="font-size:11px;height:24px;padding:0 8px;" onclick="printJournalOutput('${m.email}')" title="PDF 출력"><i class="ti ti-file-type-pdf"></i></button>`
-          : (isClosed && !allClosed
-              ? `<span style="font-size:9px;color:#9ca3af;align-self:center;">전원 마감 후 PDF</span>` : '');
-        const outputBtns = excelBtn + pdfBtn;
         const manageBtn = isManager
           ? (isClosed
               ? `<button class="btn btn-sm" style="font-size:11px;height:24px;padding:0 8px;" onclick="reopenJournal('${m.email}')">마감해제</button>`
               : `<button class="btn btn-sm btn-primary" style="font-size:11px;height:24px;padding:0 8px;" onclick="closeJournal('${m.email}')">마감</button>`)
           : '';
-        const footerHtml = (outputBtns || manageBtn)
-          ? `<div class="team-card-footer" onclick="event.stopPropagation()">${outputBtns}${manageBtn}</div>` : '';
+        const footerHtml = manageBtn
+          ? `<div class="team-card-footer" onclick="event.stopPropagation()">${manageBtn}</div>` : '';
 
         return `<div class="team-member-card" onclick="openMemberDetail('${m.email}')">
           <div class="team-card-header">
