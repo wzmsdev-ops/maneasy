@@ -272,8 +272,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       manager: [...ROLE_BASE_PAGES, 'equipment/form', 'materials/procurement', 'materials/stock', 'signage/manage'],
       admin:   [...ROLE_BASE_PAGES, 'equipment/form', 'materials/procurement', 'materials/stock', 'master/org', 'master/supply', 'signage/manage'],
     };
-    const allowedPages = user.allowed_pages && user.allowed_pages.length
-      ? user.allowed_pages
+    const allowedPages = (user.page_perms && Object.keys(user.page_perms).length)
+      ? Object.keys(user.page_perms).filter(function(k) { return user.page_perms[k] && user.page_perms[k] !== '접근불가'; })
       : (ROLE_DEFAULT_PAGES[user.role] || ROLE_DEFAULT_PAGES.user);
     window.__allowedPages = allowedPages; // navigate()에서 직접 URL 진입 막을 때도 재사용
 
