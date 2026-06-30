@@ -15,7 +15,13 @@
   <style>
     html, body { background:#f0f2f5; }
 
-    /* 제작 종류 탭 (procurement 패턴) */
+    /* 상단 액션바 (다른 페이지와 동일 패턴) */
+    .ap-actionbar {
+      display:flex; align-items:center; gap:8px;
+      background:#fff; border:1px solid #e5e7eb; border-radius:8px;
+      padding:7px 12px; flex-shrink:0; height:44px; box-sizing:border-box;
+    }
+    .ap-actionbar .spacer { flex:1; }
     .ap-type-tabs { display:flex; gap:2px; background:#e5e7eb; border-radius:8px; padding:3px; flex-shrink:0; }
     .ap-type-tabs .tab-btn {
       flex:1; height:34px; border:none; background:transparent; border-radius:6px;
@@ -86,6 +92,18 @@
 <body class="equipment-form-page">
 <div class="eform-page">
 
+  <!-- 액션바 -->
+  <div class="ap-actionbar">
+    <span style="font-size:12px;font-weight:700;color:#374151;"><i class="ti ti-rubber-stamp" style="margin-right:4px;"></i>사인물 / 명판 제작 신청</span>
+    <div class="spacer"></div>
+    <button type="button" class="btn btn-sm" onclick="parent.shellNavigate && parent.shellNavigate('signage/history')">
+      <i class="ti ti-list-check"></i> 신청내역 보기
+    </button>
+    <button type="button" class="btn btn-sm btn-primary" id="srSaveBtn">
+      <i class="ti ti-send"></i> 신청 제출
+    </button>
+  </div>
+
   <!-- 제작 종류 탭 -->
   <div class="ap-type-tabs" id="apTypeTabs">
     <button type="button" class="tab-btn active" data-type="SIGN">일반 사인물</button>
@@ -104,14 +122,6 @@
             <i class="ti ti-info-circle"></i>
             <span>기본 정보</span>
             <span class="eform-section-desc">신청자 및 공통 정보</span>
-            <div class="eform-section-head-actions">
-              <button type="button" class="btn btn-sm" onclick="parent.shellNavigate && parent.shellNavigate('signage/history')">
-                <i class="ti ti-list-check"></i> 신청내역 보기
-              </button>
-              <button type="button" class="btn btn-sm btn-primary" id="srSaveBtn">
-                <i class="ti ti-send"></i> 신청 제출
-              </button>
-            </div>
           </div>
           <div class="eform-grid eform-grid--2">
             <div class="form-field eform-full">
