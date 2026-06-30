@@ -28,7 +28,7 @@ var NAMEPLATE_IMG_BASE = '../../assets/images/nameplate/';
 var MAX_SINGLE_BYTES = 10 * 1024 * 1024;
 var MAX_TOTAL_BYTES  = 20 * 1024 * 1024;
 
-var srType = '';
+var srType = 'SIGN';
 var srNpType = '';
 var srNpSubtype = '';
 var srNpLayout = null;
@@ -39,36 +39,21 @@ function setVal(id, v) { var el = document.getElementById(id); if (el) el.value 
 function fmtSize(b)    { if (b < 1024) return b + ' B'; if (b < 1024*1024) return (b/1024).toFixed(1) + ' KB'; return (b/(1024*1024)).toFixed(1) + ' MB'; }
 function ts(v)         { return String(v == null ? '' : v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
-function bindTypeSelector() {
-  document.querySelectorAll('input[name="sr_type"]').forEach(function(radio) {
-    radio.addEventListener('change', function(e) {
-      srType = e.target.value;
-      document.querySelectorAll('.sr-type-card').forEach(function(c) { c.classList.remove('is-selected'); });
-      document.getElementById('srTypeCard_' + srType)?.classList.add('is-selected');
-      document.getElementById('srSectionCommon').style.display = '';
-      document.getElementById('apFoot').style.display = '';
+/* ── 제작 종류 탭 ── */
+function bindTypeTabs() {
+  document.querySelectorAll('#apTypeTabs .tab-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      srType = btn.dataset.type;
+      document.querySelectorAll('#apTypeTabs .tab-btn').forEach(function(b) { b.classList.remove('active'); });
+      btn.classList.add('active');
 
       var titleEl = document.getElementById('sr_title');
       titleEl.placeholder = srType === 'SIGN'
         ? '예: [A3 포맥스], [바닥 스티커] 등 제작 품목명을 입력하세요.'
         : '예: [명패] MD / 홍길동 / 부인과';
 
-      srNpType = ''; srNpSubtype = ''; srNpLayout = null;
-      document.querySelectorAll('.sr-np-card, .sr-method-card, .sr-layout-card, .sr-magnet-card')
-        .forEach(function(c) { c.classList.remove('is-selected'); });
-      document.getElementById('srNpSubSection').style.display = 'none';
-      document.getElementById('srNpImgWrap').style.display = 'none';
-      document.getElementById('srMethodSection').style.display = 'none';
-      document.getElementById('srLayoutSection').style.display = 'none';
-      document.getElementById('srNpTextSection').style.display = 'none';
-
-      if (srType === 'SIGN') {
-        document.getElementById('srSectionSign').style.display = '';
-        document.getElementById('srSectionNameplate').style.display = 'none';
-      } else {
-        document.getElementById('srSectionSign').style.display = 'none';
-        document.getElementById('srSectionNameplate').style.display = '';
-      }
+      document.getElementById('srPanelSign').style.display = srType === 'SIGN' ? '' : 'none';
+      document.getElementById('srPanelNameplate').style.display = srType === 'NAMEPLATE' ? '' : 'none';
     });
   });
 }
@@ -79,12 +64,13 @@ function bindUrgentToggle() {
   });
 }
 
+/* ── 명판 타입/서브타입/방식/레이아웃/자석 ── */
 function bindNameplateTypeSelector() {
   document.querySelectorAll('input[name="sr_np_type"]').forEach(function(radio) {
     radio.addEventListener('change', function(e) {
       srNpType = e.target.value;
       srNpSubtype = ''; srNpLayout = null;
-      document.querySelectorAll('.sr-np-card').forEach(function(c) { c.classList.remove('is-selected'); });
+      document.querySelectorAll('#srNpTypeGrid .ap-pick-card').forEach(function(c) { c.classList.remove('is-selected'); });
       document.getElementById('srNpCard_' + srNpType)?.classList.add('is-selected');
 
       renderSubtypeGrid(srNpType);
@@ -100,7 +86,7 @@ function bindNameplateTypeSelector() {
 
   document.querySelectorAll('input[name="sr_np_method"]').forEach(function(radio) {
     radio.addEventListener('change', function(e) {
-      document.querySelectorAll('.sr-method-card').forEach(function(c) { c.classList.remove('is-selected'); });
+      document.querySelectorAll('#srMethodSection .ap-pick-card').forEach(function(c) { c.classList.remove('is-selected'); });
       document.getElementById('srMethodCard_' + e.target.value)?.classList.add('is-selected');
       renderLayoutGrid();
     });
@@ -108,7 +94,7 @@ function bindNameplateTypeSelector() {
 
   document.querySelectorAll('input[name="sr_magnet"]').forEach(function(radio) {
     radio.addEventListener('change', function(e) {
-      document.querySelectorAll('.sr-magnet-card').forEach(function(c) { c.classList.remove('is-selected'); });
+      document.querySelectorAll('#srNpTextSection .ap-pick-card[id^="srMagnetCard_"]').forEach(function(c) { c.classList.remove('is-selected'); });
       document.getElementById('srMagnetCard_' + e.target.value)?.classList.add('is-selected');
     });
   });
@@ -118,16 +104,16 @@ function renderSubtypeGrid(type) {
   var grid = document.getElementById('srNpSubGrid');
   var subtypes = NP_SUBTYPES[type] || [];
   grid.innerHTML = subtypes.map(function(sub) {
-    return '<label class="sr-np-card" id="srSubCard_' + type + '_' + sub + '">' +
-      '<input type="radio" name="sr_np_subtype" value="' + sub + '" class="sr-sr-only" />' +
-      '<div class="sr-np-badge">' + type + '-' + sub + '</div></label>';
+    return '<label class="ap-pick-card" id="srSubCard_' + type + '_' + sub + '">' +
+      '<input type="radio" name="sr_np_subtype" value="' + sub + '" class="ap-sr-only" />' +
+      '<div class="ap-pick-badge">' + type + '-' + sub + '</div></label>';
   }).join('');
   document.getElementById('srNpSubSection').style.display = '';
 
   grid.querySelectorAll('input[name="sr_np_subtype"]').forEach(function(radio) {
     radio.addEventListener('change', function(e) {
       srNpSubtype = e.target.value;
-      grid.querySelectorAll('.sr-np-card').forEach(function(c) { c.classList.remove('is-selected'); });
+      grid.querySelectorAll('.ap-pick-card').forEach(function(c) { c.classList.remove('is-selected'); });
       document.getElementById('srSubCard_' + type + '_' + srNpSubtype)?.classList.add('is-selected');
     });
   });
@@ -136,11 +122,11 @@ function renderSubtypeGrid(type) {
 function renderLayoutGrid() {
   var grid = document.getElementById('srLayoutGrid');
   grid.innerHTML = NP_LAYOUTS.map(function(l) {
-    return '<label class="sr-layout-card" id="srLayoutCard_' + l.id + '">' +
-      '<input type="radio" name="sr_np_layout" value="' + l.id + '" class="sr-sr-only" />' +
-      '<div class="sr-layout-shape">' + l.shape + '</div>' +
-      '<div class="sr-layout-label">' + l.label + '</div>' +
-      '<div class="sr-layout-desc">' + l.desc + '</div></label>';
+    return '<label class="ap-pick-card" id="srLayoutCard_' + l.id + '">' +
+      '<input type="radio" name="sr_np_layout" value="' + l.id + '" class="ap-sr-only" />' +
+      '<div class="ap-pick-shape">' + l.shape + '</div>' +
+      '<div class="ap-pick-title">' + l.label + '</div>' +
+      '<div class="ap-pick-desc">' + l.desc + '</div></label>';
   }).join('');
   document.getElementById('srLayoutSection').style.display = '';
 
@@ -148,7 +134,7 @@ function renderLayoutGrid() {
     radio.addEventListener('change', function(e) {
       var layoutId = e.target.value;
       srNpLayout = NP_LAYOUTS.find(function(l) { return l.id === layoutId; }) || null;
-      grid.querySelectorAll('.sr-layout-card').forEach(function(c) { c.classList.remove('is-selected'); });
+      grid.querySelectorAll('.ap-pick-card').forEach(function(c) { c.classList.remove('is-selected'); });
       document.getElementById('srLayoutCard_' + layoutId)?.classList.add('is-selected');
       renderTextFields(srNpLayout);
       document.getElementById('srNpTextSection').style.display = '';
@@ -161,9 +147,9 @@ function renderTextFields(layout) {
   if (!layout) { container.innerHTML = ''; return; }
   container.innerHTML = layout.fields.map(function(fk) {
     var meta = NP_FIELD_META[fk];
-    return '<label class="form-field">' +
-      '<span class="form-label ' + (meta.required ? 'required' : '') + '">' + meta.label + '</span>' +
-      '<input type="text" id="srNpField_' + fk + '" class="input" placeholder="' + meta.placeholder + '" data-field="' + fk + '" /></label>';
+    return '<div class="form-field">' +
+      '<label class="form-label ' + (meta.required ? 'required' : '') + '">' + meta.label + '</label>' +
+      '<input type="text" id="srNpField_' + fk + '" class="input" placeholder="' + meta.placeholder + '" data-field="' + fk + '" /></div>';
   }).join('');
 }
 
@@ -175,6 +161,7 @@ function buildNameplateText() {
   return '레이아웃: ' + srNpLayout.label + '\n' + parts.join('\n');
 }
 
+/* ── 첨부파일 ── */
 function bindFileInputs() {
   bindFileInput('srFileSign', 'SIGN', 'srFileListSign');
   bindFileInput('srFileNameplate', 'NAMEPLATE', 'srFileListNameplate');
@@ -197,10 +184,10 @@ function bindFileInput(inputId, key, listId) {
 function renderFileList(key, listId) {
   var listEl = document.getElementById(listId);
   listEl.innerHTML = srPendingFiles[key].map(function(f, idx) {
-    return '<div class="sr-file-item"><span>' + ts(f.file.name) + ' (' + fmtSize(f.file.size) + ')</span>' +
-      '<button type="button" class="sr-file-item-remove" data-key="' + key + '" data-idx="' + idx + '">✕</button></div>';
+    return '<div class="ap-file-item"><span>' + ts(f.file.name) + ' (' + fmtSize(f.file.size) + ')</span>' +
+      '<button type="button" class="ap-file-item-remove" data-key="' + key + '" data-idx="' + idx + '">✕</button></div>';
   }).join('');
-  listEl.querySelectorAll('.sr-file-item-remove').forEach(function(btn) {
+  listEl.querySelectorAll('.ap-file-item-remove').forEach(function(btn) {
     btn.addEventListener('click', function() {
       srPendingFiles[btn.dataset.key].splice(Number(btn.dataset.idx), 1);
       renderFileList(btn.dataset.key, listId);
@@ -208,8 +195,8 @@ function renderFileList(key, listId) {
   });
 }
 
+/* ── 제출 ── */
 async function saveSr() {
-  if (!srType) throw new Error('제작 종류를 선택해주세요.');
   if (!val('sr_title')) throw new Error('제목을 입력해주세요.');
   if (!val('sr_requester_name')) throw new Error('이름을 입력해주세요.');
   if (!val('sr_contact')) throw new Error('연락처를 입력해주세요.');
@@ -319,12 +306,13 @@ async function init() {
   if (!session) return;
   currentUser = await auth.getSession();
 
-  bindTypeSelector();
+  bindTypeTabs();
   bindUrgentToggle();
   bindNameplateTypeSelector();
   bindFileInputs();
 
   setVal('sr_requester_name', currentUser.user_name || currentUser.email);
+  document.getElementById('sr_title').placeholder = '예: [A3 포맥스], [바닥 스티커] 등 제작 품목명을 입력하세요.';
 
   document.getElementById('srSaveBtn')?.addEventListener('click', async function() {
     var btn = this; btn.disabled = true;
