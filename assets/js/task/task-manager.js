@@ -828,21 +828,13 @@
           .map(([cat, n]) => `<span class="team-cat-chip">${esc(cat)} ${n}</span>`).join('')
           || '<span class="no-data">등록된 업무가 없습니다.</span>';
 
-        const hasHigh = mTasks.some(t => t.priority === 'HIGH');
-        const doneCnt = mTasks.filter(t => t.status === 'DONE').length;
-
         const attendInfo = journal ? [
           journal.early_work_this==='Y' ? '조기출근' : '',
           journal.sat_work_this==='Y'   ? '토요근무' : '',
           journal.attendance_this_week  ? journal.attendance_this_week : '',
         ].filter(Boolean).join(' | ') : '';
 
-        const metaLine = [
-          mTasks.length ? `완료 ${doneCnt}/${mTasks.length}` : '',
-          hasHigh ? '⚡ 긴급' : '',
-          journal?.issues ? '📝 이슈있음' : '',
-          attendInfo ? `🕒 ${attendInfo}` : '',
-        ].filter(Boolean).join(' · ');
+        const metaLine = attendInfo ? `🕒 ${attendInfo}` : '';
 
         const dirtyBadge = (isClosed && isDirty)
           ? `<span style="font-size:9px;color:#dc2626;font-weight:700;margin-left:5px;" title="마감 이후 업무/근태/이슈가 추가되거나 수정됐습니다. 출력물에는 마감 시점 데이터만 반영됩니다.">⚠</span>` : '';
@@ -1130,9 +1122,9 @@
     rows.forEach(t => { _searchTaskCache[t.task_id] = t; });
 
     const colDefs = [
-      { headerName: '기간', flex: 1, minWidth: 130,
-        valueGetter: p => p.data.end_date && p.data.end_date !== p.data.start_date
-          ? `${p.data.start_date} ~ ${p.data.end_date}` : p.data.start_date },
+      { headerName: '시작일', field: 'start_date', width: 100, flex: 0 },
+      { headerName: '종료일', width: 100, flex: 0,
+        valueGetter: p => p.data.end_date && p.data.end_date !== p.data.start_date ? p.data.end_date : '' },
       { headerName: '상태', field: 'status', width: 80, flex: 0,
         valueFormatter: p => STATUS_LABEL[p.value] || p.value },
       { headerName: '카테고리', field: 'category', flex: 1, minWidth: 90,
