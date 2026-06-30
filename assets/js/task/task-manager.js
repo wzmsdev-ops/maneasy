@@ -298,8 +298,11 @@
   /* ══ 달력 ════════════════════════════════════════ */
   async function loadTeamMembersCache() {
     if (_teamMembersReady || !currentUser.team_code) return;
-    const { data } = await supabaseClient.from('user_profiles_with_email')
-      .select('email, user_name').eq('team_code', currentUser.team_code).eq('active', 'Y');
+    let q = supabaseClient.from('user_profiles_with_email').select('email, user_name').eq('active', 'Y');
+    q = currentUser.team_group_code
+      ? q.eq('team_group_code', currentUser.team_group_code)
+      : q.eq('team_code', currentUser.team_code);
+    const { data } = await q;
     _teamMemberMap = {};
     (data || []).forEach(m => { _teamMemberMap[m.email] = m.user_name; });
     _teamMembersReady = true;
@@ -325,7 +328,9 @@
       .or(`end_date.gte.${monthStart},end_date.is.null`)
       .order('start_date');
     taskQuery = (calViewMode === 'team' && currentUser.team_code)
-      ? taskQuery.eq('team_code', currentUser.team_code)
+      ? (currentUser.team_group_code
+          ? taskQuery.eq('team_group_code', currentUser.team_group_code)
+          : taskQuery.eq('team_code', currentUser.team_code))
       : taskQuery.eq('user_email', currentUser.email);
 
     const [{ data }, { data: journals }] = await Promise.all([
@@ -411,9 +416,11 @@
         const cont = isRange && date !== t.start_date;
         const isMine = t.user_email === currentUser.email;
         const ownerName = _teamMemberMap[t.user_email] || '';
+        const crossClinic = currentUser.team_group_code && t.clinic_code !== currentUser.clinic_code;
+        const ownerLabel = ownerName + (crossClinic && t.clinic_name ? `·${t.clinic_name}` : '');
         const tag = (calViewMode === 'team' && !isMine && ownerName)
-          ? `<span style="color:${tagColorFor(t.user_email)};font-weight:700;">${esc(ownerName)}</span> ` : '';
-        const titleAttr = `${ownerName?esc(ownerName)+' · ':''}${esc(t.title)}${isRange?` (${fmt(t.start_date)}~${fmt(t.end_date)})`:''}`;
+          ? `<span style="color:${tagColorFor(t.user_email)};font-weight:700;">${esc(ownerLabel)}</span> ` : '';
+        const titleAttr = `${ownerLabel?esc(ownerLabel)+' · ':''}${esc(t.title)}${isRange?` (${fmt(t.start_date)}~${fmt(t.end_date)})`:''}`;
         return `<div class="${chipCls.join(' ')}" title="${titleAttr}">${cont?'▸ ':''}${tag}${esc(t.title)}</div>`;
       }).join('');
       const more = tasks.length > 3 ? `<div class="cal-task-chip more">+${tasks.length-3}건</div>` : '';
@@ -477,8 +484,10 @@
       ? tasks.map(t => {
           const isMine = t.user_email === currentUser.email;
           const ownerName = _teamMemberMap[t.user_email] || '';
+          const crossClinic = currentUser.team_group_code && t.clinic_code !== currentUser.clinic_code;
+          const ownerLabel = ownerName + (crossClinic && t.clinic_name ? `·${t.clinic_name}` : '');
           const ownerTag = (calViewMode === 'team' && !isMine && ownerName)
-            ? `<span style="color:${tagColorFor(t.user_email)};font-weight:700;font-size:10px;">[${esc(ownerName)}]</span> ` : '';
+            ? `<span style="color:${tagColorFor(t.user_email)};font-weight:700;font-size:10px;">[${esc(ownerLabel)}]</span> ` : '';
           const clickAttr = isMine ? `onclick="openTaskModal('${t.task_id}')"` : '';
           return `
         <div class="task-item-card ${t.status==='DONE'?'done':''} ${t.priority==='HIGH'?'high':''}" ${!isMine?'style="cursor:default;opacity:0.85;"':''}
@@ -661,6 +670,7 @@
       clinic_name:     currentUser.clinic_name || '',
       team_code:       currentUser.team_code   || '',
       team_name:       currentUser.team_name   || '',
+      team_group_code: currentUser.team_group_code || '',
       work_clinic_code: workClinicCode,
       work_clinic_name: workClinicName,
       updated_at:      new Date().toISOString(),
@@ -705,9 +715,14 @@
     showGlobalLoading('팀 현황을 불러오는 중...');
     try {
       // 팀원 조회 — 정렬은 JS에서 처리(권한 기준)
-      const { data: members } = await supabaseClient.from('user_profiles_with_email')
-        .select('id, user_name, email, clinic_code, clinic_name, team_code, allowed_pages, role')
-        .eq('team_code', currentUser.team_code).eq('active', 'Y');
+      // team_group_code가 설정된 부서(MSO 등)는 의원이 달라도 같은 그룹으로 묶어서 조회
+      let memberQuery = supabaseClient.from('user_profiles_with_email')
+        .select('id, user_name, email, clinic_code, clinic_name, team_code, team_group_code, allowed_pages, role')
+        .eq('active', 'Y');
+      memberQuery = currentUser.team_group_code
+        ? memberQuery.eq('team_group_code', currentUser.team_group_code)
+        : memberQuery.eq('team_code', currentUser.team_code);
+      const { data: members } = await memberQuery;
 
       if (!members?.length) {
         document.getElementById('teamGrid').innerHTML =
@@ -888,10 +903,14 @@
       const nextWS = offsetWeek(teamWeekStart, 1);
       const nextWE = getWeekEnd(nextWS);
 
-      // 팀원 조회
-      const { data: members } = await supabaseClient.from('user_profiles_with_email')
-        .select('id, user_name, email, clinic_code, clinic_name, team_code')
-        .eq('team_code', currentUser.team_code).eq('active', 'Y').order('user_name');
+      // 팀원 조회 — team_group_code(MSO 등 공유그룹)가 설정돼 있으면 의원 경계 넘어 조회
+      let exMemberQuery = supabaseClient.from('user_profiles_with_email')
+        .select('id, user_name, email, clinic_code, clinic_name, team_code, team_group_code')
+        .eq('active', 'Y').order('user_name');
+      exMemberQuery = currentUser.team_group_code
+        ? exMemberQuery.eq('team_group_code', currentUser.team_group_code)
+        : exMemberQuery.eq('team_code', currentUser.team_code);
+      const { data: members } = await exMemberQuery;
       if (!members?.length) { showMessage('팀원이 없습니다.', 'error'); return; }
 
       const emails = members.map(m => m.email);
