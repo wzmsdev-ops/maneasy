@@ -14,7 +14,6 @@
   </script>
   <style>
     html, body { background:#f0f2f5; }
-    .ap-page { display:flex; flex-direction:column; height:100%; overflow:hidden; padding:8px 14px; gap:8px; box-sizing:border-box; }
 
     /* 제작 종류 탭 (procurement 패턴) */
     .ap-type-tabs { display:flex; gap:2px; background:#e5e7eb; border-radius:8px; padding:3px; flex-shrink:0; }
@@ -27,13 +26,7 @@
     .ap-type-tabs .tab-btn:hover { background:rgba(255,255,255,0.6); color:#374151; }
     .ap-type-tabs .tab-btn.active { background:#fff; color:var(--navy); box-shadow:0 1px 3px rgba(0,0,0,0.08); }
 
-    /* 2단 본문 */
-    .ap-row { flex:1; min-height:0; display:grid; grid-template-columns:1fr 1fr; gap:8px; }
-    .ap-col { display:flex; flex-direction:column; min-height:0; overflow:hidden; }
-    .ap-col .eform-section { flex:1; display:flex; flex-direction:column; min-height:0; overflow:hidden; }
-    .ap-col .eform-section-head { flex-shrink:0; }
-    .ap-col-body { flex:1; min-height:0; overflow-y:auto; }
-    .ap-col .eform-grid { grid-template-columns: repeat(2, 1fr); align-content:start; }
+    .eform-grid { grid-template-columns: repeat(2, 1fr); }
     .eform-full { grid-column: 1 / -1; }
 
     .ap-checkbox-row { display:flex; align-items:center; gap:8px; }
@@ -57,21 +50,24 @@
     .ap-pick-shape { font-size:16px; font-weight:800; color:var(--navy); }
     .ap-sr-only { position:absolute; opacity:0; width:0; height:0; }
 
-    .ap-subsection-title { font-size:11px; font-weight:700; color:#6b7280; margin:12px 0 6px; padding:0 14px; }
-    .ap-subsection-title:first-child { margin-top:12px; }
-    .ap-np-body { padding:0 14px 14px; }
-
+    .ap-subsection-title { font-size:11px; font-weight:700; color:#6b7280; margin:12px 14px 6px; }
+    .ap-np-body { padding:12px 14px; overflow-y:auto; flex:1; min-height:0; }
     .ap-np-img-wrap { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:0 0 4px; }
     .ap-np-img-wrap img { width:100%; border:1px solid #e5e7eb; border-radius:8px; display:block; }
 
-    .ap-upload-row { display:flex; align-items:center; gap:10px; flex-wrap:wrap; padding:8px; border:1px dashed #d1d5db; border-radius:8px; background:#fafafa; }
-    .ap-file-list { display:flex; flex-direction:column; gap:4px; margin-top:6px; }
-    .ap-file-item { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:5px 10px; background:#fff; border:1px solid #e5e7eb; border-radius:6px; font-size:11px; }
-    .ap-file-item-remove { border:none; background:none; color:#ef4444; cursor:pointer; font-size:13px; }
+    /* 하단 첨부파일 영역 (장비등록의 eform-photo-row와 동일한 위치/역할) */
+    .ap-file-row { flex:1; min-height:0; display:flex; flex-direction:column; overflow:hidden; }
+    .ap-file-row .eform-section-head { flex-shrink:0; }
+    .ap-file-body { flex:1; min-height:0; padding:14px; display:flex; flex-direction:column; gap:10px; }
+    .ap-upload-row { display:flex; align-items:center; gap:10px; flex-wrap:wrap; padding:10px; border:1px dashed #d1d5db; border-radius:8px; background:#fafafa; flex-shrink:0; }
+    .ap-file-list { flex:1; min-height:0; overflow-y:auto; display:flex; flex-direction:column; gap:4px; }
+    .ap-file-item { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:6px 12px; background:#fff; border:1px solid #e5e7eb; border-radius:6px; font-size:12px; }
+    .ap-file-item-remove { border:none; background:none; color:#ef4444; cursor:pointer; font-size:14px; }
+    .ap-file-empty { flex:1; display:flex; align-items:center; justify-content:center; color:#9ca3af; font-size:12px; }
   </style>
 </head>
 <body class="equipment-form-page">
-<div class="ap-page">
+<div class="eform-page">
 
   <!-- 제작 종류 탭 -->
   <div class="ap-type-tabs" id="apTypeTabs">
@@ -79,27 +75,28 @@
     <button type="button" class="tab-btn" data-type="NAMEPLATE"><i class="ti ti-id-badge"></i> 규격 명판</button>
   </div>
 
-  <!-- 2단 본문 -->
-  <div class="ap-row">
+  <div class="eform-body eform-body--2col">
 
-    <!-- 좌: 기본 정보 -->
-    <div class="ap-col">
-      <div class="eform-section">
-        <div class="eform-section-head">
-          <i class="ti ti-info-circle"></i>
-          <span>기본 정보</span>
-          <span class="eform-section-desc">신청자 및 공통 정보</span>
-          <div class="eform-section-head-actions">
-            <button type="button" class="btn btn-sm" onclick="parent.shellNavigate && parent.shellNavigate('signage/history')">
-              <i class="ti ti-list-check"></i> 신청내역 보기
-            </button>
-            <button type="button" class="btn btn-sm btn-primary" id="srSaveBtn">
-              <i class="ti ti-send"></i> 신청 제출
-            </button>
+    <!-- 상단 2단: 기본정보 | 상세 -->
+    <div class="eform-top-row">
+
+      <!-- 좌: 기본 정보 -->
+      <div class="eform-col eform-col--stretch">
+        <div class="eform-section">
+          <div class="eform-section-head">
+            <i class="ti ti-info-circle"></i>
+            <span>기본 정보</span>
+            <span class="eform-section-desc">신청자 및 공통 정보</span>
+            <div class="eform-section-head-actions">
+              <button type="button" class="btn btn-sm" onclick="parent.shellNavigate && parent.shellNavigate('signage/history')">
+                <i class="ti ti-list-check"></i> 신청내역 보기
+              </button>
+              <button type="button" class="btn btn-sm btn-primary" id="srSaveBtn">
+                <i class="ti ti-send"></i> 신청 제출
+              </button>
+            </div>
           </div>
-        </div>
-        <div class="ap-col-body">
-          <div class="eform-grid">
+          <div class="eform-grid eform-grid--2">
             <div class="form-field eform-full">
               <label class="form-label required">제목</label>
               <input type="text" id="sr_title" class="input" placeholder="예: [A3 포맥스], [바닥 스티커] 등 제작 품목명을 입력하세요." required />
@@ -144,20 +141,18 @@
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- 우: 상세 -->
-    <div class="ap-col">
+      <!-- 우: 상세 -->
+      <div class="eform-col eform-col--stretch">
 
-      <!-- STEP A: 일반 사인물 -->
-      <div id="srPanelSign" class="eform-section">
-        <div class="eform-section-head">
-          <i class="ti ti-sign-right"></i>
-          <span>일반 사인물 상세</span>
-          <span class="eform-section-desc">배너, 간판, 안내판 등 맞춤 제작 사인물</span>
-        </div>
-        <div class="ap-col-body">
-          <div class="eform-grid">
+        <!-- STEP A: 일반 사인물 -->
+        <div id="srPanelSign" class="eform-section">
+          <div class="eform-section-head">
+            <i class="ti ti-sign-right"></i>
+            <span>일반 사인물 상세</span>
+            <span class="eform-section-desc">배너, 간판, 안내판 등 맞춤 제작 사인물</span>
+          </div>
+          <div class="eform-grid eform-grid--2">
             <div class="form-field eform-full">
               <label class="form-label required">상세내역</label>
               <textarea id="sr_text_content" class="input textarea" rows="3"></textarea>
@@ -170,7 +165,7 @@
               <label class="form-label required">형태/종류</label>
               <input type="text" id="sr_sign_type" class="input" placeholder="예: 현수막, 아크릴 판넬" />
             </div>
-            <div class="form-field">
+            <div class="form-field eform-full">
               <label class="form-label required">설치 환경</label>
               <select id="sr_install_env" class="input">
                 <option value="">선택하세요</option>
@@ -178,32 +173,23 @@
                 <option value="OUTDOOR">실외</option>
               </select>
             </div>
-            <div class="form-field">
+            <div class="form-field eform-full">
               <label class="form-label required">설치 위치 상세</label>
               <input type="text" id="sr_install_location" class="input" />
             </div>
-            <div class="form-field eform-full">
-              <label class="form-label">첨부파일 (설치위치 사진 등)</label>
-              <div class="ap-upload-row">
-                <input type="file" id="srFileSign" multiple accept="image/*,.pdf" />
-              </div>
-              <div class="ap-file-list" id="srFileListSign"></div>
-            </div>
           </div>
         </div>
-      </div>
 
-      <!-- STEP B: 규격 명판 -->
-      <div id="srPanelNameplate" class="eform-section" style="display:none;">
-        <div class="eform-section-head">
-          <i class="ti ti-id-badge"></i>
-          <span>규격 명판 상세</span>
-          <span class="eform-section-desc">A~D 타입 규격 명판, 사이즈 자동 적용</span>
-        </div>
+        <!-- STEP B: 규격 명판 -->
+        <div id="srPanelNameplate" class="eform-section" style="display:none;">
+          <div class="eform-section-head">
+            <i class="ti ti-id-badge"></i>
+            <span>규격 명판 상세</span>
+            <span class="eform-section-desc">A~D 타입 규격 명판, 사이즈 자동 적용</span>
+          </div>
 
-        <div class="ap-col-body">
           <div class="ap-np-body">
-            <p class="ap-subsection-title">명판 타입 선택</p>
+            <p class="ap-subsection-title" style="margin-top:0;">명판 타입 선택</p>
             <div class="ap-card-grid" id="srNpTypeGrid">
               <label class="ap-pick-card" id="srNpCard_A"><input type="radio" name="sr_np_type" value="A" class="ap-sr-only" /><div class="ap-pick-badge">A</div><div class="ap-pick-sub">5cm (20/16)</div></label>
               <label class="ap-pick-card" id="srNpCard_B"><input type="radio" name="sr_np_type" value="B" class="ap-sr-only" /><div class="ap-pick-badge">B</div><div class="ap-pick-sub">4cm (20/18)</div></label>
@@ -244,7 +230,7 @@
 
             <div id="srNpTextSection" style="display:none;">
               <p class="ap-subsection-title">명판 문구</p>
-              <div class="eform-grid" id="srNpTextFields" style="padding:0;"></div>
+              <div class="eform-grid eform-grid--2" id="srNpTextFields" style="padding:0;"></div>
 
               <p class="ap-subsection-title">자석 부착</p>
               <div class="ap-card-grid col2">
@@ -257,20 +243,35 @@
                   <span class="ap-pick-icon">📌</span><span class="ap-pick-title">없음 (고정)</span>
                 </label>
               </div>
-
-              <p class="ap-subsection-title">명판 예시 첨부 (선택)</p>
-              <div class="ap-upload-row">
-                <input type="file" id="srFileNameplate" multiple accept="image/*,.pdf" />
-              </div>
-              <div class="ap-file-list" id="srFileListNameplate"></div>
             </div>
           </div>
         </div>
+
       </div>
+    </div><!-- /eform-top-row -->
 
+    <!-- 하단: 첨부파일 (장비등록의 eform-photo-row와 동일 위치 — 남은 공간 전부 사용) -->
+    <div class="eform-photo-row ap-file-row">
+      <div class="eform-section" style="flex:1; display:flex; flex-direction:column; min-height:0;">
+        <div class="eform-section-head">
+          <i class="ti ti-paperclip"></i>
+          <span id="apFileTitle">첨부파일</span>
+          <span class="eform-section-desc" id="apFileDesc">설치위치 사진 등</span>
+        </div>
+        <div class="ap-file-body">
+          <div class="ap-upload-row">
+            <input type="file" id="srFileSign" multiple accept="image/*,.pdf" />
+          </div>
+          <input type="file" id="srFileNameplate" multiple accept="image/*,.pdf" style="display:none;" />
+          <div class="ap-file-list" id="srFileListSign">
+            <div class="ap-file-empty">첨부된 파일이 없습니다.</div>
+          </div>
+          <div class="ap-file-list" id="srFileListNameplate" style="display:none;"></div>
+        </div>
+      </div>
     </div>
-  </div>
 
+  </div>
 </div>
 
 <div id="globalLoading" aria-hidden="true">
