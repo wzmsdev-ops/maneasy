@@ -197,13 +197,13 @@
     .team-week-label { font-size: 13px; font-weight: 700; color: #111827; min-width: 160px; text-align: center; }
     .team-grid {
       flex: 1; min-height: 0; overflow-y: auto;
-      display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+      display: grid; grid-template-columns: repeat(5, 1fr);
       gap: 12px; align-content: start;
     }
     .team-member-card {
       background: #fff; border-radius: 10px; border: 1px solid #e5e7eb;
       display: flex; flex-direction: column; overflow: hidden;
-      height: 240px; cursor: pointer; transition: box-shadow 0.15s, border-color 0.15s;
+      height: 260px; cursor: pointer; transition: box-shadow 0.15s, border-color 0.15s;
     }
     .team-member-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-color: #d1d5db; }
     .team-card-header {
@@ -222,7 +222,7 @@
     .team-attend-badge.on.sat { background: #eff6ff; color: #2563eb; }
     .team-attend-text {
       font-size: 12px; color: #374151; line-height: 1.5;
-      display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+      display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden;
     }
     .team-attend-text.empty { color: #c1c7d0; }
     .team-cat-row { display: flex; flex-wrap: wrap; gap: 5px; overflow: hidden; max-height: 44px; margin-top: auto; }
@@ -374,6 +374,9 @@
       <div style="display:flex;gap:6px;align-items:center;position:absolute;right:0;">
         <button class="btn btn-sm" id="bulkCloseBtn" style="display:none;">
           <i class="ti ti-lock"></i> 일괄마감
+        </button>
+        <button class="btn btn-sm" id="teamPdfBtn" style="display:none;">
+          <i class="ti ti-file-type-pdf"></i> PDF 출력
         </button>
         <button class="btn btn-sm btn-primary" id="exportExcelBtn" style="display:none;">
           <i class="ti ti-download"></i> 엑셀 출력
