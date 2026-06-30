@@ -272,9 +272,18 @@ document.addEventListener('DOMContentLoaded', async () => {
       manager: [...ROLE_BASE_PAGES, 'equipment/form', 'materials/procurement', 'materials/stock'],
       admin:   [...ROLE_BASE_PAGES, 'equipment/form', 'materials/procurement', 'materials/stock', 'master/org', 'master/supply'],
     };
-    const allowedPages = (user.page_perms && Object.keys(user.page_perms).length)
-      ? Object.keys(user.page_perms).filter(function(k) { return user.page_perms[k] && user.page_perms[k] !== '접근불가'; })
-      : (ROLE_DEFAULT_PAGES[user.role] || ROLE_DEFAULT_PAGES.user);
+    const ALL_PAGE_KEYS = Object.keys(MENU_META);
+    const roleDefaultArr = ROLE_DEFAULT_PAGES[user.role] || ROLE_DEFAULT_PAGES.user;
+    const pp = user.page_perms || {};
+    const hasCustomPerms = Object.keys(pp).length > 0;
+    // page_perms에 명시적으로 들어있는 키는 그 레벨을 따르고,
+    // 새로 추가된 페이지처럼 page_perms에 아직 없는 키는 역할 기본값으로 보완한다.
+    const allowedPages = ALL_PAGE_KEYS.filter(function(k) {
+      if (hasCustomPerms && Object.prototype.hasOwnProperty.call(pp, k)) {
+        return pp[k] && pp[k] !== '접근불가';
+      }
+      return roleDefaultArr.includes(k);
+    });
     window.__allowedPages = allowedPages; // navigate()에서 직접 URL 진입 막을 때도 재사용
 
     // data-page를 가진 모든 사이드바 항목에 범용으로 적용 (개별 사용자마다 다를 수 있으므로 하드코딩 대신 권한 목록으로 판단)
