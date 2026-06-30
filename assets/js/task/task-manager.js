@@ -17,6 +17,9 @@
   let calTasks      = [];    // 현재 월 task_items
   let calJournal    = null;  // 현재 사용자 주 단위 journal (선택 날짜 기준)
   let _journalMap   = {};    // { week_start: journal } — 달력 근태 토글용
+  let calViewMode   = 'mine'; // 'mine' | 'team' — 달력에 내 업무만 / 팀 전체 업무
+  let _teamMemberMap   = {}; // { email: user_name } — 팀 전체보기용 이름 캐시
+  let _teamMembersReady = false;
 
   // 팀 현황
   let teamWeekStart = '';
@@ -77,6 +80,21 @@
       document.getElementById('exportExcelBtn').style.display = '';
       document.getElementById('manageCatBtn').style.display = '';
       document.getElementById('manageCatBtn').addEventListener('click', openCatModal);
+    }
+
+    // 팀 전체보기 토글 — 소속 부서가 있으면 누구나 사용 가능
+    if (currentUser.team_code) {
+      const teamBtn = document.getElementById('teamViewBtn');
+      teamBtn.style.display = '';
+      teamBtn.addEventListener('click', () => {
+        calViewMode = calViewMode === 'team' ? 'mine' : 'team';
+        teamBtn.classList.toggle('btn-primary', calViewMode === 'team');
+        teamBtn.innerHTML = calViewMode === 'team'
+          ? '<i class="ti ti-user"></i> 내 업무만'
+          : '<i class="ti ti-users"></i> 팀 전체보기';
+        renderCalendar();
+        if (selectedDate) renderDetailPanel(selectedDate);
+      });
     }
 
     // 검색 기본 날짜
@@ -278,18 +296,40 @@
   }
 
   /* ══ 달력 ════════════════════════════════════════ */
+  async function loadTeamMembersCache() {
+    if (_teamMembersReady || !currentUser.team_code) return;
+    const { data } = await supabaseClient.from('user_profiles_with_email')
+      .select('email, user_name').eq('team_code', currentUser.team_code).eq('active', 'Y');
+    _teamMemberMap = {};
+    (data || []).forEach(m => { _teamMemberMap[m.email] = m.user_name; });
+    _teamMembersReady = true;
+  }
+
+  const TEAM_TAG_COLORS = ['#2563eb','#7c3aed','#dc2626','#0891b2','#ca8a04','#16a34a','#db2777'];
+  function tagColorFor(email) {
+    let h = 0;
+    for (let i = 0; i < email.length; i++) h = (h * 31 + email.charCodeAt(i)) >>> 0;
+    return TEAM_TAG_COLORS[h % TEAM_TAG_COLORS.length];
+  }
+
   async function renderCalendar() {
     // 이번 달 task 로드
     const monthStart = `${calYear}-${String(calMonth+1).padStart(2,'0')}-01`;
     const nextM = calMonth === 11 ? { y: calYear+1, m: 0 } : { y: calYear, m: calMonth+1 };
     const monthEnd = `${nextM.y}-${String(nextM.m+1).padStart(2,'0')}-01`;
 
+    if (calViewMode === 'team') await loadTeamMembersCache();
+
+    let taskQuery = supabaseClient.from('task_items').select('*')
+      .lt('start_date', monthEnd)
+      .or(`end_date.gte.${monthStart},end_date.is.null`)
+      .order('start_date');
+    taskQuery = (calViewMode === 'team' && currentUser.team_code)
+      ? taskQuery.eq('team_code', currentUser.team_code)
+      : taskQuery.eq('user_email', currentUser.email);
+
     const [{ data }, { data: journals }] = await Promise.all([
-      supabaseClient.from('task_items').select('*')
-        .eq('user_email', currentUser.email)
-        .lt('start_date', monthEnd)
-        .or(`end_date.gte.${monthStart},end_date.is.null`)
-        .order('start_date'),
+      taskQuery,
       supabaseClient.from('task_journals').select('*')
         .eq('user_email', currentUser.email)
         .gte('week_start', monthStart)
@@ -369,7 +409,12 @@
         if (t.status === 'DONE')   chipCls.push('done');
         const isRange = t.end_date && t.end_date !== t.start_date;
         const cont = isRange && date !== t.start_date;
-        return `<div class="${chipCls.join(' ')}" title="${esc(t.title)}${isRange?` (${fmt(t.start_date)}~${fmt(t.end_date)})`:''}">${cont?'▸ ':''}${esc(t.title)}</div>`;
+        const isMine = t.user_email === currentUser.email;
+        const ownerName = _teamMemberMap[t.user_email] || '';
+        const tag = (calViewMode === 'team' && !isMine && ownerName)
+          ? `<span style="color:${tagColorFor(t.user_email)};font-weight:700;">${esc(ownerName)}</span> ` : '';
+        const titleAttr = `${ownerName?esc(ownerName)+' · ':''}${esc(t.title)}${isRange?` (${fmt(t.start_date)}~${fmt(t.end_date)})`:''}`;
+        return `<div class="${chipCls.join(' ')}" title="${titleAttr}">${cont?'▸ ':''}${tag}${esc(t.title)}</div>`;
       }).join('');
       const more = tasks.length > 3 ? `<div class="cal-task-chip more">+${tasks.length-3}건</div>` : '';
 
@@ -429,16 +474,23 @@
 
     // 업무 목록
     const taskHtml = tasks.length
-      ? tasks.map(t => `
-        <div class="task-item-card ${t.status==='DONE'?'done':''} ${t.priority==='HIGH'?'high':''}"
-             onclick="openTaskModal('${t.task_id}')">
+      ? tasks.map(t => {
+          const isMine = t.user_email === currentUser.email;
+          const ownerName = _teamMemberMap[t.user_email] || '';
+          const ownerTag = (calViewMode === 'team' && !isMine && ownerName)
+            ? `<span style="color:${tagColorFor(t.user_email)};font-weight:700;font-size:10px;">[${esc(ownerName)}]</span> ` : '';
+          const clickAttr = isMine ? `onclick="openTaskModal('${t.task_id}')"` : '';
+          return `
+        <div class="task-item-card ${t.status==='DONE'?'done':''} ${t.priority==='HIGH'?'high':''}" ${!isMine?'style="cursor:default;opacity:0.85;"':''}
+             ${clickAttr}>
           <div class="task-item-title">
             <span class="task-status-badge ${t.status}">${STATUS_LABEL[t.status]||t.status}</span>
             ${t.priority==='HIGH'?'<span style="color:#dc2626;font-size:10px;">⚡</span>':''}
-            ${esc(t.title)}
+            ${ownerTag}${esc(t.title)}
           </div>
           <div class="task-item-meta">${CATEGORIES[t.category]||t.category||''} ${t.end_date&&t.end_date!==t.start_date?'~ '+fmt(t.end_date):''}</div>
-        </div>`).join('')
+        </div>`;
+        }).join('')
       : `<div style="text-align:center;color:#9ca3af;font-size:11px;padding:12px 0;">등록된 업무가 없습니다.</div>`;
 
     // 이슈/건의 (일요일에만 — 주 시작)
