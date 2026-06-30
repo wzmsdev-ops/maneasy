@@ -55,8 +55,8 @@ function bindTypeTabs() {
       document.getElementById('srPanelSign').style.display = srType === 'SIGN' ? '' : 'none';
       document.getElementById('srPanelNameplate').style.display = srType === 'NAMEPLATE' ? '' : 'none';
 
-      document.getElementById('srFileSign').style.display = srType === 'SIGN' ? '' : 'none';
-      document.getElementById('srFileNameplate').style.display = srType === 'NAMEPLATE' ? '' : 'none';
+      document.getElementById('srFileSignWrap').style.display = srType === 'SIGN' ? '' : 'none';
+      document.getElementById('srFileNameplateWrap').style.display = srType === 'NAMEPLATE' ? '' : 'none';
       document.getElementById('srFileListSign').style.display = srType === 'SIGN' ? '' : 'none';
       document.getElementById('srFileListNameplate').style.display = srType === 'NAMEPLATE' ? '' : 'none';
       document.getElementById('apFileTitle').textContent = srType === 'SIGN' ? '첨부파일' : '명판 예시 첨부';
@@ -191,7 +191,7 @@ function bindFileInput(inputId, key, listId) {
 function renderFileList(key, listId) {
   var listEl = document.getElementById(listId);
   if (!srPendingFiles[key].length) {
-    listEl.innerHTML = '<div class="ap-file-empty">첨부된 파일이 없습니다.</div>';
+    listEl.innerHTML = '<div class="ap-file-empty-panel"><i class="ti ti-paperclip"></i><span>첨부된 파일이 없습니다</span></div>';
     return;
   }
   listEl.innerHTML = srPendingFiles[key].map(function(f, idx) {
