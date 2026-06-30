@@ -933,7 +933,7 @@
     }
   }
 
-  /** 팀원 카드 클릭 — 그 주 전체 업무/근태/이슈를 모달로 자세히 보여줌 (카드 내부 요약과 달리 잘림 없음) */
+  /** 팀원 카드 클릭 — 그 주 전체 업무/근태/이슈를 보고서 형태로 자세히 보여줌 */
   window.openMemberDetail = function(email) {
     const info    = _teamMemberInfoMap[email] || {};
     const tasks   = _teamTasksMap[email] || [];
@@ -943,39 +943,56 @@
     document.getElementById('memberDetailTitle').innerHTML =
       `<i class="ti ti-user"></i> ${esc(info.user_name||'')} <span style="font-weight:400;color:#9ca3af;font-size:13px;">· ${esc(info.clinic_name||'')} · ${fmt(teamWeekStart)} ~ ${fmt(we)}</span>`;
 
+    // 요약 통계
+    const doneCnt = tasks.filter(t => t.status==='DONE').length;
+    const progCnt = tasks.filter(t => t.status==='IN_PROGRESS').length;
+    const todoCnt = tasks.filter(t => t.status==='TODO').length;
+    const highCnt = tasks.filter(t => t.priority==='HIGH').length;
+
+    const statHtml = `
+      <div class="mdr-stats">
+        <div class="mdr-stat"><div class="mdr-stat-num">${tasks.length}</div><div class="mdr-stat-lb">총 업무</div></div>
+        <div class="mdr-stat"><div class="mdr-stat-num" style="color:#16a34a;">${doneCnt}</div><div class="mdr-stat-lb">완료</div></div>
+        <div class="mdr-stat"><div class="mdr-stat-num" style="color:#ea580c;">${progCnt}</div><div class="mdr-stat-lb">진행중</div></div>
+        <div class="mdr-stat"><div class="mdr-stat-num" style="color:#6b7280;">${todoCnt}</div><div class="mdr-stat-lb">예정</div></div>
+        <div class="mdr-stat"><div class="mdr-stat-num" style="color:#dc2626;">${highCnt}</div><div class="mdr-stat-lb">긴급</div></div>
+      </div>`;
+
+    // 업무 목록 — 보고서 형태의 테이블
     const grouped = {};
     tasks.forEach(t => { (grouped[CATEGORIES[t.category]||t.category||'기타'] = grouped[CATEGORIES[t.category]||t.category||'기타'] || []).push(t); });
 
-    const taskHtml = Object.entries(grouped).map(([cat, ts]) => `
-      <div style="margin-bottom:14px;">
-        <div style="font-size:13px;font-weight:700;color:#6b7280;margin-bottom:7px;">${esc(cat)}</div>
-        ${ts.map(t => `
-          <div class="task-item-card ${t.status==='DONE'?'done':''} ${t.priority==='HIGH'?'high':''}" style="margin-bottom:8px;cursor:default;padding:12px 14px;">
-            <div class="task-item-title" style="font-size:14px;">
-              <span class="task-status-badge ${t.status}" style="font-size:11px;padding:2px 7px;">${STATUS_LABEL[t.status]||t.status}</span>
-              ${t.priority==='HIGH'?'<span style="color:#dc2626;font-size:12px;">⚡</span>':''}
-              ${esc(t.title)}
-            </div>
-            <div class="task-item-meta" style="font-size:11px;">${t.start_date}${t.end_date&&t.end_date!==t.start_date?' ~ '+t.end_date:''}</div>
-            ${t.description?`<div style="font-size:12px;color:#6b7280;margin-top:6px;white-space:pre-wrap;line-height:1.5;">${esc(t.description)}</div>`:''}
-          </div>`).join('')}
-      </div>`).join('') || '<div style="text-align:center;color:#9ca3af;font-size:13px;padding:40px 0;">등록된 업무가 없습니다.</div>';
+    const tableRows = Object.entries(grouped).map(([cat, ts]) => ts.map((t, i) => `
+      <tr>
+        ${i===0 ? `<td class="mdr-cat" rowspan="${ts.length}">${esc(cat)}</td>` : ''}
+        <td class="mdr-title">${t.priority==='HIGH'?'<span style="color:#dc2626;">⚡</span> ':''}${esc(t.title)}${t.description?`<div class="mdr-desc">${esc(t.description)}</div>`:''}</td>
+        <td class="mdr-center"><span class="task-status-badge ${t.status}">${STATUS_LABEL[t.status]||t.status}</span></td>
+        <td class="mdr-center mdr-date">${t.start_date}${t.end_date&&t.end_date!==t.start_date?'<br>~ '+t.end_date:''}</td>
+      </tr>`).join('')).join('');
 
-    const attendInfo = journal ? [
-      journal.early_work_this==='Y' ? '조기출근' : '',
-      journal.sat_work_this==='Y'   ? '토요근무' : '',
-      journal.attendance_this_week  ? journal.attendance_this_week : '',
-    ].filter(Boolean).join(' | ') : '';
+    const taskTableHtml = tasks.length ? `
+      <table class="mdr-table">
+        <thead><tr><th style="width:90px;">카테고리</th><th>업무</th><th style="width:80px;">상태</th><th style="width:100px;">기간</th></tr></thead>
+        <tbody>${tableRows}</tbody>
+      </table>` : '<div style="text-align:center;color:#9ca3af;font-size:13px;padding:40px 0;">등록된 업무가 없습니다.</div>';
+
+    const attendBadges = `
+      <span class="team-attend-badge${journal?.early_work_this==='Y'?' on':''}">조기출근</span>
+      <span class="team-attend-badge${journal?.sat_work_this==='Y'?' on sat':''}">토요근무</span>`;
 
     document.getElementById('memberDetailBody').innerHTML = `
-      ${taskHtml}
-      <div style="margin-top:18px;padding-top:14px;border-top:1px solid #f0f0f0;">
-        <div style="font-size:13px;font-weight:700;color:#374151;margin-bottom:6px;">📋 근태사항</div>
-        <div style="font-size:13px;color:#374151;line-height:1.5;">${esc(attendInfo || '-')}</div>
-      </div>
-      <div style="margin-top:16px;">
-        <div style="font-size:13px;font-weight:700;color:#374151;margin-bottom:6px;">📝 이슈 / 건의사항</div>
-        <div style="font-size:13px;color:#374151;white-space:pre-wrap;line-height:1.5;">${esc(journal?.issues || '-')}</div>
+      ${statHtml}
+      ${taskTableHtml}
+      <div class="mdr-footer-grid">
+        <div class="mdr-box">
+          <div class="mdr-box-title">📋 근태사항</div>
+          <div style="margin-bottom:8px;display:flex;gap:6px;">${attendBadges}</div>
+          <div class="mdr-box-body">${esc(journal?.attendance_this_week || '등록된 근태사항이 없습니다.')}</div>
+        </div>
+        <div class="mdr-box">
+          <div class="mdr-box-title">📝 이슈 / 건의사항</div>
+          <div class="mdr-box-body">${esc(journal?.issues || '등록된 이슈/건의사항이 없습니다.')}</div>
+        </div>
       </div>`;
 
     document.getElementById('memberDetailModal').classList.add('is-open');
