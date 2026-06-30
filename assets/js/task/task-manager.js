@@ -725,6 +725,7 @@
   /* ══ 팀 현황 ═════════════════════════════════════ */
   let _teamJournalMap = {}; // { email: journal row } — 출력 버튼에서 스냅샷 읽기용
   let _teamMemberInfoMap = {}; // { email: { user_name, clinic_name } }
+  let _teamTasksMap = {}; // { email: task[] } — 카드 클릭 시 상세 모달용
   let _teamAllClosed = false; // 현재 표시 중인 주, 팀원 전원 마감 여부
 
   /** 마감 시점 스냅샷(journal.content) 이후 라이브 데이터가 바뀌었는지 체크 */
@@ -815,24 +816,20 @@
         const isDirty  = isJournalDirty(journal, mTasks);
         _teamJournalMap[m.email] = journal || null;
         _teamMemberInfoMap[m.email] = { user_name: m.user_name, clinic_name: m.clinic_name };
+        _teamTasksMap[m.email] = mTasks;
 
-        // 업무 요약 — 카테고리별 그룹
+        // 업무 요약 — 카테고리별 건수만 (세부내용은 클릭해서 모달로 확인)
         const grouped = {};
         mTasks.forEach(t => {
           const cat = CATEGORIES[t.category] || t.category || '기타';
-          if (!grouped[cat]) grouped[cat] = [];
-          grouped[cat].push(t);
+          grouped[cat] = (grouped[cat] || 0) + 1;
         });
+        const catSummary = Object.entries(grouped)
+          .map(([cat, n]) => `<span class="team-cat-chip">${esc(cat)} ${n}</span>`).join('')
+          || '<span class="no-data">등록된 업무가 없습니다.</span>';
 
-        const taskHtml = Object.entries(grouped).map(([cat, ts]) =>
-          `<div style="margin-bottom:6px;">
-            <div style="font-size:10px;font-weight:700;color:#6b7280;margin-bottom:3px;">${esc(cat)}</div>
-            ${ts.map(t => `<div style="font-size:11px;color:#374151;padding:1px 0;">
-              <span class="task-status-badge ${t.status}" style="font-size:9px;">${STATUS_LABEL[t.status]||''}</span>
-              ${t.priority==='HIGH'?'⚡ ':''}${esc(t.title)}
-            </div>`).join('')}
-          </div>`
-        ).join('') || '<div class="no-data">등록된 업무가 없습니다.</div>';
+        const hasHigh = mTasks.some(t => t.priority === 'HIGH');
+        const doneCnt = mTasks.filter(t => t.status === 'DONE').length;
 
         const attendInfo = journal ? [
           journal.early_work_this==='Y' ? '조기출근' : '',
@@ -840,36 +837,40 @@
           journal.attendance_this_week  ? journal.attendance_this_week : '',
         ].filter(Boolean).join(' | ') : '';
 
-        const issueInfo = journal?.issues ? `<div style="margin-top:8px;padding:6px;background:#fffbeb;border-radius:4px;font-size:10px;color:#92400e;">${esc(journal.issues)}</div>` : '';
+        const metaLine = [
+          mTasks.length ? `완료 ${doneCnt}/${mTasks.length}` : '',
+          hasHigh ? '⚡ 긴급' : '',
+          journal?.issues ? '📝 이슈있음' : '',
+          attendInfo ? `🕒 ${attendInfo}` : '',
+        ].filter(Boolean).join(' · ');
 
         const dirtyBadge = (isClosed && isDirty)
-          ? `<span style="font-size:9px;color:#dc2626;font-weight:700;margin-left:5px;" title="마감 이후 업무/근태/이슈가 추가되거나 수정됐습니다. 출력물에는 마감 시점 데이터만 반영됩니다.">⚠ 마감 후 수정됨</span>` : '';
+          ? `<span style="font-size:9px;color:#dc2626;font-weight:700;margin-left:5px;" title="마감 이후 업무/근태/이슈가 추가되거나 수정됐습니다. 출력물에는 마감 시점 데이터만 반영됩니다.">⚠</span>` : '';
 
         const outputBtns = (isClosed && allClosed)
-          ? `<button class="btn btn-sm" style="font-size:11px;height:26px;" onclick="printJournalOutput('${m.email}')"><i class="ti ti-printer"></i> 화면출력</button>
-             <button class="btn btn-sm" style="font-size:11px;height:26px;" onclick="exportJournalExcel('${m.email}')"><i class="ti ti-file-spreadsheet"></i> 엑셀출력</button>`
+          ? `<button class="btn btn-sm" style="font-size:11px;height:24px;padding:0 8px;" onclick="printJournalOutput('${m.email}')"><i class="ti ti-printer"></i></button>
+             <button class="btn btn-sm" style="font-size:11px;height:24px;padding:0 8px;" onclick="exportJournalExcel('${m.email}')"><i class="ti ti-file-spreadsheet"></i></button>`
           : (isClosed && !allClosed
-              ? `<span style="font-size:10px;color:#9ca3af;">전원 마감 후 출력 가능</span>` : '');
+              ? `<span style="font-size:9px;color:#9ca3af;">전원 마감 후 출력</span>` : '');
         const manageBtn = isManager
           ? (isClosed
-              ? `<button class="btn btn-sm" style="font-size:11px;height:26px;" onclick="reopenJournal('${m.email}')">마감해제</button>`
-              : `<button class="btn btn-sm btn-primary" style="font-size:11px;height:26px;" onclick="closeJournal('${m.email}')">마감</button>`)
+              ? `<button class="btn btn-sm" style="font-size:11px;height:24px;padding:0 8px;" onclick="reopenJournal('${m.email}')">마감해제</button>`
+              : `<button class="btn btn-sm btn-primary" style="font-size:11px;height:24px;padding:0 8px;" onclick="closeJournal('${m.email}')">마감</button>`)
           : '';
         const footerHtml = (outputBtns || manageBtn)
-          ? `<div class="team-card-footer">${outputBtns}${manageBtn}</div>` : '';
+          ? `<div class="team-card-footer" onclick="event.stopPropagation()">${outputBtns}${manageBtn}</div>` : '';
 
-        return `<div class="team-member-card">
+        return `<div class="team-member-card" onclick="openMemberDetail('${m.email}')">
           <div class="team-card-header">
             <div>
               <div class="team-card-name">${esc(m.user_name)}</div>
-              <div class="team-card-meta">${esc(m.clinic_name||'')} · ${mTasks.length}건</div>
+              <div class="team-card-meta">${esc(m.clinic_name||'')}</div>
             </div>
             <span class="journal-status ${isClosed?'closed':'open'}">${isClosed?'마감':'작성중'}</span>${dirtyBadge}
           </div>
           <div class="team-card-body">
-            ${taskHtml}
-            ${attendInfo ? `<div style="font-size:10px;color:#6b7280;margin-top:6px;padding-top:6px;border-top:1px solid #f0f0f0;">${esc(attendInfo)}</div>` : ''}
-            ${issueInfo}
+            <div class="team-cat-row">${catSummary}</div>
+            ${metaLine ? `<div class="team-card-metaline">${esc(metaLine)}</div>` : ''}
           </div>
           ${footerHtml}
         </div>`;
@@ -923,6 +924,58 @@
       });
     }
   }
+
+  /** 팀원 카드 클릭 — 그 주 전체 업무/근태/이슈를 모달로 자세히 보여줌 (카드 내부 요약과 달리 잘림 없음) */
+  window.openMemberDetail = function(email) {
+    const info    = _teamMemberInfoMap[email] || {};
+    const tasks   = _teamTasksMap[email] || [];
+    const journal = _teamJournalMap[email];
+    const we      = getWeekEnd(teamWeekStart);
+
+    document.getElementById('memberDetailTitle').innerHTML =
+      `<i class="ti ti-user"></i> ${esc(info.user_name||'')} <span style="font-weight:400;color:#9ca3af;font-size:12px;">· ${esc(info.clinic_name||'')} · ${fmt(teamWeekStart)} ~ ${fmt(we)}</span>`;
+
+    const grouped = {};
+    tasks.forEach(t => { (grouped[CATEGORIES[t.category]||t.category||'기타'] = grouped[CATEGORIES[t.category]||t.category||'기타'] || []).push(t); });
+
+    const taskHtml = Object.entries(grouped).map(([cat, ts]) => `
+      <div style="margin-bottom:10px;">
+        <div style="font-size:11px;font-weight:700;color:#6b7280;margin-bottom:5px;">${esc(cat)}</div>
+        ${ts.map(t => `
+          <div class="task-item-card ${t.status==='DONE'?'done':''} ${t.priority==='HIGH'?'high':''}" style="margin-bottom:6px;cursor:default;">
+            <div class="task-item-title">
+              <span class="task-status-badge ${t.status}">${STATUS_LABEL[t.status]||t.status}</span>
+              ${t.priority==='HIGH'?'<span style="color:#dc2626;font-size:10px;">⚡</span>':''}
+              ${esc(t.title)}
+            </div>
+            <div class="task-item-meta">${t.start_date}${t.end_date&&t.end_date!==t.start_date?' ~ '+t.end_date:''}</div>
+            ${t.description?`<div style="font-size:11px;color:#6b7280;margin-top:4px;white-space:pre-wrap;">${esc(t.description)}</div>`:''}
+          </div>`).join('')}
+      </div>`).join('') || '<div style="text-align:center;color:#9ca3af;font-size:12px;padding:30px 0;">등록된 업무가 없습니다.</div>';
+
+    const attendInfo = journal ? [
+      journal.early_work_this==='Y' ? '조기출근' : '',
+      journal.sat_work_this==='Y'   ? '토요근무' : '',
+      journal.attendance_this_week  ? journal.attendance_this_week : '',
+    ].filter(Boolean).join(' | ') : '';
+
+    document.getElementById('memberDetailBody').innerHTML = `
+      ${taskHtml}
+      <div style="margin-top:14px;padding-top:12px;border-top:1px solid #f0f0f0;">
+        <div style="font-size:11px;font-weight:700;color:#374151;margin-bottom:5px;">📋 근태사항</div>
+        <div style="font-size:12px;color:#374151;">${esc(attendInfo || '-')}</div>
+      </div>
+      <div style="margin-top:12px;">
+        <div style="font-size:11px;font-weight:700;color:#374151;margin-bottom:5px;">📝 이슈 / 건의사항</div>
+        <div style="font-size:12px;color:#374151;white-space:pre-wrap;">${esc(journal?.issues || '-')}</div>
+      </div>`;
+
+    document.getElementById('memberDetailModal').classList.add('is-open');
+  };
+
+  window.closeMemberDetail = function() {
+    document.getElementById('memberDetailModal').classList.remove('is-open');
+  };
 
   window.closeJournal = async function(email) {
     if (!confirm(`${email} 님의 업무일지를 마감하시겠습니까?\n현재 시점의 업무/근태/이슈가 출력물로 고정 저장됩니다.\n(마감 후에도 본인은 계속 수정할 수 있지만, 출력물에는 반영되지 않습니다.)`)) return;
