@@ -62,9 +62,9 @@
     });
 
     // 달력 이벤트
-    document.getElementById('calPrevBtn').addEventListener('click', () => { calMonth--; if(calMonth<0){calMonth=11;calYear--;} renderCalendar(); });
-    document.getElementById('calNextBtn').addEventListener('click', () => { calMonth++; if(calMonth>11){calMonth=0;calYear++;} renderCalendar(); });
-    document.getElementById('calTodayBtn').addEventListener('click', () => { const n=new Date(); calYear=n.getFullYear(); calMonth=n.getMonth(); renderCalendar(); });
+    document.getElementById('calPrevBtn').addEventListener('click', () => { calMonth--; if(calMonth<0){calMonth=11;calYear--;} withGlobalLoading(renderCalendar); });
+    document.getElementById('calNextBtn').addEventListener('click', () => { calMonth++; if(calMonth>11){calMonth=0;calYear++;} withGlobalLoading(renderCalendar); });
+    document.getElementById('calTodayBtn').addEventListener('click', () => { const n=new Date(); calYear=n.getFullYear(); calMonth=n.getMonth(); withGlobalLoading(renderCalendar); });
     document.getElementById('addTaskBtn').addEventListener('click', () => openTaskModal(null));
 
     // 팀 현황 이벤트
@@ -99,8 +99,10 @@
         teamBtn.innerHTML = calViewMode === 'team'
           ? '<i class="ti ti-user"></i> 내 업무만'
           : '<i class="ti ti-users"></i> 팀 전체보기';
-        renderCalendar();
-        if (selectedDate) renderDetailPanel(selectedDate);
+        withGlobalLoading(async () => {
+          await renderCalendar();
+          if (selectedDate) await renderDetailPanel(selectedDate);
+        });
       });
     }
 
@@ -113,8 +115,10 @@
     // 팀 현황 초기 주차
     teamWeekStart = getWeekStart(todayStr());
 
-    await Promise.all([loadCategories(), loadClinics()]);
-    renderCalendar();
+    await withGlobalLoading(async () => {
+      await Promise.all([loadCategories(), loadClinics()]);
+      await renderCalendar();
+    }, '데이터를 불러오는 중...');
   });
 
   /* ── 탭 전환 ───────────────────────────────────── */
@@ -1059,7 +1063,13 @@
     }
     q = q.order('start_date', { ascending: false }).limit(200);
 
-    const { data, error } = await q;
+    showGlobalLoading('검색 중...');
+    let data, error;
+    try {
+      ({ data, error } = await q);
+    } finally {
+      hideGlobalLoading();
+    }
     if (error) { showMessage('검색 실패: ' + error.message, 'error'); return; }
 
     const rows = data || [];
