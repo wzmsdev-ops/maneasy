@@ -13,10 +13,10 @@ var canManage = false;
 var STATUS_LABEL = { REQUESTED:'접수', PROCESSING:'진행중', COMPLETED:'완료', REJECTED:'반려', CANCELLED:'취소' };
 var STATUS_BADGE = { REQUESTED:'badge-requested', PROCESSING:'badge-processing', COMPLETED:'badge-completed', REJECTED:'badge-rejected', CANCELLED:'badge-cancelled' };
 var NEXT_STATUS = {
-  REQUESTED:  [{ to:'PROCESSING', label:'진행 시작', cls:'btn-primary' }, { to:'REJECTED', label:'반려', cls:'btn-danger' }],
-  PROCESSING: [{ to:'COMPLETED', label:'완료 처리', cls:'btn-primary' }, { to:'REJECTED', label:'반려', cls:'btn-danger' }],
+  REQUESTED:  [{ to:'PROCESSING', label:'제작 접수', cls:'btn-primary' }, { to:'REJECTED', label:'반려', cls:'btn-danger' }],
+  PROCESSING: [{ to:'COMPLETED', label:'제작 완료', cls:'btn-primary' }, { to:'REJECTED', label:'반려', cls:'btn-danger' }],
   COMPLETED:  [],
-  REJECTED:   [{ to:'PROCESSING', label:'다시 진행', cls:'btn-primary' }],
+  REJECTED:   [{ to:'PROCESSING', label:'재접수', cls:'btn-primary' }],
   CANCELLED:  [],
 };
 
