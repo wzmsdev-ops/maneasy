@@ -9,6 +9,8 @@ var MAX_FAV = 6;
 var ALL_PAGES = [
   { key:'signage/apply',              icon:'ti-rubber-stamp',          label:'사인물 신청' },
   { key:'signage/history',            icon:'ti-list-check',            label:'신청내역' },
+  { key:'program-request/apply',      icon:'ti-bug',                   label:'프로그램 요청' },
+  { key:'program-request/history',    icon:'ti-list-check',            label:'프로그램 요청내역' },
   { key:'equipment/dashboard',        icon:'ti-device-desktop-analytics', label:'의료장비 대시보드' },
   { key:'equipment/list',             icon:'ti-list',                  label:'장비 목록' },
   { key:'materials/purchase-request', icon:'ti-shopping-cart',         label:'발주요청' },
@@ -179,10 +181,10 @@ async function loadTasks(userEmail) {
 /* ── 권한 계산 ── */
 function computeAllowedKeys(user) {
   var ROLE_DEFAULTS = {
-    user:    ['home/home','equipment/dashboard','equipment/list','equipment/detail','materials/purchase-request','materials/use-stock','materials/material-stats','task/task-manager','signage/apply','signage/history'],
-    edit:    ['home/home','equipment/dashboard','equipment/list','equipment/detail','equipment/form','materials/purchase-request','materials/use-stock','materials/material-stats','task/task-manager','signage/apply','signage/history'],
-    manager: ['home/home','equipment/dashboard','equipment/list','equipment/detail','equipment/form','materials/purchase-request','materials/procurement','materials/stock','materials/use-stock','materials/material-stats','task/task-manager','signage/apply','signage/history'],
-    admin:   ['home/home','equipment/dashboard','equipment/list','equipment/detail','equipment/form','materials/purchase-request','materials/procurement','materials/stock','materials/use-stock','materials/material-stats','task/task-manager','signage/apply','signage/history','master/org','master/supply','master/notice'],
+    user:    ['home/home','equipment/dashboard','equipment/list','equipment/detail','materials/purchase-request','materials/use-stock','materials/material-stats','task/task-manager','signage/apply','signage/history','program-request/apply','program-request/history'],
+    edit:    ['home/home','equipment/dashboard','equipment/list','equipment/detail','equipment/form','materials/purchase-request','materials/use-stock','materials/material-stats','task/task-manager','signage/apply','signage/history','program-request/apply','program-request/history'],
+    manager: ['home/home','equipment/dashboard','equipment/list','equipment/detail','equipment/form','materials/purchase-request','materials/procurement','materials/stock','materials/use-stock','materials/material-stats','task/task-manager','signage/apply','signage/history','program-request/apply','program-request/history'],
+    admin:   ['home/home','equipment/dashboard','equipment/list','equipment/detail','equipment/form','materials/purchase-request','materials/procurement','materials/stock','materials/use-stock','materials/material-stats','task/task-manager','signage/apply','signage/history','program-request/apply','program-request/history','master/org','master/supply','master/notice'],
   };
   var pp = user.page_perms || {};
   var hasPP = Object.keys(pp).length > 0;
