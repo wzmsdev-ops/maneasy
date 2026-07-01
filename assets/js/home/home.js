@@ -131,22 +131,46 @@ async function loadNotices() {
   }).join('');
 }
 
-/* ── 최근 신청 ── */
-async function loadRecent(userId, canManage) {
-  var q = supabaseClient.from('signage_requests')
-    .select('id,request_no,request_title,type,status,created_at,requester_name')
-    .order('created_at', { ascending:false }).limit(8);
-  if (!canManage) q = q.eq('requester_id', userId);
-  var { data } = await q;
-  var el = document.getElementById('recentList');
-  if (!data || !data.length) { el.innerHTML = '<div class="home-empty">최근 신청 내역이 없습니다</div>'; return; }
-  el.innerHTML = data.map(function(r) {
-    var badge = '<span class="' + (STATUS_BADGE[r.status] || 'badge-requested') + '">' + (STATUS_LABEL[r.status] || r.status) + '</span>';
+/* ── 이번 주 업무일정 ── */
+var PRIORITY_BADGE = {
+  HIGH:   '<span style="padding:1px 6px;border-radius:999px;font-size:10px;font-weight:700;background:#fee2e2;color:#dc2626;flex-shrink:0;">높음</span>',
+  MEDIUM: '<span style="padding:1px 6px;border-radius:999px;font-size:10px;font-weight:700;background:#fef3c7;color:#92400e;flex-shrink:0;">중간</span>',
+  LOW:    '<span style="padding:1px 6px;border-radius:999px;font-size:10px;font-weight:700;background:#f3f4f6;color:#6b7280;flex-shrink:0;">낮음</span>',
+};
+
+async function loadTasks(userEmail) {
+  var now = new Date();
+  var day = now.getDay();
+  var mon = new Date(now); mon.setDate(now.getDate() - (day === 0 ? 6 : day - 1));
+  var sun = new Date(mon); sun.setDate(mon.getDate() + 6);
+  var monStr = mon.toISOString().slice(0,10);
+  var sunStr = sun.toISOString().slice(0,10);
+
+  var { data } = await supabaseClient
+    .from('task_items')
+    .select('id,title,start_date,end_date,status,priority,is_done,category')
+    .eq('user_email', userEmail)
+    .lte('start_date', sunStr)
+    .gte('end_date', monStr)
+    .order('start_date', { ascending:true })
+    .limit(10);
+
+  var el = document.getElementById('taskList');
+  if (!data || !data.length) {
+    el.innerHTML = '<div class="home-empty">이번 주 업무일정이 없습니다</div>';
+    return;
+  }
+  el.innerHTML = data.map(function(t) {
+    var done = t.is_done;
+    var badge = PRIORITY_BADGE[t.priority] || '';
+    var dateStr = t.start_date === t.end_date
+      ? t.start_date
+      : t.start_date + ' ~ ' + (t.end_date || '');
     return '<div class="recent-item">' +
-      badge +
-      '<span class="recent-title">' + ts(r.request_title || '-') + '</span>' +
-      (canManage ? '<span style="font-size:10px;color:#6b7280;flex-shrink:0;">' + ts(r.requester_name) + '</span>' : '') +
-      '<span class="recent-date">' + String(r.created_at).slice(0,10) + '</span>' +
+      (badge) +
+      '<span class="recent-title" style="' + (done ? 'text-decoration:line-through;color:#9ca3af;' : '') + '">' +
+        ts(t.title || '-') + '</span>' +
+      '<span class="recent-date">' + (t.start_date ? t.start_date.slice(5) : '') + '</span>' +
     '</div>';
   }).join('');
 }
@@ -205,7 +229,7 @@ async function init() {
   var histLevel = hasPP ? (pp['signage/history'] || '') : currentUser.role;
   var canManage = histLevel === 'admin' || histLevel === 'manager';
 
-  await Promise.all([loadNotices(), loadRecent(currentUser.id, canManage)]);
+  await Promise.all([loadNotices(), loadTasks(currentUser.email)]);
   hideGlobalLoading();
 }
 
