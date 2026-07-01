@@ -152,6 +152,14 @@
                 <input type="text" id="sr_title" class="input" placeholder="예: [A3 포맥스], [바닥 스티커] 등 제작 품목명을 입력하세요." required />
               </div>
               <div class="form-field">
+                <label class="form-label">의원</label>
+                <input type="text" id="sr_clinic_display" class="input" readonly />
+              </div>
+              <div class="form-field">
+                <label class="form-label">부서</label>
+                <input type="text" id="sr_dept_display" class="input" readonly />
+              </div>
+              <div class="form-field">
                 <label class="form-label required">이름</label>
                 <input type="text" id="sr_requester_name" class="input" required />
               </div>
@@ -345,18 +353,6 @@
                 </div>
               </div>
 
-              <p class="ap-sub-title">자석 부착</p>
-              <div class="ap-card-grid col2">
-                <label class="ap-pick-card" id="srMagnetCard_Y">
-                  <input type="radio" name="sr_magnet" value="Y" class="ap-sr-only" />
-                  <span class="ap-pick-icon">🧲</span><span class="ap-pick-title">있음</span>
-                </label>
-                <label class="ap-pick-card" id="srMagnetCard_N">
-                  <input type="radio" name="sr_magnet" value="N" class="ap-sr-only" />
-                  <span class="ap-pick-icon">📌</span><span class="ap-pick-title">없음</span>
-                </label>
-              </div>
-
               <div style="margin-top:10px;padding:8px 10px;background:#f0f2f5;border-radius:7px;display:flex;align-items:center;gap:7px;">
                 <input type="checkbox" id="sr_agree_confirm_np" />
                 <label for="sr_agree_confirm_np" style="font-size:11px;color:#374151;cursor:pointer;line-height:1.4;">신청 내용을 확인하였으며 제작에 동의합니다</label>
@@ -367,34 +363,29 @@
         </div>
       </div>
 
-      <!-- 우: 이미지 미리보기 -->
+      <!-- 우: 이미지 미리보기 (단일 이미지 교체) -->
       <div class="eform-col eform-col--stretch">
         <div class="eform-section" style="flex:1;display:flex;flex-direction:column;min-height:0;overflow:hidden;">
           <div class="eform-section-head">
-            <i class="ti ti-id-badge"></i><span>명판 타입 미리보기</span>
-            <span class="eform-section-desc">타입 선택 시 해당 이미지 강조</span>
+            <i class="ti ti-id-badge"></i><span id="srPreviewTitle">명판 타입 미리보기</span>
+            <span class="eform-section-desc">타입 선택 시 이미지로 확인</span>
           </div>
-          <div class="ap-np-preview-grid">
-            <div class="ap-np-preview-item" id="srPreviewItem_A">
-              <label>A 타입 — 5cm (20/16cm)</label>
-              <img src="../../assets/images/nameplate/A.jpeg" alt="A타입" />
-            </div>
-            <div class="ap-np-preview-item" id="srPreviewItem_B">
-              <label>B 타입 — 4cm (20/18cm)</label>
-              <img src="../../assets/images/nameplate/B.jpeg" alt="B타입" />
-            </div>
-            <div class="ap-np-preview-item" id="srPreviewItem_C">
-              <label>C 타입 — 3cm (20/18cm)</label>
-              <img src="../../assets/images/nameplate/C.jpeg" alt="C타입" />
-            </div>
-            <div class="ap-np-preview-item" id="srPreviewItem_D">
-              <label>D 타입 — 2.5cm (20cm)</label>
-              <img src="../../assets/images/nameplate/D.jpeg" alt="D타입" />
-            </div>
+          <!-- 미선택 안내 -->
+          <div id="srPreviewEmpty" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:#d1d5db;">
+            <i class="ti ti-id-badge" style="font-size:40px;"></i>
+            <span style="font-size:12px;font-weight:600;">좌측에서 명판 타입을 선택하면<br>디자인을 확인할 수 있습니다</span>
           </div>
-          <div class="ap-np-layout-img">
-            <label>문구 레이아웃 안내</label>
-            <img src="../../assets/images/nameplate/layout.jpeg" alt="레이아웃 안내" />
+          <!-- 선택 후 이미지 -->
+          <div id="srPreviewContent" style="display:none;flex:1;min-height:0;display:none;flex-direction:column;">
+            <div style="flex:1;min-height:0;padding:14px 14px 6px;">
+              <img id="srPreviewTypeImg" src="" alt="명판 디자인"
+                style="width:100%;height:100%;object-fit:contain;border:1.5px solid var(--navy);border-radius:8px;display:block;background:#fff;" />
+            </div>
+            <div style="flex-shrink:0;padding:0 14px 12px;">
+              <p style="font-size:10px;font-weight:700;color:#9ca3af;margin:0 0 4px;">문구 레이아웃 안내</p>
+              <img src="../../assets/images/nameplate/layout.jpeg" alt="레이아웃 안내"
+                style="width:100%;max-height:130px;object-fit:contain;border:1px solid #e5e7eb;border-radius:8px;display:block;background:#fff;" />
+            </div>
           </div>
         </div>
       </div>
