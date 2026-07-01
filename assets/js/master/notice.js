@@ -122,6 +122,9 @@ async function saveNotice() {
   }
   hideGlobalLoading();
   if (error) { alert('저장 실패: ' + error.message); return; }
+  systemLog(_editingId ? 'NOTICE_UPDATE' : 'NOTICE_CREATE',
+    '공지사항 ' + (_editingId ? '수정' : '작성') + ': ' + title,
+    { target_type:'system_notice', target_id: _editingId || '' }).catch(() => {});
   closeModal('noticeModal');
   await loadList();
 }
@@ -130,6 +133,7 @@ async function deleteNotice(id) {
   if (!confirm('이 공지사항을 삭제하시겠습니까?')) return;
   var { error } = await supabaseClient.from('system_notices').delete().eq('id', id);
   if (error) { alert('삭제 실패: ' + error.message); return; }
+  systemLog('NOTICE_DELETE', '공지사항 삭제', { target_type:'system_notice', target_id: id }).catch(() => {});
   await loadList();
 }
 
