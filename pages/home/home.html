@@ -20,21 +20,35 @@
     .home-banner-date { font-size:13px; color:rgba(255,255,255,0.6); font-weight:500; }
     .home-banner-time { font-size:28px; font-weight:700; color:#fff; letter-spacing:.04em; }
 
-    /* ── 즐겨찾기 ── */
-    .home-fav-bar { display:flex; align-items:center; gap:8px; flex-shrink:0; }
-    .home-fav-label { font-size:11px; font-weight:700; color:#9ca3af; flex-shrink:0; }
-    .home-fav-list { display:flex; gap:8px; flex:1; flex-wrap:wrap; }
-    .home-fav-card {
-      display:flex; align-items:center; gap:8px;
+    /* ── 즐겨찾기 액션바 ── */
+    .home-fav-bar {
+      display:flex; align-items:center; gap:10px; flex-shrink:0;
       background:#fff; border:1px solid #e5e7eb; border-radius:8px;
-      padding:8px 14px; cursor:pointer; transition:all .15s; text-decoration:none;
-      font-size:12px; font-weight:600; color:#374151; white-space:nowrap;
+      padding:8px 14px; height:48px; box-sizing:border-box;
     }
-    .home-fav-card:hover { border-color:#93c5fd; box-shadow:0 2px 6px rgba(0,0,0,0.06); }
-    .home-fav-card i { font-size:15px; }
+    .home-fav-label {
+      display:flex; align-items:center; gap:5px;
+      font-size:12px; font-weight:700; color:#374151; flex-shrink:0;
+      border-right:1px solid #e5e7eb; padding-right:12px; margin-right:2px;
+    }
+    .home-fav-label i { font-size:14px; color:#f59e0b; }
+    .home-fav-list { display:flex; gap:6px; flex:1; align-items:center; }
+    .home-fav-card {
+      display:flex; align-items:center; gap:6px;
+      background:#f8fafc; border:1px solid #e5e7eb; border-radius:6px;
+      padding:5px 12px; cursor:pointer; transition:all .15s;
+      font-size:12px; font-weight:600; color:#374151; white-space:nowrap; text-decoration:none;
+    }
+    .home-fav-card:hover { background:#eff6ff; border-color:#93c5fd; color:#1d4ed8; }
+    .home-fav-card i { font-size:13px; }
     .home-fav-empty { font-size:12px; color:#9ca3af; }
-    .home-fav-edit { display:flex; align-items:center; gap:4px; padding:6px 12px; border:1px dashed #d1d5db; border-radius:8px; background:transparent; font-size:11px; color:#9ca3af; cursor:pointer; flex-shrink:0; transition:all .15s; white-space:nowrap; }
-    .home-fav-edit:hover { border-color:#93c5fd; color:#3b82f6; }
+    .home-fav-edit {
+      display:flex; align-items:center; gap:4px;
+      padding:5px 12px; border:1px solid #d1d5db; border-radius:6px;
+      background:#fff; font-size:12px; font-weight:600; color:#374151;
+      cursor:pointer; flex-shrink:0; transition:all .15s; white-space:nowrap;
+    }
+    .home-fav-edit:hover { border-color:var(--navy); color:var(--navy); background:#f8fafc; }
 
     /* ── 2열 본문 ── */
     .home-body { display:grid; grid-template-columns:1fr 1fr; gap:12px; flex:1; min-height:240px; }
@@ -104,9 +118,9 @@
 
   <!-- 즐겨찾기 -->
   <div class="home-fav-bar">
-    <span class="home-fav-label"><i class="ti ti-star" style="margin-right:2px;"></i>즐겨찾기</span>
+    <span class="home-fav-label"><i class="ti ti-star-filled"></i>즐겨찾기</span>
     <div class="home-fav-list" id="homeFavList">
-      <span class="home-fav-empty">즐겨찾기를 추가해보세요</span>
+      <span class="home-fav-empty">즐겨찾기가 없습니다. 편집 버튼으로 추가해보세요.</span>
     </div>
     <button class="home-fav-edit" id="favEditBtn"><i class="ti ti-pencil"></i> 편집</button>
   </div>
