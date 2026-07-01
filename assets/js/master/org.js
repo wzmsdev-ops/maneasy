@@ -42,6 +42,10 @@ const PAGE_GROUPS = [
     { key: 'signage/apply',   label: '신청' },
     { key: 'signage/history', label: '신청내역 (level: manager/admin = 전체 처리, user = 본인만)' },
   ]},
+  { app: '프로그램 요청', pages: [
+    { key: 'program-request/apply',   label: '신청' },
+    { key: 'program-request/history', label: '신청내역 (level: manager/admin = 전체 처리, user = 본인만)' },
+  ]},
   { app: '마스터 관리', pages: [
     { key: 'master/org',    label: '의원·부서·사용자' },
     { key: 'master/supply', label: '자재·거래처' },
@@ -65,6 +69,8 @@ const ROLE_DEFAULT_PAGES = {
     'task/task-manager':        'user',
     'signage/apply':            'user',
     'signage/history':          'user',
+    'program-request/apply':    'user',
+    'program-request/history':  'user',
     'master/org':               '접근불가',
     'master/supply':            '접근불가',
   },
@@ -81,6 +87,8 @@ const ROLE_DEFAULT_PAGES = {
     'task/task-manager':        'admin',
     'signage/apply':            'user',
     'signage/history':          'admin',
+    'program-request/apply':    'user',
+    'program-request/history':  'admin',
     'master/org':               'admin',
     'master/supply':            'admin',
   },
