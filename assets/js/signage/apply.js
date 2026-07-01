@@ -349,6 +349,23 @@ async function init() {
   setVal('sr_requester_name', name);
   setVal('sr_requester_name_np', name);
 
+  // 동의 체크박스 → 신청 버튼 활성화 연동
+  function syncSaveBtn() {
+    var checked = srType === 'NAMEPLATE'
+      ? document.getElementById('sr_agree_confirm_np')?.checked
+      : document.getElementById('sr_agree_confirm')?.checked;
+    var btn = document.getElementById('srSaveBtn');
+    if (!btn) return;
+    btn.disabled = !checked;
+    btn.style.opacity = checked ? '' : '0.45';
+    btn.style.cursor  = checked ? '' : 'not-allowed';
+  }
+  document.getElementById('sr_agree_confirm')?.addEventListener('change', syncSaveBtn);
+  document.getElementById('sr_agree_confirm_np')?.addEventListener('change', syncSaveBtn);
+  document.querySelectorAll('#apTypeTabs .tab-btn').forEach(function(b) {
+    b.addEventListener('click', function() { setTimeout(syncSaveBtn, 0); });
+  });
+
   document.getElementById('srSaveBtn')?.addEventListener('click', async function() {
     var btn = this; btn.disabled = true;
     showGlobalLoading('신청서를 제출하는 중...');
@@ -361,7 +378,7 @@ async function init() {
     } catch(e) {
       hideGlobalLoading();
       alert('신청 제출 실패: ' + e.message);
-      btn.disabled = false;
+      syncSaveBtn(); // 실패 시 체크 상태 기준으로 버튼 복원
     }
   });
 
