@@ -66,12 +66,6 @@
 
     /* ── 좌 컬럼 스크롤 ── */
     .ap-left-body { flex:1; min-height:0; overflow-y:auto; display:flex; flex-direction:column; }
-    .ap-left-body .eform-grid { align-content:start; }
-    /* 일반 사인물 상세: textarea가 남은 공간 채움 */
-    #srPanelSign .ap-left-body { padding-bottom:14px; }
-    #srPanelSign .eform-col:last-child .ap-left-body { gap:0; }
-    #srPanelSign .eform-col:last-child .form-field.eform-full:first-child { flex:1; display:flex; flex-direction:column; }
-    #srPanelSign .eform-col:last-child .form-field.eform-full:first-child .input { flex:1; resize:none; }
 
     /* ── 우: 명판 이미지 미리보기 패널 ── */
     .ap-np-preview-grid {
@@ -157,8 +151,8 @@
             <i class="ti ti-info-circle"></i><span>기본 정보</span>
             <span class="eform-section-desc">신청자 및 공통 정보</span>
           </div>
-          <div class="ap-left-body">
-            <div class="eform-grid" style="flex:1;align-content:space-between;">
+          <div class="ap-left-body" style="padding:14px;">
+            <div class="eform-grid" style="flex:1;align-content:space-between;padding:0;">
               <div class="form-field eform-full">
                 <label class="form-label required">제목</label>
                 <input type="text" id="sr_title" class="input" placeholder="예: [A3 포맥스], [바닥 스티커] 등 제작 품목명을 입력하세요." required />
@@ -279,8 +273,8 @@
           <div class="eform-section-head">
             <i class="ti ti-info-circle"></i><span>기본 정보 &amp; 명판 옵션</span>
           </div>
-          <div class="ap-left-body">
-            <div class="eform-grid" style="flex:1;align-content:space-between;grid-template-columns:repeat(2,1fr);">
+          <div class="ap-left-body" style="padding:14px;">
+            <div class="eform-grid" style="flex:1;align-content:space-between;grid-template-columns:repeat(2,1fr);padding:0;">
               <div class="form-field eform-full">
                 <label class="form-label required">제목</label>
                 <input type="text" id="sr_title_np" class="input" placeholder="예: [명패] MD / 홍길동 / 부인과" required />
