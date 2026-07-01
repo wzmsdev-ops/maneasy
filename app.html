@@ -27,6 +27,12 @@
     </div>
     <div class="sb-nav">
 
+      <!-- 홈 -->
+      <button class="sb-item" data-page="home/home" onclick="navigate('home/home')" id="sbItemHome">
+        <div class="sb-item-inner"><i class="ti ti-home"></i><span>홈</span></div>
+      </button>
+      <div class="sb-divider" style="margin:6px 0;"></div>
+
       <!-- 의료장비 관리 -->
       <button class="sb-item sb-item-parent" data-group="equipment">
         <div class="sb-item-inner"><i class="ti ti-device-desktop-analytics"></i><span>의료장비 관리</span></div>
@@ -149,6 +155,7 @@
 'use strict';
 
 const MENU_META = {
+  'home/home':                 { app: '홈', page: '홈' },
   'equipment/dashboard': { app: '의료장비 관리', page: '대시보드' },
   'equipment/list':      { app: '의료장비 관리', page: '장비 목록' },
   'equipment/form':      { app: '의료장비 관리', page: '장비 등록·수정' },
@@ -262,6 +269,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // 역할별 기본 권한 (allowed_pages가 null인 사용자에게 적용 — org.js의 ROLE_DEFAULT_PAGES와 동일하게 유지)
     const ROLE_BASE_PAGES = [
+      'home/home',
       'equipment/dashboard', 'equipment/list', 'equipment/detail',
       'materials/purchase-request', 'materials/use-stock', 'materials/material-stats',
       'task/task-manager', 'signage/apply', 'signage/history',
@@ -300,7 +308,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   const params = new URLSearchParams(location.search);
   initFlyout();
-  navigate(params.get('page') || 'equipment/dashboard', true);
+  navigate(params.get('page') || 'home/home', true);
 });
 
 function navigate(page, tab, skipHistory, extraQuery) {
