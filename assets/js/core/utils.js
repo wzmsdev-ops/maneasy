@@ -495,3 +495,24 @@ async function gasNotify(action, params) {
     console.warn('[gasNotify]', e);
   }
 }
+
+// 시스템 로그 기록 헬퍼 (fire-and-forget)
+async function systemLog(action, description, opts) {
+  try {
+    const { data: { user } } = await supabaseClient.auth.getUser();
+    if (!user) return;
+    const { data: profile } = await supabaseClient
+      .from('user_profiles').select('user_name').eq('id', user.id).maybeSingle();
+    await supabaseClient.from('system_logs').insert({
+      user_id:     user.id,
+      user_name:   profile?.user_name || user.email || '',
+      action:      action,
+      target_type: opts?.target_type || null,
+      target_id:   opts?.target_id   ? String(opts.target_id) : null,
+      description: description,
+      meta:        opts?.meta        || null,
+    });
+  } catch(e) {
+    console.warn('[systemLog]', e);
+  }
+}
