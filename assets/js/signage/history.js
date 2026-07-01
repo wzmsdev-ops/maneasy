@@ -200,6 +200,8 @@ async function openShDetail(id) {
     var { data: files } = await supabaseClient
       .from('signage_files').select('*').eq('request_id', id).order('sort_order');
 
+    var filesWrap = document.getElementById('shDetailFiles');
+
     // ── 섹션1: 신청 기본정보
     var basicRows =
       mkRow('신청번호', '<code style="font-size:12px;">' + ts(sr.request_no) + '</code>') +
