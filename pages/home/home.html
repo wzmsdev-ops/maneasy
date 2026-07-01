@@ -65,28 +65,25 @@
     .badge-cancelled  { background:#f3f4f6;color:#6b7280;padding:1px 7px;border-radius:999px;font-size:10px;font-weight:700;flex-shrink:0; }
 
     /* ── 즐겨찾기 편집 모달 ── */
-    .fav-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+    .fav-grid { display:grid; grid-template-columns:repeat(4, 1fr); gap:8px; }
     .fav-pick-card {
       display:flex; align-items:center; gap:10px;
       padding:10px 12px; border:1.5px solid #e5e7eb; border-radius:8px;
-      cursor:pointer; transition:all .15s; background:#fff;
+      cursor:pointer; transition:all .15s; background:#fff; position:relative;
     }
-    .fav-pick-card:hover { border-color:#93c5fd; }
-    .fav-pick-card.is-selected { border-color:#0b1630; background:#eff6ff; }
-    .fav-pick-card.is-selected .fav-pick-check { background:#0b1630; border-color:#0b1630; }
-    .fav-pick-card.is-selected .fav-pick-check::after { display:block; }
+    .fav-pick-card:hover { border-color:#93c5fd; background:#f8faff; }
+    .fav-pick-card.is-selected { border-color:var(--navy); background:#eff6ff; }
     .fav-pick-icon { font-size:18px; flex-shrink:0; }
-    .fav-pick-label { font-size:12px; font-weight:600; color:#374151; }
-    .fav-pick-check {
-      width:16px; height:16px; border:1.5px solid #d1d5db; border-radius:4px;
-      margin-left:auto; flex-shrink:0; position:relative; background:#fff;
+    .fav-pick-label { font-size:12px; font-weight:600; color:#374151; flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .fav-pick-badge {
+      width:20px; height:20px; border-radius:999px; border:1.5px solid #d1d5db;
+      display:flex; align-items:center; justify-content:center;
+      font-size:11px; font-weight:700; color:#fff;
+      background:#fff; flex-shrink:0; transition:all .15s;
     }
-    .fav-pick-check::after {
-      display:none; content:''; position:absolute; left:4px; top:1px;
-      width:5px; height:9px; border:2px solid #fff; border-top:none; border-left:none;
-      transform:rotate(45deg);
-    }
+    .fav-pick-card.is-selected .fav-pick-badge { background:var(--navy); border-color:var(--navy); }
     .fav-hint { font-size:11px; color:#9ca3af; margin-top:10px; }
+    .fav-order-hint { font-size:11px; color:#6b7280; margin-top:6px; }
   </style>
 </head>
 <body>
@@ -142,14 +139,15 @@
 <!-- 즐겨찾기 편집 모달 -->
 <div id="favModal" class="m-modal">
   <div class="m-modal-backdrop" onclick="closeFavModal()"></div>
-  <div class="m-modal-dialog" style="max-width:520px;">
+  <div class="m-modal-dialog" style="max-width:720px;width:calc(100vw - 64px);">
     <div class="m-modal-head">
       <span class="m-modal-title"><i class="ti ti-star" style="margin-right:6px;"></i>즐겨찾기 편집</span>
       <button class="m-modal-close" onclick="closeFavModal()"><i class="ti ti-x"></i></button>
     </div>
     <div class="m-modal-body">
       <div class="fav-grid" id="favPickGrid"></div>
-      <p class="fav-hint">최대 4개까지 추가할 수 있습니다.</p>
+      <p class="fav-hint">최대 6개까지 추가할 수 있습니다.</p>
+      <p class="fav-order-hint"><i class="ti ti-info-circle"></i> 선택한 순서대로 즐겨찾기에 표시됩니다. 순서를 바꾸려면 해제 후 다시 선택하세요.</p>
     </div>
     <div class="m-modal-foot">
       <button class="btn btn-sm" onclick="closeFavModal()">취소</button>
