@@ -152,7 +152,7 @@
             <span class="eform-section-desc">신청자 및 공통 정보</span>
           </div>
           <div class="ap-left-body">
-            <div class="eform-grid" style="flex:1;align-content:start;">
+            <div class="eform-grid" style="flex:1;align-content:space-between;">
               <div class="form-field eform-full">
                 <label class="form-label required">제목</label>
                 <input type="text" id="sr_title" class="input" placeholder="예: [A3 포맥스], [바닥 스티커] 등 제작 품목명을 입력하세요." required />
@@ -206,8 +206,8 @@
               <label class="form-label required">상세내역</label>
               <textarea id="sr_text_content" class="input textarea" style="flex:1;resize:none;"></textarea>
             </div>
-            <!-- 나머지 필드: 2열 고정 -->
-            <div class="eform-grid" style="flex-shrink:0;">
+            <!-- 나머지 필드: 2열 고정, padding 제거(부모에서 이미 처리) -->
+            <div class="eform-grid" style="flex-shrink:0;padding:0;">
               <div class="form-field">
                 <label class="form-label required">사이즈</label>
                 <input type="text" id="sr_sign_size" class="input" placeholder="예: 900 × 600 × 5 mm" />
@@ -274,7 +274,7 @@
             <i class="ti ti-info-circle"></i><span>기본 정보 &amp; 명판 옵션</span>
           </div>
           <div class="ap-left-body">
-            <div class="eform-grid" style="flex:1;align-content:start;grid-template-columns:repeat(2,1fr);">
+            <div class="eform-grid" style="flex:1;align-content:space-between;grid-template-columns:repeat(2,1fr);">
               <div class="form-field eform-full">
                 <label class="form-label required">제목</label>
                 <input type="text" id="sr_title_np" class="input" placeholder="예: [명패] MD / 홍길동 / 부인과" required />
