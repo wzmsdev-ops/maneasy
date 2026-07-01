@@ -53,17 +53,21 @@
     /* ── 2열 본문 ── */
     .home-body { display:grid; grid-template-columns:1fr 1fr; gap:12px; flex:1; min-height:240px; }
     .home-card { background:#fff; border:1px solid #e5e7eb; border-radius:10px; display:flex; flex-direction:column; overflow:hidden; }
-    .home-card-head { display:flex; align-items:center; gap:8px; padding:10px 16px; background:#f8fafc; border-bottom:1px solid #e5e7eb; flex-shrink:0; }
+    .home-card-head { display:flex; align-items:center; gap:8px; padding:8px 16px; background:#f8fafc; border-bottom:1px solid #e5e7eb; flex-shrink:0; min-height:40px; box-sizing:border-box; }
     .home-card-title { font-size:12px; font-weight:700; color:#374151; }
     .home-card-body { flex:1; overflow-y:auto; }
 
     /* ── 공지사항 ── */
-    .notice-item { display:flex; flex-direction:column; gap:4px; padding:12px 16px; border-bottom:1px solid #f3f4f6; }
+    .notice-item { display:flex; flex-direction:column; gap:4px; padding:12px 16px; border-bottom:1px solid #f3f4f6; cursor:pointer; transition:background .1s; }
     .notice-item:last-child { border-bottom:none; }
+    .notice-item:hover { background:#fafafa; }
     .notice-item-head { display:flex; align-items:center; gap:6px; }
     .notice-pin { display:inline-flex; align-items:center; gap:3px; font-size:9px; font-weight:700; color:#2563eb; background:#dbeafe; padding:1px 6px; border-radius:999px; flex-shrink:0; }
-    .notice-title { font-size:12px; font-weight:600; color:#111827; }
-    .notice-content { font-size:11px; color:#6b7280; line-height:1.6; }
+    .notice-title { font-size:12px; font-weight:600; color:#111827; flex:1; }
+    .notice-expand-icon { font-size:12px; color:#9ca3af; flex-shrink:0; transition:transform .2s; }
+    .notice-item.is-open .notice-expand-icon { transform:rotate(180deg); }
+    .notice-content { font-size:11px; color:#374151; line-height:1.7; display:none; margin-top:6px; white-space:pre-wrap; }
+    .notice-item.is-open .notice-content { display:block; }
     .notice-meta { font-size:10px; color:#9ca3af; }
     .home-empty { display:flex; align-items:center; justify-content:center; height:80px; font-size:12px; color:#9ca3af; }
 
