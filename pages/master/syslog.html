@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>시스템 로그</title>
+  <link rel="stylesheet" href="../../assets/css/common.css" />
+  <link rel="stylesheet" href="../../assets/libs/ag-grid/ag-grid.min.css" />
+  <link rel="stylesheet" href="../../assets/libs/ag-grid/ag-theme-alpine.min.css" />
+  <link rel="stylesheet" href="../../assets/css/ag-grid-custom.css" />
+  <link rel="stylesheet" href="../../assets/font/tabler-icons/tabler-icons.min.css" />
+  <script>
+    if (new URLSearchParams(location.search).get('shell') === '1')
+      document.documentElement.classList.add('in-shell');
+  </script>
+  <style>
+    html, body { height:100%; margin:0; background:#f0f2f5; }
+    .log-page { display:flex; flex-direction:column; height:100vh; padding:10px 16px; gap:8px; box-sizing:border-box; overflow:hidden; }
+    .m-card { background:#fff; border:1px solid #e5e7eb; border-radius:8px; display:flex; flex-direction:column; flex:1; min-height:0; overflow:hidden; }
+    .m-card-head { display:flex; align-items:center; gap:8px; padding:8px 14px; background:#f8fafc; border-bottom:1px solid #e5e7eb; flex-shrink:0; }
+    .m-card-title { font-size:12px; font-weight:700; color:#374151; }
+    .m-card-body { flex:1; min-height:0; overflow:hidden; display:flex; flex-direction:column; }
+    .m-table-wrap { flex:1; min-height:0; }
+    .m-actionbar { display:flex; align-items:center; gap:6px; background:#fff; border:1px solid #e5e7eb; border-radius:8px; padding:7px 12px; flex-shrink:0; height:44px; box-sizing:border-box; }
+    .m-actionbar input[type=date] { height:28px; padding:0 6px; border:1px solid #e5e7eb; border-radius:6px; font-size:12px; outline:none; width:130px; flex-shrink:0; }
+    .m-actionbar input[type=date]:focus { border-color:#2563eb; }
+    .m-actionbar input[type=text] { flex:1; min-width:0; height:28px; padding:0 10px; border:1px solid #e5e7eb; border-radius:6px; font-size:12px; outline:none; }
+    .m-actionbar input[type=text]:focus { border-color:#2563eb; }
+    .m-actionbar select { height:28px; padding:0 6px; border:1px solid #e5e7eb; border-radius:6px; font-size:12px; outline:none; flex-shrink:0; }
+    .m-divider { width:1px; height:20px; background:#d1d5db; flex-shrink:0; margin:0 4px; }
+    .pagination-area { padding:6px 14px; flex-shrink:0; display:flex; justify-content:center; border-top:1px solid #f3f4f6; }
+
+    /* 액션 배지 */
+    .log-badge { padding:1px 8px; border-radius:999px; font-size:10px; font-weight:700; white-space:nowrap; }
+    .log-LOGIN          { background:#d1fae5;color:#065f46; }
+    .log-SIGNAGE_CREATE { background:#ede9fe;color:#5b21b6; }
+    .log-SIGNAGE_STATUS { background:#dbeafe;color:#1d4ed8; }
+    .log-NOTICE_CREATE  { background:#fef3c7;color:#92400e; }
+    .log-NOTICE_UPDATE  { background:#fef9c3;color:#713f12; }
+    .log-NOTICE_DELETE  { background:#fee2e2;color:#991b1b; }
+  </style>
+</head>
+<body>
+<div class="log-page">
+
+  <div class="m-actionbar">
+    <input type="date" id="logFrom" />
+    <span style="font-size:11px;color:#9ca3af;flex-shrink:0;">~</span>
+    <input type="date" id="logTo" />
+    <div class="m-divider"></div>
+    <select id="logAction">
+      <option value="">전체 액션</option>
+      <option value="LOGIN">로그인</option>
+      <option value="SIGNAGE_CREATE">사인물 신청</option>
+      <option value="SIGNAGE_STATUS">상태 변경</option>
+      <option value="NOTICE_CREATE">공지 작성</option>
+      <option value="NOTICE_UPDATE">공지 수정</option>
+      <option value="NOTICE_DELETE">공지 삭제</option>
+    </select>
+    <input type="text" id="logKeyword" placeholder="사용자명, 내용 검색..." />
+    <button class="btn btn-sm btn-primary" id="logSearchBtn"><i class="ti ti-search"></i> 조회</button>
+  </div>
+
+  <div class="m-card">
+    <div class="m-card-head">
+      <span class="m-card-title">시스템 로그</span>
+      <span id="logCountLabel" style="font-size:11px;color:#9ca3af;margin-left:4px;"></span>
+    </div>
+    <div class="m-card-body">
+      <div id="logGrid" class="m-table-wrap"></div>
+    </div>
+    <div class="pagination-area" id="logPagination"></div>
+  </div>
+
+</div>
+
+<div id="globalLoading" class="is-open">
+  <div class="global-loading__dialog">
+    <div class="global-loading__spinner"></div>
+    <div class="global-loading__text" id="globalLoadingText">불러오는 중...</div>
+  </div>
+</div>
+
+<script src="../../assets/libs/ag-grid/ag-grid-community.min.js"></script>
+<script src="../../assets/libs/supabase.js"></script>
+<script src="../../assets/js/core/config.js"></script>
+<script src="../../assets/js/core/utils.js"></script>
+<script src="../../assets/js/core/supabase.js"></script>
+<script src="../../assets/js/core/auth.js"></script>
+<script src="../../assets/js/master/syslog.js"></script>
+</body>
+</html>
