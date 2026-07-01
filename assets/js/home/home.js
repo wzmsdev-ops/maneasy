@@ -124,8 +124,8 @@ async function loadNotices() {
   if (!data || !data.length) { el.innerHTML = '<div class="home-empty">등록된 공지사항이 없습니다</div>'; return; }
   el.innerHTML = data.map(function(n) {
     var pin = n.is_pinned ? '<span class="notice-pin"><i class="ti ti-pin" style="font-size:9px;"></i> 공지</span>' : '';
-    return '<div class="notice-item">' +
-      '<div class="notice-item-head">' + pin + '<span class="notice-title">' + ts(n.title) + '</span></div>' +
+    return '<div class="notice-item" onclick="this.classList.toggle(\'is-open\')">' +
+      '<div class="notice-item-head">' + pin + '<span class="notice-title">' + ts(n.title) + '</span><i class="ti ti-chevron-down notice-expand-icon"></i></div>' +
       (n.content ? '<div class="notice-content">' + ts(n.content) + '</div>' : '') +
       '<div class="notice-meta">' + ts(n.author_name) + ' · ' + String(n.created_at).slice(0,10) + '</div>' +
     '</div>';
