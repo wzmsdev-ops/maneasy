@@ -41,28 +41,28 @@
     .ap-sr-only { position:absolute; opacity:0; width:0; height:0; }
 
     /* ── 카드 선택 그리드 ── */
-    .ap-card-grid { display:grid; grid-template-columns:repeat(4, 1fr); gap:6px; }
+    .ap-card-grid { display:grid; grid-template-columns:repeat(4, 1fr); gap:4px; }
     .ap-card-grid.col2 { grid-template-columns:repeat(2, 1fr); }
     .ap-card-grid.col3 { grid-template-columns:repeat(3, 1fr); }
     .ap-pick-card {
-      display:flex; flex-direction:column; align-items:center; gap:2px;
-      padding:7px 4px; border:1.5px solid #e5e7eb; border-radius:7px;
-      cursor:pointer; text-align:center; transition:all .15s; font-size:11px; background:#fff;
+      display:flex; flex-direction:column; align-items:center; gap:1px;
+      padding:4px 2px; border:1.5px solid #e5e7eb; border-radius:6px;
+      cursor:pointer; text-align:center; transition:all .15s; font-size:10px; background:#fff;
     }
     .ap-pick-card:hover { border-color:var(--blue); }
     .ap-pick-card.is-selected { border-color:var(--navy); background:var(--blue-soft); }
-    .ap-pick-badge { font-size:12px; font-weight:800; color:var(--navy); }
+    .ap-pick-badge { font-size:11px; font-weight:800; color:var(--navy); }
     .ap-pick-sub  { font-size:9px; color:#6b7280; }
-    .ap-pick-icon { font-size:14px; }
-    .ap-pick-title { font-weight:700; color:#111827; font-size:11px; }
+    .ap-pick-icon { font-size:12px; }
+    .ap-pick-title { font-weight:700; color:#111827; font-size:10px; }
     .ap-pick-desc { font-size:9px; color:#9ca3af; }
-    .ap-pick-shape { font-size:14px; font-weight:800; color:var(--navy); }
+    .ap-pick-shape { font-size:12px; font-weight:800; color:var(--navy); }
 
     /* ── 비활성화 필드 ── */
     .form-field.is-disabled label { color:#d1d5db; }
     .form-field.is-disabled .input { background:#f9fafb; color:#d1d5db; border-color:#f3f4f6; cursor:not-allowed; }
 
-    .ap-sub-title { font-size:11px; font-weight:700; color:#6b7280; margin:10px 0 5px; }
+    .ap-sub-title { font-size:10px; font-weight:700; color:#9ca3af; margin:6px 0 3px; text-transform:uppercase; letter-spacing:.04em; }
 
     /* ── 좌 컬럼 스크롤 ── */
     .ap-left-body { flex:1; min-height:0; overflow-y:auto; }
@@ -71,7 +71,7 @@
     .ap-np-preview-grid {
       flex:1; min-height:0; display:grid;
       grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr;
-      gap:8px; padding:14px;
+      gap:8px; padding:14px 14px 6px;
     }
     .ap-np-preview-item { display:flex; flex-direction:column; gap:4px; min-height:0; }
     .ap-np-preview-item label { font-size:10px; font-weight:700; color:#9ca3af; text-align:center; flex-shrink:0; }
@@ -82,7 +82,7 @@
     .ap-np-preview-item.is-selected img { border-color:var(--navy); }
     .ap-np-layout-img { flex-shrink:0; padding:0 14px 10px; }
     .ap-np-layout-img label { font-size:10px; font-weight:700; color:#9ca3af; display:block; margin-bottom:4px; }
-    .ap-np-layout-img img { width:100%; border:1px solid #e5e7eb; border-radius:8px; display:block; background:#fff; }
+    .ap-np-layout-img img { width:100%; max-height:120px; object-fit:contain; border:1px solid #e5e7eb; border-radius:8px; display:block; background:#fff; }
 
     /* ── 일반 사인물 파일첨부 패널 ── */
     .ap-file-list-panel {
@@ -152,14 +152,6 @@
                 <input type="text" id="sr_title" class="input" placeholder="예: [A3 포맥스], [바닥 스티커] 등 제작 품목명을 입력하세요." required />
               </div>
               <div class="form-field">
-                <label class="form-label">의원</label>
-                <input type="text" id="sr_clinic_display" class="input" readonly />
-              </div>
-              <div class="form-field">
-                <label class="form-label">부서</label>
-                <input type="text" id="sr_dept_display" class="input" readonly />
-              </div>
-              <div class="form-field">
                 <label class="form-label required">이름</label>
                 <input type="text" id="sr_requester_name" class="input" required />
               </div>
@@ -181,12 +173,6 @@
               <div class="form-field eform-full" id="srUrgentReasonField" style="display:none;">
                 <label class="form-label required">긴급 사유</label>
                 <input type="text" id="sr_urgent_reason" class="input" />
-              </div>
-              <div class="form-field eform-full">
-                <div class="ap-checkbox-row">
-                  <input type="checkbox" id="sr_draft_confirm" />
-                  <label for="sr_draft_confirm">시안 제작 후 확인 받고 싶습니다</label>
-                </div>
               </div>
             </div>
           </div>
@@ -232,11 +218,15 @@
       </div>
     </div>
 
-    <!-- 일반 사인물 하단: 첨부파일 -->
+    <!-- 일반 사인물 하단: 동의 + 첨부파일 -->
     <div class="eform-section eform-photo-row">
-      <div class="eform-section-head">
+      <div class="eform-section-head" style="gap:10px;">
         <i class="ti ti-paperclip"></i><span>첨부파일</span>
         <span class="eform-section-desc">설치위치 사진 등</span>
+        <div style="margin-left:auto;display:flex;align-items:center;gap:6px;">
+          <input type="checkbox" id="sr_agree_confirm" />
+          <label for="sr_agree_confirm" style="font-size:12px;color:#374151;cursor:pointer;white-space:nowrap;">신청 내용을 확인하였으며 제작에 동의합니다</label>
+        </div>
       </div>
       <div class="eform-photo-body">
         <div class="ap-file-list-panel" id="srFileListSign">
@@ -268,7 +258,7 @@
             <i class="ti ti-info-circle"></i><span>기본 정보 &amp; 명판 옵션</span>
           </div>
           <div class="ap-left-body">
-            <div class="eform-grid">
+            <div class="eform-grid" style="grid-template-columns:repeat(2,1fr);">
               <div class="form-field eform-full">
                 <label class="form-label required">제목</label>
                 <input type="text" id="sr_title_np" class="input" placeholder="예: [명패] MD / 홍길동 / 부인과" required />
@@ -298,7 +288,7 @@
               </div>
             </div>
 
-            <div style="padding:0 14px 14px;">
+            <div style="padding:0 14px 10px;">
 
               <p class="ap-sub-title">명판 타입</p>
               <div class="ap-card-grid" id="srNpTypeGrid">
@@ -314,18 +304,6 @@
                 <label class="ap-pick-card" id="srSubCard_2"><input type="radio" name="sr_np_subtype" value="2" class="ap-sr-only" /><div class="ap-pick-badge" id="srSubLabel_2">-2</div></label>
                 <label class="ap-pick-card" id="srSubCard_3"><input type="radio" name="sr_np_subtype" value="3" class="ap-sr-only" /><div class="ap-pick-badge" id="srSubLabel_3">-3</div></label>
                 <label class="ap-pick-card" id="srSubCard_4"><input type="radio" name="sr_np_subtype" value="4" class="ap-sr-only" /><div class="ap-pick-badge" id="srSubLabel_4">-4</div></label>
-              </div>
-
-              <p class="ap-sub-title">제작 방식</p>
-              <div class="ap-card-grid col2">
-                <label class="ap-pick-card" id="srMethodCard_NEW">
-                  <input type="radio" name="sr_np_method" value="NEW" class="ap-sr-only" />
-                  <span class="ap-pick-icon">🆕</span><span class="ap-pick-title">신규 제작</span>
-                </label>
-                <label class="ap-pick-card" id="srMethodCard_REUSE">
-                  <input type="radio" name="sr_np_method" value="REUSE" class="ap-sr-only" />
-                  <span class="ap-pick-icon">♻️</span><span class="ap-pick-title">기존 활용</span>
-                </label>
               </div>
 
               <p class="ap-sub-title">문구 레이아웃</p>
@@ -377,6 +355,11 @@
                   <input type="radio" name="sr_magnet" value="N" class="ap-sr-only" />
                   <span class="ap-pick-icon">📌</span><span class="ap-pick-title">없음</span>
                 </label>
+              </div>
+
+              <div style="margin-top:10px;padding:8px 10px;background:#f0f2f5;border-radius:7px;display:flex;align-items:center;gap:7px;">
+                <input type="checkbox" id="sr_agree_confirm_np" />
+                <label for="sr_agree_confirm_np" style="font-size:11px;color:#374151;cursor:pointer;line-height:1.4;">신청 내용을 확인하였으며 제작에 동의합니다</label>
               </div>
 
             </div>
