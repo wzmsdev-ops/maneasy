@@ -1,7 +1,7 @@
 'use strict';
 
 var _grid = null;
-var _state = { page:1, pageSize:50, totalPages:1, loading:false };
+var _state = { page:1, pageSize:20, totalPages:1, loading:false };
 
 function val(id) { return (document.getElementById(id)?.value || '').trim(); }
 function fmtDt(v) { return v ? String(v).replace('T',' ').slice(0,16) : '-'; }
