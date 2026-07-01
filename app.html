@@ -107,6 +107,9 @@
         <button class="sb-sub-item" data-page="master/supply" onclick="navigate('master/supply')" id="sbItemMasterSupply">
           <i class="ti ti-package"></i><span>자재·거래처</span>
         </button>
+        <button class="sb-sub-item" data-page="master/notice" onclick="navigate('master/notice')" id="sbItemMasterNotice">
+          <i class="ti ti-speakerphone"></i><span>공지사항</span>
+        </button>
       </div>
 
     </div>
@@ -163,6 +166,7 @@ const MENU_META = {
   'task/task-manager':       { app: '업무일정 관리', page: '업무일정·일지' },
   'master/org':             { app: '마스터 관리', page: '의원·부서·사용자' },
   'master/supply':          { app: '마스터 관리', page: '자재·거래처' },
+  'master/notice':          { app: '마스터 관리', page: '공지사항' },
   'materials/purchase-request':{ app: '자재관리', page: '발주요청' },
   'materials/use-stock':       { app: '자재관리', page: '사용처리' },
   'materials/procurement':     { app: '자재관리', page: '발주 관리' },
@@ -278,7 +282,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       user:    [...ROLE_BASE_PAGES],
       edit:    [...ROLE_BASE_PAGES, 'equipment/form'],
       manager: [...ROLE_BASE_PAGES, 'equipment/form', 'materials/procurement', 'materials/stock'],
-      admin:   [...ROLE_BASE_PAGES, 'equipment/form', 'materials/procurement', 'materials/stock', 'master/org', 'master/supply'],
+      admin:   [...ROLE_BASE_PAGES, 'equipment/form', 'materials/procurement', 'materials/stock', 'master/org', 'master/supply', 'master/notice'],
     };
     const ALL_PAGE_KEYS = Object.keys(MENU_META);
     const roleDefaultArr = ROLE_DEFAULT_PAGES[user.role] || ROLE_DEFAULT_PAGES.user;
@@ -299,7 +303,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       el.style.display = allowedPages.includes(el.dataset.page) ? '' : 'none';
     });
     // 마스터 관리 그룹(상위 메뉴/구분선)은 그 안에 보이는 페이지가 하나라도 있을 때만 노출
-    const masterGroupVisible = allowedPages.includes('master/org') || allowedPages.includes('master/supply');
+    const masterGroupVisible = allowedPages.includes('master/org') || allowedPages.includes('master/supply') || allowedPages.includes('master/notice');
     if (masterGroupVisible) {
       document.getElementById('sbGroupMaster').style.display = '';
       document.getElementById('sbDividerMaster').style.display = '';
