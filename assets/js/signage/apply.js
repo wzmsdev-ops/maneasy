@@ -97,16 +97,6 @@ function bindNpSubtypeSelector() {
   });
 }
 
-/* ── 제작 방식 선택 ── */
-function bindMethodSelector() {
-  document.querySelectorAll('input[name="sr_np_method"]').forEach(function(radio) {
-    radio.addEventListener('change', function(e) {
-      document.querySelectorAll('#srMethodCard_NEW, #srMethodCard_REUSE').forEach(function(c) { c.classList.remove('is-selected'); });
-      document.getElementById('srMethodCard_' + e.target.value)?.classList.add('is-selected');
-    });
-  });
-}
-
 /* ── 레이아웃 선택 → 문구 필드 활성/비활성 제어 ── */
 function bindLayoutSelector() {
   document.querySelectorAll('input[name="sr_np_layout"]').forEach(function(radio) {
@@ -240,6 +230,9 @@ async function saveSr() {
   if (!contact) throw new Error('연락처를 입력해주세요.');
   if (isUrgent === 'Y' && !urgentReason) throw new Error('긴급 사유를 입력해주세요.');
 
+  var agreeId = isNp ? 'sr_agree_confirm_np' : 'sr_agree_confirm';
+  if (!document.getElementById(agreeId)?.checked) throw new Error('신청 내용을 확인하고 제작에 동의해주세요.');
+
   var payload = {
     type: srType, request_title: title,
     clinic_id: myClinicId, dept_id: myDeptId,
@@ -262,8 +255,6 @@ async function saveSr() {
   } else {
     if (!srNpType)   throw new Error('명판 타입을 선택해주세요.');
     if (!srNpSubtype) throw new Error('세부 디자인을 선택해주세요.');
-    var method = document.querySelector('input[name="sr_np_method"]:checked');
-    if (!method)     throw new Error('제작 방식을 선택해주세요.');
     if (!srNpLayout) throw new Error('문구 레이아웃을 선택해주세요.');
     var magnet = document.querySelector('input[name="sr_magnet"]:checked');
     if (!magnet)     throw new Error('자석 부착 여부를 선택해주세요.');
@@ -277,7 +268,6 @@ async function saveSr() {
     }
 
     payload.nameplate_type   = srNpType + '-' + srNpSubtype;
-    payload.nameplate_method = method.value;
     payload.nameplate_text   = buildNameplateText();
     payload.magnet_yn        = magnet.value;
     payload.sign_size        = NP_SIZES[srNpType] || '';
@@ -343,7 +333,6 @@ async function init() {
   bindUrgentToggle();
   bindNpTypeSelector();
   bindNpSubtypeSelector();
-  bindMethodSelector();
   bindLayoutSelector();
   bindMagnetSelector();
   bindSignFileInput();
