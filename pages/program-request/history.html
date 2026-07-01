@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>프로그램 요청내역</title>
+  <link rel="stylesheet" href="../../assets/css/common.css" />
+  <link rel="stylesheet" href="../../assets/libs/ag-grid/ag-grid.min.css" />
+  <link rel="stylesheet" href="../../assets/libs/ag-grid/ag-theme-alpine.min.css" />
+  <link rel="stylesheet" href="../../assets/css/ag-grid-custom.css" />
+  <link rel="stylesheet" href="../../assets/font/tabler-icons/tabler-icons.min.css" />
+  <script>
+    if (new URLSearchParams(location.search).get('shell') === '1')
+      document.documentElement.classList.add('in-shell');
+  </script>
+  <style>
+    html, body { height:100%; margin:0; background:#f0f2f5; }
+    .sh-page { display:flex; flex-direction:column; height:100vh; padding:10px 16px; gap:8px; box-sizing:border-box; overflow:hidden; }
+    .sh-actionbar { display:flex; align-items:center; gap:6px; background:#fff; border:1px solid #e5e7eb; border-radius:8px; padding:7px 12px; flex-shrink:0; height:44px; box-sizing:border-box; flex-wrap:nowrap; }
+    .sh-actionbar input[type=text] { flex:1; min-width:0; height:28px; padding:0 10px; border:1px solid #e5e7eb; border-radius:6px; font-size:12px; outline:none; }
+    .sh-actionbar input[type=text]:focus { border-color:#2563eb; }
+    .sh-actionbar input[type=date] { height:28px; padding:0 6px; border:1px solid #e5e7eb; border-radius:6px; font-size:12px; outline:none; width:130px; flex-shrink:0; }
+    .sh-divider { width:1px; height:20px; background:#d1d5db; flex-shrink:0; margin:0 4px; }
+    .sh-status-tabs { display:flex; gap:3px; flex-shrink:0; flex-wrap:wrap; }
+    .sh-status-tab { height:28px; padding:0 12px; border:1px solid #e5e7eb; background:#fff; border-radius:6px; font-size:11px; font-weight:600; color:#6b7280; cursor:pointer; transition:all 0.15s; white-space:nowrap; }
+    .sh-status-tab:hover { border-color:#93c5fd; color:#3b82f6; }
+    .sh-status-tab.active { background:#3b82f6; border-color:#3b82f6; color:#fff; }
+    .sh-status-tab .cnt { display:inline-block; min-width:14px; margin-left:4px; padding:0 4px; background:#ef4444; color:#fff; border-radius:999px; font-size:9px; }
+    .sh-scope-toggle { display:flex; gap:2px; background:#e5e7eb; border-radius:6px; padding:2px; flex-shrink:0; }
+    .sh-scope-toggle button { height:24px; padding:0 10px; border:none; background:transparent; border-radius:5px; font-size:11px; font-weight:600; color:#6b7280; cursor:pointer; }
+    .sh-scope-toggle button.active { background:#fff; color:#111827; box-shadow:0 1px 2px rgba(0,0,0,0.08); }
+    .m-card { background:#fff; border:1px solid #e5e7eb; border-radius:8px; display:flex; flex-direction:column; flex:1; min-height:0; overflow:hidden; }
+    .m-card-head { display:flex; align-items:center; justify-content:space-between; padding:8px 14px; background:#f8fafc; border-bottom:1px solid #e5e7eb; flex-shrink:0; }
+    .m-card-title { font-size:12px; font-weight:700; color:#374151; }
+    .m-card-body { flex:1; min-height:0; display:flex; flex-direction:column; overflow:hidden; }
+    .m-table-wrap { flex:1; min-height:0; height:calc(100vh - 152px); }
+    .pagination-area { padding:6px 14px; flex-shrink:0; margin-top:0; display:flex; justify-content:center; border-top:1px solid #f3f4f6; }
+    .badge-requested  { background:#dbeafe;color:#1d4ed8;padding:1px 8px;border-radius:999px;font-size:10px;font-weight:700; }
+    .badge-processing { background:#fef3c7;color:#92400e;padding:1px 8px;border-radius:999px;font-size:10px;font-weight:700; }
+    .badge-completed  { background:#d1fae5;color:#065f46;padding:1px 8px;border-radius:999px;font-size:10px;font-weight:700; }
+    .badge-rejected   { background:#fee2e2;color:#991b1b;padding:1px 8px;border-radius:999px;font-size:10px;font-weight:700; }
+    .badge-cancelled  { background:#f3f4f6;color:#6b7280;padding:1px 8px;border-radius:999px;font-size:10px;font-weight:700; }
+    .badge-urgent     { background:#fee2e2;color:#dc2626;padding:1px 8px;border-radius:999px;font-size:10px;font-weight:700;margin-left:4px; }
+    .badge-type-bugfix  { background:#fee2e2;color:#dc2626;padding:1px 8px;border-radius:999px;font-size:10px;font-weight:700; }
+    .badge-type-feature { background:#ede9fe;color:#5b21b6;padding:1px 8px;border-radius:999px;font-size:10px;font-weight:700; }
+    /* ── 상세 모달 ── */
+    .sh-detail-meta { display:grid; grid-template-columns:1fr 1fr; gap:0; }
+    .sh-detail-meta-item { display:flex; flex-direction:column; gap:3px; padding:10px 14px; border-bottom:1px solid #f3f4f6; }
+    .sh-detail-meta-item.full { grid-column:1 / -1; }
+    .sh-detail-meta-item:nth-child(odd):not(.full) { border-right:1px solid #f3f4f6; }
+    .sh-detail-meta-label { font-size:10px; font-weight:700; color:#9ca3af; text-transform:uppercase; letter-spacing:.04em; }
+    .sh-detail-meta-value { font-size:13px; font-weight:500; color:#111827; white-space:pre-wrap; }
+    .sh-detail-section { background:#f8fafc; border:1px solid #e5e7eb; border-radius:8px; margin-bottom:10px; overflow:hidden; }
+    .sh-detail-section-head { padding:7px 14px; font-size:11px; font-weight:700; color:#6b7280; background:#f0f2f5; border-bottom:1px solid #e5e7eb; display:flex; align-items:center; gap:6px; }
+    .sh-file-item { display:flex; align-items:center; justify-content:space-between; padding:8px 14px; border-bottom:1px solid #f3f4f6; font-size:12px; }
+    .sh-file-item:last-child { border-bottom:none; }
+    .sh-status-actions { display:flex; gap:6px; flex-wrap:wrap; margin-top:10px; }
+  </style>
+</head>
+<body>
+<div class="sh-page">
+
+  <div class="sh-actionbar">
+    <div class="sh-status-tabs" id="shStatusTabs">
+      <button class="sh-status-tab active" data-status="">전체</button>
+      <button class="sh-status-tab" data-status="REQUESTED">접수<span class="cnt" id="shCnt_REQUESTED" style="display:none;"></span></button>
+      <button class="sh-status-tab" data-status="PROCESSING">진행중</button>
+      <button class="sh-status-tab" data-status="COMPLETED">완료</button>
+      <button class="sh-status-tab" data-status="REJECTED">반려</button>
+      <button class="sh-status-tab" data-status="CANCELLED">취소</button>
+    </div>
+    <div class="sh-divider"></div>
+    <input type="date" id="shDateFrom" />
+    <span style="font-size:11px;color:#9ca3af;flex-shrink:0;">~</span>
+    <input type="date" id="shDateTo" />
+    <div class="sh-divider"></div>
+    <input type="text" id="shKeyword" placeholder="제목, 신청번호 검색..." />
+    <button class="btn btn-sm btn-primary" id="shSearchBtn"><i class="ti ti-search"></i> 조회</button>
+  </div>
+
+  <div class="m-card">
+    <div class="m-card-head">
+      <span class="m-card-title" id="shCardTitle">내 프로그램 요청 목록</span>
+      <span id="shCountLabel" style="font-size:11px;color:#9ca3af;margin-left:8px;"></span>
+      <div style="margin-left:auto;display:flex;align-items:center;gap:8px;">
+        <div class="sh-scope-toggle" id="shScopeToggle" style="display:none;">
+          <button data-scope="all" class="active">전체보기</button>
+          <button data-scope="mine">내 신청만</button>
+        </div>
+        <button class="btn btn-sm btn-primary" onclick="parent.shellNavigate && parent.shellNavigate('program-request/apply')">
+          <i class="ti ti-plus"></i> 신청하기
+        </button>
+      </div>
+    </div>
+    <div class="m-card-body">
+      <div id="shGrid" class="m-table-wrap"></div>
+    </div>
+    <div class="pagination-area" id="shPagination"></div>
+  </div>
+
+</div>
+
+<!-- 상세/처리 모달 -->
+<div id="shDetailModal" class="m-modal">
+  <div class="m-modal-backdrop" onclick="closeModal('shDetailModal')"></div>
+  <div class="m-modal-dialog m-modal-dialog--wide" style="max-width:900px;height:auto;max-height:calc(100vh - 64px);">
+    <div class="m-modal-head">
+      <span class="m-modal-title" id="shDetailTitle">신청 상세</span>
+      <button class="m-modal-close" onclick="closeModal('shDetailModal')"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="m-modal-body" style="gap:0;padding:14px;display:flex;flex-direction:column;gap:10px;">
+      <div id="shDetailMeta"></div>
+      <div id="shDetailFiles"></div>
+
+      <div id="shMemoSection" style="display:none;">
+        <label class="form-field">
+          <span class="form-label">처리 메모</span>
+          <textarea id="sh_admin_memo" class="input textarea" rows="2" placeholder="처리 내용, 반려 사유 등"></textarea>
+        </label>
+      </div>
+      <div class="sh-status-actions" id="shStatusActions"></div>
+    </div>
+    <div class="m-modal-foot">
+      <button class="btn btn-sm" onclick="closeModal('shDetailModal')">닫기</button>
+    </div>
+  </div>
+</div>
+
+<div id="globalLoading" class="is-open">
+  <div class="global-loading__dialog">
+    <div class="global-loading__spinner"></div>
+    <div class="global-loading__text" id="globalLoadingText">불러오는 중...</div>
+  </div>
+</div>
+
+<script src="../../assets/libs/ag-grid/ag-grid-community.min.js"></script>
+<script src="../../assets/libs/supabase.js"></script>
+<script src="../../assets/js/core/config.js"></script>
+<script src="../../assets/js/core/utils.js"></script>
+<script src="../../assets/js/core/supabase.js"></script>
+<script src="../../assets/js/core/auth.js"></script>
+<script src="../../assets/js/core/db.js"></script>
+<script src="../../assets/js/program-request/history.js"></script>
+</body>
+</html>
