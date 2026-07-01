@@ -3,7 +3,7 @@
 var DAYS = ['일','월','화','수','목','금','토'];
 var STATUS_BADGE = { REQUESTED:'badge-requested', PROCESSING:'badge-processing', COMPLETED:'badge-completed', REJECTED:'badge-rejected', CANCELLED:'badge-cancelled' };
 var STATUS_LABEL = { REQUESTED:'접수', PROCESSING:'진행중', COMPLETED:'완료', REJECTED:'반려', CANCELLED:'취소' };
-var MAX_FAV = 4;
+var MAX_FAV = 6;
 
 // 즐겨찾기 가능한 전체 페이지 목록 (icon / label / page key)
 var ALL_PAGES = [
@@ -72,11 +72,13 @@ function renderFavPicker() {
   var grid = document.getElementById('favPickGrid');
   var available = ALL_PAGES.filter(function(p) { return allowedPageKeys.includes(p.key); });
   grid.innerHTML = available.map(function(p) {
-    var sel = tempSelected.includes(p.key);
+    var selIdx = tempSelected.indexOf(p.key);
+    var sel = selIdx !== -1;
+    var badgeContent = sel ? (selIdx + 1) : '';
     return '<div class="fav-pick-card' + (sel ? ' is-selected' : '') + '" data-key="' + p.key + '">' +
-      '<i class="ti ' + p.icon + ' fav-pick-icon" style="color:#6b7280;"></i>' +
+      '<i class="ti ' + p.icon + ' fav-pick-icon" style="color:' + (sel ? 'var(--navy)' : '#9ca3af') + ';"></i>' +
       '<span class="fav-pick-label">' + ts(p.label) + '</span>' +
-      '<span class="fav-pick-check"></span>' +
+      '<span class="fav-pick-badge">' + badgeContent + '</span>' +
     '</div>';
   }).join('');
 
@@ -86,15 +88,14 @@ function renderFavPicker() {
       var idx = tempSelected.indexOf(key);
       if (idx !== -1) {
         tempSelected.splice(idx, 1);
-        card.classList.remove('is-selected');
       } else {
         if (tempSelected.length >= MAX_FAV) {
           alert('즐겨찾기는 최대 ' + MAX_FAV + '개까지 추가할 수 있습니다.');
           return;
         }
         tempSelected.push(key);
-        card.classList.add('is-selected');
       }
+      renderFavPicker(); // 번호 갱신
     });
   });
 }
