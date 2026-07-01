@@ -248,21 +248,44 @@ async function openShDetail(id) {
     document.getElementById('shDetailTitle').textContent = sr.request_no;
 
     // 첨부파일
-    var filesWrap = document.getElementById('shDetailFiles');
     if (files && files.length) {
+      var now = new Date();
       var links = await Promise.all(files.map(async function(f) {
-        var url = await db.getSignedUrl('signage-files', f.storage_path);
+        var createdAt = new Date(f.created_at);
+        var expiresAt = new Date(createdAt.getTime() + 7 * 24 * 60 * 60 * 1000);
+        var daysLeft = Math.ceil((expiresAt - now) / (24 * 60 * 60 * 1000));
+        var expired = daysLeft <= 0;
+
+        var badge = '';
+        if (expired) {
+          badge = '<span style="padding:1px 7px;border-radius:999px;font-size:10px;font-weight:700;background:#f3f4f6;color:#9ca3af;">만료됨</span>';
+        } else if (daysLeft <= 2) {
+          badge = '<span style="padding:1px 7px;border-radius:999px;font-size:10px;font-weight:700;background:#fee2e2;color:#dc2626;">D-' + daysLeft + '</span>';
+        } else if (daysLeft <= 5) {
+          badge = '<span style="padding:1px 7px;border-radius:999px;font-size:10px;font-weight:700;background:#fef3c7;color:#92400e;">D-' + daysLeft + '</span>';
+        } else {
+          badge = '<span style="padding:1px 7px;border-radius:999px;font-size:10px;font-weight:700;background:#f0f2f5;color:#6b7280;">D-' + daysLeft + '</span>';
+        }
+
+        var downloadBtn = '';
+        if (!expired) {
+          var url = await db.getSignedUrl('signage-files', f.storage_path);
+          if (url) downloadBtn = '<a href="' + url + '" target="_blank" class="btn btn-sm"><i class="ti ti-download"></i> 다운로드</a>';
+        }
+
         return '<div class="sh-file-item">' +
           '<span style="display:flex;align-items:center;gap:8px;">' +
           '<i class="ti ti-paperclip" style="color:#9ca3af;font-size:14px;"></i>' +
           ts(f.file_name) + '</span>' +
-          (url ? '<a href="' + url + '" target="_blank" class="btn btn-sm"><i class="ti ti-download"></i> 다운로드</a>' : '') +
+          '<span style="display:flex;align-items:center;gap:8px;">' + badge + downloadBtn + '</span>' +
           '</div>';
       }));
+
       filesWrap.innerHTML =
         '<div class="sh-detail-section" style="margin-bottom:10px;">' +
         '<div class="sh-detail-section-head"><i class="ti ti-paperclip"></i>첨부파일 ' +
-        '<span style="margin-left:4px;background:#e5e7eb;border-radius:999px;padding:0 6px;font-size:10px;">' + files.length + '</span></div>' +
+        '<span style="margin-left:4px;background:#e5e7eb;border-radius:999px;padding:0 6px;font-size:10px;">' + files.length + '</span>' +
+        '<span style="margin-left:auto;font-size:10px;color:#9ca3af;font-weight:400;">접수일로부터 7일간 보관</span></div>' +
         links.join('') + '</div>';
     } else {
       filesWrap.innerHTML = '';
