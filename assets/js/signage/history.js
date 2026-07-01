@@ -334,6 +334,7 @@ async function updateSrStatus(id, toStatus) {
     };
     var { error } = await supabaseClient.from('signage_requests').update(patch).eq('id', id);
     if (error) throw new Error(error.message);
+    systemLog('SIGNAGE_STATUS', '사인물 신청 상태 변경 → ' + label, { target_type:'signage_request', target_id:id, meta:{ status: toStatus } }).catch(() => {});
     closeModal('shDetailModal');
     await loadShList(shState.page);
   } catch(e) {
