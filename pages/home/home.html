@@ -11,11 +11,7 @@
     .home-page { display:flex; flex-direction:column; height:100%; overflow-y:auto; padding:16px; gap:12px; box-sizing:border-box; }
 
     /* ── 웰컴 배너 ── */
-    .home-banner {
-      background:linear-gradient(135deg, #0b1630 60%, #1e3260);
-      border-radius:12px; padding:28px 32px;
-      display:flex; align-items:center; justify-content:space-between; flex-shrink:0;
-    }
+    .home-banner { background:linear-gradient(135deg,#0b1630 60%,#1e3260); border-radius:12px; padding:28px 32px; display:flex; align-items:center; justify-content:space-between; flex-shrink:0; }
     .home-banner-left { display:flex; flex-direction:column; gap:6px; }
     .home-banner-greeting { font-size:13px; color:rgba(255,255,255,0.55); font-weight:500; }
     .home-banner-name { font-size:22px; font-weight:800; color:#fff; }
@@ -24,62 +20,73 @@
     .home-banner-date { font-size:13px; color:rgba(255,255,255,0.6); font-weight:500; }
     .home-banner-time { font-size:28px; font-weight:700; color:#fff; letter-spacing:.04em; }
 
-    /* ── 바로가기 카드 ── */
-    .home-quick { display:grid; grid-template-columns:repeat(4, 1fr); gap:8px; flex-shrink:0; }
-    .home-quick-card {
-      background:#fff; border:1px solid #e5e7eb; border-radius:10px;
-      padding:16px 14px; display:flex; align-items:center; gap:12px;
-      cursor:pointer; transition:all .15s; text-decoration:none;
+    /* ── 즐겨찾기 ── */
+    .home-fav-bar { display:flex; align-items:center; gap:8px; flex-shrink:0; }
+    .home-fav-label { font-size:11px; font-weight:700; color:#9ca3af; flex-shrink:0; }
+    .home-fav-list { display:flex; gap:8px; flex:1; flex-wrap:wrap; }
+    .home-fav-card {
+      display:flex; align-items:center; gap:8px;
+      background:#fff; border:1px solid #e5e7eb; border-radius:8px;
+      padding:8px 14px; cursor:pointer; transition:all .15s; text-decoration:none;
+      font-size:12px; font-weight:600; color:#374151; white-space:nowrap;
     }
-    .home-quick-card:hover { border-color:#93c5fd; box-shadow:0 2px 8px rgba(0,0,0,0.06); transform:translateY(-1px); }
-    .home-quick-icon {
-      width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center;
-      font-size:20px; flex-shrink:0;
-    }
-    .home-quick-label { font-size:12px; font-weight:700; color:#374151; }
-    .home-quick-desc { font-size:11px; color:#9ca3af; margin-top:2px; }
+    .home-fav-card:hover { border-color:#93c5fd; box-shadow:0 2px 6px rgba(0,0,0,0.06); }
+    .home-fav-card i { font-size:15px; }
+    .home-fav-empty { font-size:12px; color:#9ca3af; }
+    .home-fav-edit { display:flex; align-items:center; gap:4px; padding:6px 12px; border:1px dashed #d1d5db; border-radius:8px; background:transparent; font-size:11px; color:#9ca3af; cursor:pointer; flex-shrink:0; transition:all .15s; white-space:nowrap; }
+    .home-fav-edit:hover { border-color:#93c5fd; color:#3b82f6; }
 
     /* ── 2열 본문 ── */
-    .home-body { display:grid; grid-template-columns:1fr 1fr; gap:12px; flex:1; min-height:0; }
+    .home-body { display:grid; grid-template-columns:1fr 1fr; gap:12px; flex:1; min-height:240px; }
     .home-card { background:#fff; border:1px solid #e5e7eb; border-radius:10px; display:flex; flex-direction:column; overflow:hidden; }
-    .home-card-head {
-      display:flex; align-items:center; gap:8px; padding:12px 16px;
-      background:#f8fafc; border-bottom:1px solid #e5e7eb; flex-shrink:0;
-    }
+    .home-card-head { display:flex; align-items:center; gap:8px; padding:10px 16px; background:#f8fafc; border-bottom:1px solid #e5e7eb; flex-shrink:0; }
     .home-card-title { font-size:12px; font-weight:700; color:#374151; }
-    .home-card-body { flex:1; overflow-y:auto; padding:0; }
+    .home-card-body { flex:1; overflow-y:auto; }
 
     /* ── 공지사항 ── */
-    .notice-item {
-      display:flex; flex-direction:column; gap:4px;
-      padding:12px 16px; border-bottom:1px solid #f3f4f6; cursor:default;
-      transition:background .1s;
-    }
+    .notice-item { display:flex; flex-direction:column; gap:4px; padding:12px 16px; border-bottom:1px solid #f3f4f6; }
     .notice-item:last-child { border-bottom:none; }
-    .notice-item:hover { background:#fafafa; }
     .notice-item-head { display:flex; align-items:center; gap:6px; }
     .notice-pin { display:inline-flex; align-items:center; gap:3px; font-size:9px; font-weight:700; color:#2563eb; background:#dbeafe; padding:1px 6px; border-radius:999px; flex-shrink:0; }
     .notice-title { font-size:12px; font-weight:600; color:#111827; }
     .notice-content { font-size:11px; color:#6b7280; line-height:1.6; }
     .notice-meta { font-size:10px; color:#9ca3af; }
-    .notice-empty { display:flex; align-items:center; justify-content:center; height:100px; font-size:12px; color:#9ca3af; }
+    .home-empty { display:flex; align-items:center; justify-content:center; height:80px; font-size:12px; color:#9ca3af; }
 
-    /* ── 최근 신청 현황 ── */
-    .recent-item {
-      display:flex; align-items:center; gap:10px;
-      padding:10px 16px; border-bottom:1px solid #f3f4f6;
-    }
+    /* ── 최근 신청 ── */
+    .recent-item { display:flex; align-items:center; gap:10px; padding:10px 16px; border-bottom:1px solid #f3f4f6; }
     .recent-item:last-child { border-bottom:none; }
-    .recent-no { font-size:11px; font-weight:600; color:#374151; flex-shrink:0; }
     .recent-title { flex:1; min-width:0; font-size:12px; color:#374151; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .recent-date { font-size:10px; color:#9ca3af; flex-shrink:0; }
-    .recent-empty { display:flex; align-items:center; justify-content:center; height:100px; font-size:12px; color:#9ca3af; }
+    .badge-requested  { background:#dbeafe;color:#1d4ed8;padding:1px 7px;border-radius:999px;font-size:10px;font-weight:700;flex-shrink:0; }
+    .badge-processing { background:#fef3c7;color:#92400e;padding:1px 7px;border-radius:999px;font-size:10px;font-weight:700;flex-shrink:0; }
+    .badge-completed  { background:#d1fae5;color:#065f46;padding:1px 7px;border-radius:999px;font-size:10px;font-weight:700;flex-shrink:0; }
+    .badge-rejected   { background:#fee2e2;color:#991b1b;padding:1px 7px;border-radius:999px;font-size:10px;font-weight:700;flex-shrink:0; }
+    .badge-cancelled  { background:#f3f4f6;color:#6b7280;padding:1px 7px;border-radius:999px;font-size:10px;font-weight:700;flex-shrink:0; }
 
-    .badge-requested  { background:#dbeafe;color:#1d4ed8;padding:1px 7px;border-radius:999px;font-size:10px;font-weight:700; flex-shrink:0; }
-    .badge-processing { background:#fef3c7;color:#92400e;padding:1px 7px;border-radius:999px;font-size:10px;font-weight:700; flex-shrink:0; }
-    .badge-completed  { background:#d1fae5;color:#065f46;padding:1px 7px;border-radius:999px;font-size:10px;font-weight:700; flex-shrink:0; }
-    .badge-rejected   { background:#fee2e2;color:#991b1b;padding:1px 7px;border-radius:999px;font-size:10px;font-weight:700; flex-shrink:0; }
-    .badge-cancelled  { background:#f3f4f6;color:#6b7280;padding:1px 7px;border-radius:999px;font-size:10px;font-weight:700; flex-shrink:0; }
+    /* ── 즐겨찾기 편집 모달 ── */
+    .fav-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+    .fav-pick-card {
+      display:flex; align-items:center; gap:10px;
+      padding:10px 12px; border:1.5px solid #e5e7eb; border-radius:8px;
+      cursor:pointer; transition:all .15s; background:#fff;
+    }
+    .fav-pick-card:hover { border-color:#93c5fd; }
+    .fav-pick-card.is-selected { border-color:#0b1630; background:#eff6ff; }
+    .fav-pick-card.is-selected .fav-pick-check { background:#0b1630; border-color:#0b1630; }
+    .fav-pick-card.is-selected .fav-pick-check::after { display:block; }
+    .fav-pick-icon { font-size:18px; flex-shrink:0; }
+    .fav-pick-label { font-size:12px; font-weight:600; color:#374151; }
+    .fav-pick-check {
+      width:16px; height:16px; border:1.5px solid #d1d5db; border-radius:4px;
+      margin-left:auto; flex-shrink:0; position:relative; background:#fff;
+    }
+    .fav-pick-check::after {
+      display:none; content:''; position:absolute; left:4px; top:1px;
+      width:5px; height:9px; border:2px solid #fff; border-top:none; border-left:none;
+      transform:rotate(45deg);
+    }
+    .fav-hint { font-size:11px; color:#9ca3af; margin-top:10px; }
   </style>
 </head>
 <body>
@@ -98,39 +105,26 @@
     </div>
   </div>
 
-  <!-- 바로가기 -->
-  <div class="home-quick">
-    <div class="home-quick-card" onclick="parent.shellNavigate && parent.shellNavigate('signage/apply')">
-      <div class="home-quick-icon" style="background:#ede9fe;"><i class="ti ti-rubber-stamp" style="color:#5b21b6;"></i></div>
-      <div><div class="home-quick-label">사인물 신청</div><div class="home-quick-desc">사인물·명판 제작 신청</div></div>
+  <!-- 즐겨찾기 -->
+  <div class="home-fav-bar">
+    <span class="home-fav-label"><i class="ti ti-star" style="margin-right:2px;"></i>즐겨찾기</span>
+    <div class="home-fav-list" id="homeFavList">
+      <span class="home-fav-empty">즐겨찾기를 추가해보세요</span>
     </div>
-    <div class="home-quick-card" onclick="parent.shellNavigate && parent.shellNavigate('signage/history')">
-      <div class="home-quick-icon" style="background:#dbeafe;"><i class="ti ti-list-check" style="color:#1d4ed8;"></i></div>
-      <div><div class="home-quick-label">신청내역</div><div class="home-quick-desc">신청 현황 및 처리</div></div>
-    </div>
-    <div class="home-quick-card" onclick="parent.shellNavigate && parent.shellNavigate('equipment/dashboard')">
-      <div class="home-quick-icon" style="background:#d1fae5;"><i class="ti ti-device-desktop-analytics" style="color:#065f46;"></i></div>
-      <div><div class="home-quick-label">의료장비</div><div class="home-quick-desc">장비 현황 대시보드</div></div>
-    </div>
-    <div class="home-quick-card" onclick="parent.shellNavigate && parent.shellNavigate('materials/purchase-request')">
-      <div class="home-quick-icon" style="background:#fef3c7;"><i class="ti ti-shopping-cart" style="color:#92400e;"></i></div>
-      <div><div class="home-quick-label">발주요청</div><div class="home-quick-desc">자재 발주 신청</div></div>
-    </div>
+    <button class="home-fav-edit" id="favEditBtn"><i class="ti ti-pencil"></i> 편집</button>
   </div>
 
   <!-- 2열: 공지사항 + 최근 신청 -->
   <div class="home-body">
-
     <div class="home-card">
       <div class="home-card-head">
         <i class="ti ti-speakerphone" style="color:#6b7280;font-size:14px;"></i>
         <span class="home-card-title">공지사항</span>
       </div>
       <div class="home-card-body" id="noticeList">
-        <div class="notice-empty">불러오는 중...</div>
+        <div class="home-empty">불러오는 중...</div>
       </div>
     </div>
-
     <div class="home-card">
       <div class="home-card-head">
         <i class="ti ti-clock-hour-4" style="color:#6b7280;font-size:14px;"></i>
@@ -138,10 +132,29 @@
         <button class="btn btn-sm" style="margin-left:auto;" onclick="parent.shellNavigate && parent.shellNavigate('signage/history')">전체보기</button>
       </div>
       <div class="home-card-body" id="recentList">
-        <div class="recent-empty">불러오는 중...</div>
+        <div class="home-empty">불러오는 중...</div>
       </div>
     </div>
+  </div>
 
+</div>
+
+<!-- 즐겨찾기 편집 모달 -->
+<div id="favModal" class="m-modal">
+  <div class="m-modal-backdrop" onclick="closeFavModal()"></div>
+  <div class="m-modal-dialog" style="max-width:520px;">
+    <div class="m-modal-head">
+      <span class="m-modal-title"><i class="ti ti-star" style="margin-right:6px;"></i>즐겨찾기 편집</span>
+      <button class="m-modal-close" onclick="closeFavModal()"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="m-modal-body">
+      <div class="fav-grid" id="favPickGrid"></div>
+      <p class="fav-hint">최대 4개까지 추가할 수 있습니다.</p>
+    </div>
+    <div class="m-modal-foot">
+      <button class="btn btn-sm" onclick="closeFavModal()">취소</button>
+      <button class="btn btn-sm btn-primary" id="favSaveBtn">저장</button>
+    </div>
   </div>
 </div>
 
