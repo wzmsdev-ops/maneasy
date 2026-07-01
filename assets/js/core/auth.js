@@ -211,9 +211,13 @@ window.auth = (function () {
         return;
       }
 
+      // 로그인 로그
+      if (typeof systemLog === 'function') {
+        systemLog('LOGIN', (user.user_name || user.email) + ' 로그인').catch(() => {});
+      }
+
       location.replace(getAppUrl());
     }
-
     loginBtn?.addEventListener('click', doLogin);
     passwordInput?.addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
 
