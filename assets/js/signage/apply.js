@@ -381,6 +381,7 @@ async function init() {
     showGlobalLoading('신청서를 제출하는 중...');
     try {
       await saveSr();
+      systemLog('SIGNAGE_CREATE', '사인물 신청 제출', { target_type:'signage_request' }).catch(() => {});
       hideGlobalLoading();
       alert('신청이 접수되었습니다.');
       if (parent.shellNavigate) parent.shellNavigate('signage/history');
