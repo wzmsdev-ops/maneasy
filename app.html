@@ -94,6 +94,20 @@
         <div class="sb-item-inner"><i class="ti ti-calendar-event"></i><span>업무일정 관리</span></div>
       </button>
 
+      <!-- 프로그램 요청 -->
+      <button class="sb-item sb-item-parent" data-group="program-request">
+        <div class="sb-item-inner"><i class="ti ti-bug"></i><span>프로그램 요청</span></div>
+        <i class="ti ti-chevron-right sb-item-arrow"></i>
+      </button>
+      <div class="sb-submenu" data-group="program-request">
+        <button class="sb-sub-item" data-page="program-request/apply" onclick="navigate('program-request/apply')" id="sbItemProgramRequestApply">
+          <i class="ti ti-pencil"></i><span>신청</span>
+        </button>
+        <button class="sb-sub-item" data-page="program-request/history" onclick="navigate('program-request/history')" id="sbItemProgramRequestHistory">
+          <i class="ti ti-list-check"></i><span>신청내역</span>
+        </button>
+      </div>
+
       <!-- 마스터 관리 -->
       <div class="sb-divider sb-admin-only" id="sbDividerMaster" style="display:none;margin:6px 0;"></div>
       <button class="sb-item sb-item-parent sb-admin-only" data-group="master" id="sbGroupMaster" style="display:none;">
@@ -178,6 +192,8 @@ const MENU_META = {
   'materials/material-stats':  { app: '자재관리', page: '자재 통계' },
   'signage/apply':             { app: '사인물 신청', page: '신청' },
   'signage/history':           { app: '사인물 신청', page: '신청내역' },
+  'program-request/apply':     { app: '프로그램 요청', page: '신청' },
+  'program-request/history':   { app: '프로그램 요청', page: '신청내역' },
 };
 
 /* ── Flyout 서브메뉴 ── */
@@ -281,6 +297,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       'equipment/dashboard', 'equipment/list', 'equipment/detail',
       'materials/purchase-request', 'materials/use-stock', 'materials/material-stats',
       'task/task-manager', 'signage/apply', 'signage/history',
+      'program-request/apply', 'program-request/history',
     ];
     const ROLE_DEFAULT_PAGES = {
       user:    [...ROLE_BASE_PAGES],
