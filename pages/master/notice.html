@@ -24,6 +24,11 @@
     .m-actionbar { display:flex; align-items:center; gap:6px; background:#fff; border:1px solid #e5e7eb; border-radius:8px; padding:7px 12px; flex-shrink:0; height:44px; box-sizing:border-box; }
     .m-actionbar input[type=text] { flex:1; min-width:0; height:28px; padding:0 10px; border:1px solid #e5e7eb; border-radius:6px; font-size:12px; outline:none; }
     .m-actionbar input[type=text]:focus { border-color:#2563eb; }
+    .m-actionbar input[type=date] { height:28px; padding:0 6px; border:1px solid #e5e7eb; border-radius:6px; font-size:12px; outline:none; width:130px; flex-shrink:0; }
+    .m-actionbar input[type=date]:focus { border-color:#2563eb; }
+    .m-actionbar select { height:28px; padding:0 6px; border:1px solid #e5e7eb; border-radius:6px; font-size:12px; outline:none; flex-shrink:0; }
+    .m-actionbar select:focus { border-color:#2563eb; }
+    .m-divider { width:1px; height:20px; background:#d1d5db; flex-shrink:0; margin:0 4px; }
     .badge-active   { background:#d1fae5;color:#065f46;padding:1px 8px;border-radius:999px;font-size:10px;font-weight:700; }
     .badge-inactive { background:#f3f4f6;color:#6b7280;padding:1px 8px;border-radius:999px;font-size:10px;font-weight:700; }
     .badge-pin { background:#dbeafe;color:#1d4ed8;padding:1px 8px;border-radius:999px;font-size:10px;font-weight:700; }
@@ -33,9 +38,19 @@
 <div class="notice-page">
 
   <div class="m-actionbar">
-    <input type="text" id="noticeKeyword" placeholder="제목 검색..." />
+    <input type="date" id="noticeFrom" />
+    <span style="font-size:11px;color:#9ca3af;flex-shrink:0;">~</span>
+    <input type="date" id="noticeTo" />
+    <div class="m-divider"></div>
+    <select id="noticeField">
+      <option value="all">제목+내용</option>
+      <option value="title">제목</option>
+      <option value="content">내용</option>
+      <option value="author">작성자</option>
+    </select>
+    <input type="text" id="noticeKeyword" placeholder="검색어를 입력하세요..." />
     <button class="btn btn-sm btn-primary" id="noticeSearchBtn"><i class="ti ti-search"></i> 조회</button>
-    <div style="width:1px;height:20px;background:#d1d5db;margin:0 4px;"></div>
+    <div class="m-divider"></div>
     <button class="btn btn-sm btn-primary" id="noticeAddBtn"><i class="ti ti-plus"></i> 공지 작성</button>
   </div>
 
@@ -54,7 +69,7 @@
 <!-- 작성/수정 모달 -->
 <div id="noticeModal" class="m-modal">
   <div class="m-modal-backdrop" onclick="closeModal('noticeModal')"></div>
-  <div class="m-modal-dialog" style="max-width:580px;">
+  <div class="m-modal-dialog" style="max-width:860px;width:calc(100vw - 64px);">
     <div class="m-modal-head">
       <span class="m-modal-title" id="noticeModalTitle">공지 작성</span>
       <button class="m-modal-close" onclick="closeModal('noticeModal')"><i class="ti ti-x"></i></button>
@@ -67,7 +82,7 @@
         </div>
         <div class="form-field full-col">
           <label class="form-label required">내용</label>
-          <textarea id="nf_content" class="input textarea" rows="5"></textarea>
+          <textarea id="nf_content" class="input textarea" rows="8"></textarea>
         </div>
         <div class="form-field">
           <label class="form-label">고정 공지</label>
