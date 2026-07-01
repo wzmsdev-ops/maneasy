@@ -58,33 +58,40 @@ function bindUrgentToggle() {
 }
 
 /* ── 명판 타입 선택 ── */
+var NP_TYPE_LABELS = { A:'A 타입 — 5cm (20/16cm)', B:'B 타입 — 4cm (20/18cm)', C:'C 타입 — 3cm (20/18cm)', D:'D 타입 — 2.5cm (20cm)' };
+var NAMEPLATE_IMG_BASE = '../../assets/images/nameplate/';
+
+function updatePreviewImage(src, title) {
+  document.getElementById('srPreviewEmpty').style.display = 'none';
+  document.getElementById('srPreviewContent').style.display = 'flex';
+  document.getElementById('srPreviewTypeImg').src = src;
+  document.getElementById('srPreviewTitle').textContent = title;
+}
+
 function bindNpTypeSelector() {
-  document.querySelectorAll('input[name="sr_np_type"]').forEach(function(radio) {
-    radio.addEventListener('change', function(e) {
-      srNpType = e.target.value;
+  // click을 카드에 걸어서 이미 선택된 타입 재클릭 시에도 이미지 갱신
+  document.querySelectorAll('#srNpTypeGrid .ap-pick-card').forEach(function(card) {
+    card.addEventListener('click', function() {
+      var radio = card.querySelector('input[type=radio]');
+      if (!radio) return;
+      srNpType = radio.value;
       srNpSubtype = '';
 
-      // 타입 카드 하이라이트
+      // 카드 하이라이트
       document.querySelectorAll('#srNpTypeGrid .ap-pick-card').forEach(function(c) { c.classList.remove('is-selected'); });
-      document.getElementById('srNpCard_' + srNpType)?.classList.add('is-selected');
+      card.classList.add('is-selected');
 
       // 이미지 교체
-      var NP_TYPE_LABELS = { A:'A 타입 — 5cm (20/16cm)', B:'B 타입 — 4cm (20/18cm)', C:'C 타입 — 3cm (20/18cm)', D:'D 타입 — 2.5cm (20cm)' };
-      var NAMEPLATE_IMG_BASE = '../../assets/images/nameplate/';
-      document.getElementById('srPreviewEmpty').style.display = 'none';
-      var content = document.getElementById('srPreviewContent');
-      content.style.display = 'flex';
-      document.getElementById('srPreviewTypeImg').src = NAMEPLATE_IMG_BASE + srNpType + '.jpeg';
-      document.getElementById('srPreviewTitle').textContent = NP_TYPE_LABELS[srNpType] || '명판 타입 미리보기';
+      updatePreviewImage(NAMEPLATE_IMG_BASE + srNpType + '.jpeg', NP_TYPE_LABELS[srNpType] || '명판 타입 미리보기');
 
-      // 세부 디자인 레이블 업데이트 (카드는 이미 그려져 있음)
+      // 세부 디자인 레이블·상태 초기화
       ['1','2','3','4'].forEach(function(n) {
         var lbl = document.getElementById('srSubLabel_' + n);
         if (lbl) lbl.textContent = srNpType + '-' + n;
-        var card = document.getElementById('srSubCard_' + n);
-        if (card) card.classList.remove('is-selected');
-        var radio = card?.querySelector('input[type=radio]');
-        if (radio) radio.checked = false;
+        var sub = document.getElementById('srSubCard_' + n);
+        if (sub) sub.classList.remove('is-selected');
+        var r = sub?.querySelector('input[type=radio]');
+        if (r) r.checked = false;
       });
     });
   });
@@ -113,10 +120,7 @@ function bindLayoutSelector() {
       });
 
       // 이미지 교체 — layout.jpeg로 스왑
-      document.getElementById('srPreviewEmpty').style.display = 'none';
-      document.getElementById('srPreviewContent').style.display = 'flex';
-      document.getElementById('srPreviewTypeImg').src = '../../assets/images/nameplate/layout.jpeg';
-      document.getElementById('srPreviewTitle').textContent = '문구 레이아웃 안내';
+      updatePreviewImage('../../assets/images/nameplate/layout.jpeg', '문구 레이아웃 안내');
 
       // 이 레이아웃에서 활성화할 필드 목록
       var activeFields = NP_LAYOUT_FIELDS[srNpLayout] || [];
