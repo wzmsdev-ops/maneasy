@@ -99,11 +99,18 @@ function bindNpTypeSelector() {
 
 /* ── 세부 디자인 선택 ── */
 function bindNpSubtypeSelector() {
-  document.querySelectorAll('input[name="sr_np_subtype"]').forEach(function(radio) {
-    radio.addEventListener('change', function(e) {
-      srNpSubtype = e.target.value;
+  document.querySelectorAll('#srNpSubGrid .ap-pick-card').forEach(function(card) {
+    card.addEventListener('click', function() {
+      var radio = card.querySelector('input[type=radio]');
+      if (!radio) return;
+      srNpSubtype = radio.value;
       document.querySelectorAll('#srNpSubGrid .ap-pick-card').forEach(function(c) { c.classList.remove('is-selected'); });
-      document.getElementById('srSubCard_' + srNpSubtype)?.classList.add('is-selected');
+      card.classList.add('is-selected');
+
+      // 세부 디자인은 별도 이미지 없으므로 부모 타입 이미지로 복귀
+      if (srNpType) {
+        updatePreviewImage(NAMEPLATE_IMG_BASE + srNpType + '.jpeg', NP_TYPE_LABELS[srNpType] || '명판 타입 미리보기');
+      }
     });
   });
 }
