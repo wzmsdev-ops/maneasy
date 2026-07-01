@@ -84,14 +84,14 @@ function bindNpTypeSelector() {
       // 이미지 교체
       updatePreviewImage(NAMEPLATE_IMG_BASE + srNpType + '.jpeg', NP_TYPE_LABELS[srNpType] || '명판 타입 미리보기');
 
-      // 세부 디자인 레이블·상태 초기화
+      // 세부 디자인 카드 활성화 + 레이블 업데이트
       ['1','2','3','4'].forEach(function(n) {
-        var lbl = document.getElementById('srSubLabel_' + n);
-        if (lbl) lbl.textContent = srNpType + '-' + n;
-        var sub = document.getElementById('srSubCard_' + n);
-        if (sub) sub.classList.remove('is-selected');
-        var r = sub?.querySelector('input[type=radio]');
-        if (r) r.checked = false;
+        var lbl  = document.getElementById('srSubLabel_' + n);
+        var card = document.getElementById('srSubCard_' + n);
+        var r    = card?.querySelector('input[type=radio]');
+        if (lbl)  lbl.textContent = srNpType + '-' + n;
+        if (card) { card.classList.remove('is-selected', 'is-disabled'); }
+        if (r)    { r.checked = false; r.disabled = false; }
       });
     });
   });
