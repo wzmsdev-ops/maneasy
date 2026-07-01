@@ -13,16 +13,15 @@ window.closeModal = closeModal;
 
 function initGrid() {
   _grid = createMgGrid('noticeGrid', [
+    { headerName:'작성일', field:'created_at', width:110,
+      cellRenderer: function(p) { return p.value ? String(p.value).slice(0,10) : '-'; }
+    },
     { headerName:'고정', field:'is_pinned', width:70,
-      cellRenderer: function(p) {
-        return p.value ? '<span class="badge-pin">고정</span>' : '';
-      }
+      cellRenderer: function(p) { return p.value ? '<span class="badge-pin">고정</span>' : ''; }
     },
     { headerName:'상태', field:'is_active', width:80,
       cellRenderer: function(p) {
-        return p.value
-          ? '<span class="badge-active">게시 중</span>'
-          : '<span class="badge-inactive">숨김</span>';
+        return p.value ? '<span class="badge-active">게시 중</span>' : '<span class="badge-inactive">숨김</span>';
       }
     },
     { headerName:'제목', field:'title', flex:1, minWidth:200,
@@ -37,9 +36,6 @@ function initGrid() {
       }
     },
     { headerName:'작성자', field:'author_name', width:90 },
-    { headerName:'작성일', field:'created_at', width:110,
-      cellRenderer: function(p) { return p.value ? String(p.value).slice(0,10) : '-'; }
-    },
     { headerName:'', width:130, sortable:false,
       cellRenderer: function(p) {
         var wrap = document.createElement('div');
@@ -60,8 +56,24 @@ function initGrid() {
 async function loadList() {
   showGlobalLoading('공지사항을 불러오는 중...');
   var keyword = val('noticeKeyword');
-  var q = supabaseClient.from('system_notices').select('*').order('is_pinned', { ascending:false }).order('created_at', { ascending:false });
-  if (keyword) q = q.ilike('title', '%' + keyword + '%');
+  var field   = document.getElementById('noticeField')?.value || 'all';
+  var from    = val('noticeFrom');
+  var to      = val('noticeTo');
+
+  var q = supabaseClient.from('system_notices').select('*')
+    .order('is_pinned', { ascending:false })
+    .order('created_at', { ascending:false });
+
+  if (from) q = q.gte('created_at', from);
+  if (to)   q = q.lte('created_at', to + 'T23:59:59');
+
+  if (keyword) {
+    if (field === 'title')        q = q.ilike('title', '%' + keyword + '%');
+    else if (field === 'content') q = q.ilike('content', '%' + keyword + '%');
+    else if (field === 'author')  q = q.ilike('author_name', '%' + keyword + '%');
+    else                          q = q.or('title.ilike.%' + keyword + '%,content.ilike.%' + keyword + '%');
+  }
+
   var { data, error } = await q;
   hideGlobalLoading();
   if (error) { alert('불러오기 실패: ' + error.message); return; }
