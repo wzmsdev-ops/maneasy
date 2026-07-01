@@ -179,7 +179,12 @@ function initScopeToggle() {
   });
 }
 
-function mkMetaItem(label, value, full) {
+function mkSection(icon, title, rows) {
+  return '<div class="sh-detail-section">' +
+    '<div class="sh-detail-section-head"><i class="ti ' + icon + '"></i>' + title + '</div>' +
+    '<div class="sh-detail-meta">' + rows + '</div></div>';
+}
+function mkRow(label, value, full) {
   return '<div class="sh-detail-meta-item' + (full ? ' full' : '') + '">' +
     '<span class="sh-detail-meta-label">' + label + '</span>' +
     '<span class="sh-detail-meta-value">' + value + '</span></div>';
@@ -195,51 +200,75 @@ async function openShDetail(id) {
     var { data: files } = await supabaseClient
       .from('signage_files').select('*').eq('request_id', id).order('sort_order');
 
-    var meta =
-      mkMetaItem('신청번호', '<code>' + ts(sr.request_no) + '</code>') +
-      mkMetaItem('상태', badgeStatus(sr.status) + (sr.is_urgent === 'Y' ? '<span class="badge-urgent">긴급</span>' : '')) +
-      mkMetaItem('종류', typeLabel(sr.type)) +
-      mkMetaItem('신청일', fmtDate(sr.created_at)) +
-      mkMetaItem('의원', ts(sr.clinics?.clinic_name || '-')) +
-      mkMetaItem('부서', ts(sr.departments?.dept_name || '-')) +
-      mkMetaItem('신청자', ts(sr.requester_name || '-')) +
-      mkMetaItem('연락처', ts(sr.contact || '-')) +
-      mkMetaItem('수량', fmtN(sr.quantity) + '개') +
-      mkMetaItem('제목', ts(sr.request_title || '-'), true);
+    // ── 섹션1: 신청 기본정보
+    var basicRows =
+      mkRow('신청번호', '<code style="font-size:12px;">' + ts(sr.request_no) + '</code>') +
+      mkRow('상태', badgeStatus(sr.status) + (sr.is_urgent === 'Y' ? '<span class="badge-urgent" style="margin-left:6px;">긴급</span>' : '')) +
+      mkRow('종류', '<span class="badge-type">' + typeLabel(sr.type) + '</span>') +
+      mkRow('신청일', fmtDate(sr.created_at)) +
+      mkRow('의원', ts(sr.clinics?.clinic_name || '-')) +
+      mkRow('부서', ts(sr.departments?.dept_name || '-')) +
+      mkRow('신청자', ts(sr.requester_name || '-')) +
+      mkRow('연락처', ts(sr.contact || '-')) +
+      mkRow('수량', fmtN(sr.quantity) + '개') +
+      (sr.draft_confirm === 'Y' ? mkRow('시안 확인', '요청함') : '') +
+      mkRow('제목', ts(sr.request_title || '-'), true);
+    if (sr.is_urgent === 'Y') basicRows += mkRow('긴급 사유', ts(sr.urgent_reason || '-'), true);
 
-    if (sr.is_urgent === 'Y') meta += mkMetaItem('긴급사유', ts(sr.urgent_reason || '-'), true);
-    meta += mkMetaItem('시안컨펌요청', sr.draft_confirm === 'Y' ? '예' : '아니오');
-
+    // ── 섹션2: 상세
+    var detailRows = '';
     if (sr.type === 'SIGN') {
-      meta += mkMetaItem('사이즈', ts(sr.sign_size || '-'));
-      meta += mkMetaItem('형태/종류', ts(sr.sign_type || '-'));
-      meta += mkMetaItem('설치환경', sr.install_env === 'INDOOR' ? '실내' : sr.install_env === 'OUTDOOR' ? '실외' : '-');
-      meta += mkMetaItem('설치위치', ts(sr.install_location || '-'));
-      meta += mkMetaItem('상세내역', ts(sr.text_content || '-'), true);
+      detailRows =
+        mkRow('사이즈', ts(sr.sign_size || '-')) +
+        mkRow('형태/종류', ts(sr.sign_type || '-')) +
+        mkRow('설치 환경', sr.install_env === 'INDOOR' ? '실내' : sr.install_env === 'OUTDOOR' ? '실외' : '-') +
+        mkRow('설치 위치', ts(sr.install_location || '-')) +
+        mkRow('상세내역', ts(sr.text_content || '-'), true);
     } else {
-      meta += mkMetaItem('명판타입', ts(sr.nameplate_type || '-'));
-      meta += mkMetaItem('제작방식', sr.nameplate_method === 'NEW' ? '신규 제작' : '기존 활용');
-      meta += mkMetaItem('자석부착', sr.magnet_yn === 'Y' ? '있음' : '없음');
-      meta += mkMetaItem('명판문구', ts(sr.nameplate_text || '-'), true);
+      detailRows =
+        mkRow('명판 타입', ts(sr.nameplate_type || '-')) +
+        mkRow('규격', ts(sr.sign_size || '-')) +
+        mkRow('명판 문구', ts(sr.nameplate_text || '-'), true);
     }
-    if (sr.admin_memo) meta += mkMetaItem('처리메모', ts(sr.admin_memo), true);
 
-    document.getElementById('shDetailMeta').innerHTML = meta;
-    document.getElementById('shDetailTitle').textContent = '신청 상세 — ' + sr.request_no;
+    // ── 섹션3: 처리 정보 (메모 있을 때만)
+    var processSection = '';
+    if (sr.admin_memo) {
+      processSection = mkSection('ti-message', '처리 메모',
+        mkRow('메모', ts(sr.admin_memo), true));
+    }
 
+    var html =
+      mkSection('ti-info-circle', '신청 정보', basicRows) +
+      mkSection(sr.type === 'SIGN' ? 'ti-sign-right' : 'ti-id-badge',
+        sr.type === 'SIGN' ? '일반 사인물 상세' : '규격 명판 상세', detailRows) +
+      processSection;
+
+    document.getElementById('shDetailMeta').innerHTML = html;
+    document.getElementById('shDetailTitle').textContent = sr.request_no;
+
+    // 첨부파일
     var filesWrap = document.getElementById('shDetailFiles');
     if (files && files.length) {
       var links = await Promise.all(files.map(async function(f) {
         var url = await db.getSignedUrl('signage-files', f.storage_path);
-        return '<div class="sr-file-item" style="display:flex;justify-content:space-between;padding:5px 10px;background:#fff;border:1px solid #e5e7eb;border-radius:6px;font-size:11px;margin-bottom:4px;">' +
-          '<span>' + ts(f.file_name) + '</span>' +
-          (url ? '<a href="' + url + '" target="_blank" class="tbl-btn">다운로드</a>' : '') + '</div>';
+        return '<div class="sh-file-item">' +
+          '<span style="display:flex;align-items:center;gap:8px;">' +
+          '<i class="ti ti-paperclip" style="color:#9ca3af;font-size:14px;"></i>' +
+          ts(f.file_name) + '</span>' +
+          (url ? '<a href="' + url + '" target="_blank" class="btn btn-sm"><i class="ti ti-download"></i> 다운로드</a>' : '') +
+          '</div>';
       }));
-      filesWrap.innerHTML = '<div class="sh-detail-meta-item full"><span class="sh-detail-meta-label">첨부파일</span></div>' + links.join('');
+      filesWrap.innerHTML =
+        '<div class="sh-detail-section" style="margin-bottom:10px;">' +
+        '<div class="sh-detail-section-head"><i class="ti ti-paperclip"></i>첨부파일 ' +
+        '<span style="margin-left:4px;background:#e5e7eb;border-radius:999px;padding:0 6px;font-size:10px;">' + files.length + '</span></div>' +
+        links.join('') + '</div>';
     } else {
       filesWrap.innerHTML = '';
     }
 
+    // 처리 액션
     var actionsEl = document.getElementById('shStatusActions');
     var memoSection = document.getElementById('shMemoSection');
     var isOwner = sr.requester_id === currentUser.id;
