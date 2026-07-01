@@ -171,11 +171,21 @@ function renderSignFileList() {
       '<span style="font-size:12px;font-weight:600;">첨부된 파일이 없습니다</span></div>';
     return;
   }
-  listEl.innerHTML = pendingSign.map(function(f, idx) {
-    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 10px;background:#fff;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;margin-bottom:4px;">' +
-      '<span>' + ts(f.file.name) + ' (' + fmtSize(f.file.size) + ')</span>' +
-      '<button type="button" style="border:none;background:none;color:#ef4444;cursor:pointer;" data-idx="' + idx + '">✕</button></div>';
+  var html = pendingSign.map(function(f, idx) {
+    var isImg = f.file.type.startsWith('image/');
+    var thumb = isImg
+      ? '<img src="' + URL.createObjectURL(f.file) + '" style="width:56px;height:56px;object-fit:cover;border-radius:6px;border:1px solid #e5e7eb;flex-shrink:0;" />'
+      : '<div style="width:56px;height:56px;border-radius:6px;border:1px solid #e5e7eb;background:#f3f4f6;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="ti ti-file" style="font-size:22px;color:#9ca3af;"></i></div>';
+    return '<div style="display:flex;align-items:center;gap:10px;padding:8px;background:#fff;border:1px solid #e5e7eb;border-radius:8px;margin-bottom:6px;">' +
+      thumb +
+      '<div style="flex:1;min-width:0;">' +
+        '<div style="font-size:12px;font-weight:600;color:#111827;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + ts(f.file.name) + '</div>' +
+        '<div style="font-size:11px;color:#9ca3af;margin-top:2px;">' + fmtSize(f.file.size) + '</div>' +
+      '</div>' +
+      '<button type="button" style="border:none;background:none;color:#ef4444;cursor:pointer;font-size:16px;flex-shrink:0;" data-idx="' + idx + '">✕</button>' +
+    '</div>';
   }).join('');
+  listEl.innerHTML = html;
   listEl.querySelectorAll('button[data-idx]').forEach(function(btn) {
     btn.addEventListener('click', function() {
       pendingSign.splice(Number(btn.dataset.idx), 1);
