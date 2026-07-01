@@ -68,10 +68,14 @@ function bindNpTypeSelector() {
       document.querySelectorAll('#srNpTypeGrid .ap-pick-card').forEach(function(c) { c.classList.remove('is-selected'); });
       document.getElementById('srNpCard_' + srNpType)?.classList.add('is-selected');
 
-      // 이미지 하이라이트
-      ['A','B','C','D'].forEach(function(t) {
-        document.getElementById('srPreviewItem_' + t)?.classList.toggle('is-selected', t === srNpType);
-      });
+      // 이미지 교체
+      var NP_TYPE_LABELS = { A:'A 타입 — 5cm (20/16cm)', B:'B 타입 — 4cm (20/18cm)', C:'C 타입 — 3cm (20/18cm)', D:'D 타입 — 2.5cm (20cm)' };
+      var NAMEPLATE_IMG_BASE = '../../assets/images/nameplate/';
+      document.getElementById('srPreviewEmpty').style.display = 'none';
+      var content = document.getElementById('srPreviewContent');
+      content.style.display = 'flex';
+      document.getElementById('srPreviewTypeImg').src = NAMEPLATE_IMG_BASE + srNpType + '.jpeg';
+      document.getElementById('srPreviewTitle').textContent = NP_TYPE_LABELS[srNpType] || '명판 타입 미리보기';
 
       // 세부 디자인 레이블 업데이트 (카드는 이미 그려져 있음)
       ['1','2','3','4'].forEach(function(n) {
@@ -108,6 +112,12 @@ function bindLayoutSelector() {
         document.getElementById('srLayoutCard_' + id)?.classList.toggle('is-selected', id === srNpLayout);
       });
 
+      // 이미지 교체 — layout.jpeg로 스왑
+      document.getElementById('srPreviewEmpty').style.display = 'none';
+      document.getElementById('srPreviewContent').style.display = 'flex';
+      document.getElementById('srPreviewTypeImg').src = '../../assets/images/nameplate/layout.jpeg';
+      document.getElementById('srPreviewTitle').textContent = '문구 레이아웃 안내';
+
       // 이 레이아웃에서 활성화할 필드 목록
       var activeFields = NP_LAYOUT_FIELDS[srNpLayout] || [];
 
@@ -121,16 +131,6 @@ function bindLayoutSelector() {
           if (!active) input.value = '';
         }
       });
-    });
-  });
-}
-
-/* ── 자석 선택 ── */
-function bindMagnetSelector() {
-  document.querySelectorAll('input[name="sr_magnet"]').forEach(function(radio) {
-    radio.addEventListener('change', function(e) {
-      document.querySelectorAll('#srMagnetCard_Y, #srMagnetCard_N').forEach(function(c) { c.classList.remove('is-selected'); });
-      document.getElementById('srMagnetCard_' + e.target.value)?.classList.add('is-selected');
     });
   });
 }
@@ -256,8 +256,6 @@ async function saveSr() {
     if (!srNpType)   throw new Error('명판 타입을 선택해주세요.');
     if (!srNpSubtype) throw new Error('세부 디자인을 선택해주세요.');
     if (!srNpLayout) throw new Error('문구 레이아웃을 선택해주세요.');
-    var magnet = document.querySelector('input[name="sr_magnet"]:checked');
-    if (!magnet)     throw new Error('자석 부착 여부를 선택해주세요.');
 
     var activeFields = NP_LAYOUT_FIELDS[srNpLayout] || [];
     for (var i = 0; i < activeFields.length; i++) {
@@ -269,7 +267,6 @@ async function saveSr() {
 
     payload.nameplate_type   = srNpType + '-' + srNpSubtype;
     payload.nameplate_text   = buildNameplateText();
-    payload.magnet_yn        = magnet.value;
     payload.sign_size        = NP_SIZES[srNpType] || '';
   }
 
@@ -334,7 +331,6 @@ async function init() {
   bindNpTypeSelector();
   bindNpSubtypeSelector();
   bindLayoutSelector();
-  bindMagnetSelector();
   bindSignFileInput();
   bindNpFileInput();
 
