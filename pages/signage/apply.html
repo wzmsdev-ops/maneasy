@@ -65,7 +65,13 @@
     .ap-sub-title { font-size:10px; font-weight:700; color:#9ca3af; margin:6px 0 3px; text-transform:uppercase; letter-spacing:.04em; }
 
     /* ── 좌 컬럼 스크롤 ── */
-    .ap-left-body { flex:1; min-height:0; overflow-y:auto; }
+    .ap-left-body { flex:1; min-height:0; overflow-y:auto; display:flex; flex-direction:column; }
+    .ap-left-body .eform-grid { align-content:start; }
+    /* 일반 사인물 상세: textarea가 남은 공간 채움 */
+    #srPanelSign .ap-left-body { padding-bottom:14px; }
+    #srPanelSign .eform-col:last-child .ap-left-body { gap:0; }
+    #srPanelSign .eform-col:last-child .form-field.eform-full:first-child { flex:1; display:flex; flex-direction:column; }
+    #srPanelSign .eform-col:last-child .form-field.eform-full:first-child .input { flex:1; resize:none; }
 
     /* ── 우: 명판 이미지 미리보기 패널 ── */
     .ap-np-preview-grid {
@@ -146,7 +152,7 @@
             <span class="eform-section-desc">신청자 및 공통 정보</span>
           </div>
           <div class="ap-left-body">
-            <div class="eform-grid">
+            <div class="eform-grid" style="flex:1;align-content:start;">
               <div class="form-field eform-full">
                 <label class="form-label required">제목</label>
                 <input type="text" id="sr_title" class="input" placeholder="예: [A3 포맥스], [바닥 스티커] 등 제작 품목명을 입력하세요." required />
@@ -194,12 +200,14 @@
             <i class="ti ti-sign-right"></i><span>일반 사인물 상세</span>
             <span class="eform-section-desc">배너, 간판, 안내판 등 맞춤 제작</span>
           </div>
-          <div class="ap-left-body">
-            <div class="eform-grid">
-              <div class="form-field eform-full">
-                <label class="form-label required">상세내역</label>
-                <textarea id="sr_text_content" class="input textarea" rows="3"></textarea>
-              </div>
+          <div class="ap-left-body" style="padding:14px;gap:10px;">
+            <!-- 상세내역: 남은 공간 전부 채움 -->
+            <div class="form-field" style="flex:1;display:flex;flex-direction:column;">
+              <label class="form-label required">상세내역</label>
+              <textarea id="sr_text_content" class="input textarea" style="flex:1;resize:none;"></textarea>
+            </div>
+            <!-- 나머지 필드: 2열 고정 -->
+            <div class="eform-grid" style="flex-shrink:0;">
               <div class="form-field">
                 <label class="form-label required">사이즈</label>
                 <input type="text" id="sr_sign_size" class="input" placeholder="예: 900 × 600 × 5 mm" />
@@ -266,7 +274,7 @@
             <i class="ti ti-info-circle"></i><span>기본 정보 &amp; 명판 옵션</span>
           </div>
           <div class="ap-left-body">
-            <div class="eform-grid" style="grid-template-columns:repeat(2,1fr);">
+            <div class="eform-grid" style="flex:1;align-content:start;grid-template-columns:repeat(2,1fr);">
               <div class="form-field eform-full">
                 <label class="form-label required">제목</label>
                 <input type="text" id="sr_title_np" class="input" placeholder="예: [명패] MD / 홍길동 / 부인과" required />
@@ -376,11 +384,9 @@
             <span style="font-size:12px;font-weight:600;">좌측에서 명판 타입을 선택하면<br>디자인을 확인할 수 있습니다</span>
           </div>
           <!-- 선택 후 이미지 -->
-          <div id="srPreviewContent" style="display:none;flex:1;min-height:0;flex-direction:column;">
-            <div style="flex:1;min-height:0;padding:14px;">
-              <img id="srPreviewTypeImg" src="" alt="명판 미리보기"
-                style="width:100%;height:100%;object-fit:contain;border:1.5px solid var(--navy);border-radius:8px;display:block;background:#fff;" />
-            </div>
+          <div id="srPreviewContent" style="display:none;flex:1;min-height:0;flex-direction:column;padding:12px;">
+            <img id="srPreviewTypeImg" src="" alt="명판 미리보기"
+              style="width:100%;height:100%;object-fit:contain;border:1.5px solid var(--navy);border-radius:8px;display:block;" />
           </div>
         </div>
       </div>
