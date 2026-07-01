@@ -51,6 +51,7 @@
     }
     .ap-pick-card:hover { border-color:var(--blue); }
     .ap-pick-card.is-selected { border-color:var(--navy); background:var(--blue-soft); }
+    .ap-pick-card.is-disabled { opacity:0.35; cursor:not-allowed; pointer-events:none; }
     .ap-pick-badge { font-size:11px; font-weight:800; color:var(--navy); }
     .ap-pick-sub  { font-size:9px; color:#6b7280; }
     .ap-pick-icon { font-size:12px; }
@@ -316,10 +317,10 @@
 
               <p class="ap-sub-title">세부 디자인</p>
               <div class="ap-card-grid" id="srNpSubGrid">
-                <label class="ap-pick-card" id="srSubCard_1"><input type="radio" name="sr_np_subtype" value="1" class="ap-sr-only" /><div class="ap-pick-badge" id="srSubLabel_1">-1</div></label>
-                <label class="ap-pick-card" id="srSubCard_2"><input type="radio" name="sr_np_subtype" value="2" class="ap-sr-only" /><div class="ap-pick-badge" id="srSubLabel_2">-2</div></label>
-                <label class="ap-pick-card" id="srSubCard_3"><input type="radio" name="sr_np_subtype" value="3" class="ap-sr-only" /><div class="ap-pick-badge" id="srSubLabel_3">-3</div></label>
-                <label class="ap-pick-card" id="srSubCard_4"><input type="radio" name="sr_np_subtype" value="4" class="ap-sr-only" /><div class="ap-pick-badge" id="srSubLabel_4">-4</div></label>
+                <label class="ap-pick-card is-disabled" id="srSubCard_1"><input type="radio" name="sr_np_subtype" value="1" class="ap-sr-only" disabled /><div class="ap-pick-badge" id="srSubLabel_1">1</div></label>
+                <label class="ap-pick-card is-disabled" id="srSubCard_2"><input type="radio" name="sr_np_subtype" value="2" class="ap-sr-only" disabled /><div class="ap-pick-badge" id="srSubLabel_2">2</div></label>
+                <label class="ap-pick-card is-disabled" id="srSubCard_3"><input type="radio" name="sr_np_subtype" value="3" class="ap-sr-only" disabled /><div class="ap-pick-badge" id="srSubLabel_3">3</div></label>
+                <label class="ap-pick-card is-disabled" id="srSubCard_4"><input type="radio" name="sr_np_subtype" value="4" class="ap-sr-only" disabled /><div class="ap-pick-badge" id="srSubLabel_4">4</div></label>
               </div>
 
               <p class="ap-sub-title">문구 레이아웃</p>
