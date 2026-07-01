@@ -1,36 +1,31 @@
 /**
  * assets/js/signage/apply.js
- * 사인물 신청 — 폼 전용 페이지
  */
 'use strict';
 
-var currentUser = null;
+var currentUser  = null;
 var myClinicId   = null;
 var myClinicName = '';
 var myDeptId     = null;
 var myDeptName   = '';
 
 var NP_SIZES = { A:'높이 5cm (20cm/16cm)', B:'높이 4cm (20cm/18cm)', C:'높이 3cm (20cm/18cm)', D:'높이 2.5cm (20cm)' };
-var NP_SUBTYPES = { A:['1','2','3','4'], B:['1','2','3','4'], C:['1','2','3','4'], D:['1','2','3','4'] };
-var NP_LAYOUTS = [
-  { id:'ga', label:'ㄱ 형', shape:'ㄱ', desc:'이름·영문이름', fields:['name_kor','name_eng'] },
-  { id:'na', label:'ㄴ 형', shape:'ㄴ', desc:'이름·영문이름·직함', fields:['name_kor','name_eng','title'] },
-  { id:'da', label:'ㄷ 형', shape:'ㄷ', desc:'이름·영문이름·직함·진료과', fields:['name_kor','name_eng','title','dept'] },
-];
-var NP_FIELD_META = {
-  name_kor: { label:'이름 (한글)', placeholder:'예: 홍길동', required:true },
-  name_eng: { label:'영문 이름',   placeholder:'예: Hong Gil-dong', required:true },
-  title:    { label:'직함',        placeholder:'예: MD / G.D', required:true },
-  dept:     { label:'진료과',      placeholder:'예: 내과', required:true },
+
+// 레이아웃별 활성 필드 정의
+var NP_LAYOUT_FIELDS = {
+  ga: ['name_kor', 'name_eng'],
+  na: ['name_kor', 'name_eng', 'title'],
+  da: ['name_kor', 'name_eng', 'title', 'dept'],
 };
+var NP_ALL_FIELDS = ['name_kor', 'name_eng', 'title', 'dept'];
 
 var MAX_SINGLE = 10 * 1024 * 1024;
 var MAX_TOTAL  = 20 * 1024 * 1024;
 
-var srType     = 'SIGN';
-var srNpType   = '';
+var srType      = 'SIGN';
+var srNpType    = '';
 var srNpSubtype = '';
-var srNpLayout  = null;
+var srNpLayout  = '';
 var pendingSign = [];
 var pendingNp   = [];
 
@@ -46,13 +41,13 @@ function bindTypeTabs() {
       srType = btn.dataset.type;
       document.querySelectorAll('#apTypeTabs .tab-btn').forEach(function(b) { b.classList.remove('active'); });
       btn.classList.add('active');
-      document.getElementById('srPanelSign').style.display      = srType === 'SIGN' ? '' : 'none';
+      document.getElementById('srPanelSign').style.display      = srType === 'SIGN'      ? '' : 'none';
       document.getElementById('srPanelNameplate').style.display = srType === 'NAMEPLATE' ? '' : 'none';
     });
   });
 }
 
-/* ── 일반 사인물: 긴급 토글 ── */
+/* ── 긴급 토글 ── */
 function bindUrgentToggle() {
   document.getElementById('sr_is_urgent')?.addEventListener('change', function() {
     document.getElementById('srUrgentReasonField').style.display = this.value === 'Y' ? '' : 'none';
@@ -62,111 +57,102 @@ function bindUrgentToggle() {
   });
 }
 
-/* ── 명판 타입 ── */
-function bindNameplateTypeSelector() {
+/* ── 명판 타입 선택 ── */
+function bindNpTypeSelector() {
   document.querySelectorAll('input[name="sr_np_type"]').forEach(function(radio) {
     radio.addEventListener('change', function(e) {
       srNpType = e.target.value;
-      srNpSubtype = ''; srNpLayout = null;
+      srNpSubtype = '';
 
-      // 카드 선택 표시
+      // 타입 카드 하이라이트
       document.querySelectorAll('#srNpTypeGrid .ap-pick-card').forEach(function(c) { c.classList.remove('is-selected'); });
       document.getElementById('srNpCard_' + srNpType)?.classList.add('is-selected');
 
-      // 우측 이미지 하이라이트
+      // 이미지 하이라이트
       ['A','B','C','D'].forEach(function(t) {
-        var item = document.getElementById('srPreviewItem_' + t);
-        if (item) item.classList.toggle('is-selected', t === srNpType);
+        document.getElementById('srPreviewItem_' + t)?.classList.toggle('is-selected', t === srNpType);
       });
 
-      renderSubtypeGrid(srNpType);
-      document.getElementById('srMethodSection').style.display = '';
-      document.getElementById('srLayoutSection').style.display = 'none';
-      document.getElementById('srNpTextSection').style.display = 'none';
+      // 세부 디자인 레이블 업데이트 (카드는 이미 그려져 있음)
+      ['1','2','3','4'].forEach(function(n) {
+        var lbl = document.getElementById('srSubLabel_' + n);
+        if (lbl) lbl.textContent = srNpType + '-' + n;
+        var card = document.getElementById('srSubCard_' + n);
+        if (card) card.classList.remove('is-selected');
+        var radio = card?.querySelector('input[type=radio]');
+        if (radio) radio.checked = false;
+      });
     });
   });
+}
 
+/* ── 세부 디자인 선택 ── */
+function bindNpSubtypeSelector() {
+  document.querySelectorAll('input[name="sr_np_subtype"]').forEach(function(radio) {
+    radio.addEventListener('change', function(e) {
+      srNpSubtype = e.target.value;
+      document.querySelectorAll('#srNpSubGrid .ap-pick-card').forEach(function(c) { c.classList.remove('is-selected'); });
+      document.getElementById('srSubCard_' + srNpSubtype)?.classList.add('is-selected');
+    });
+  });
+}
+
+/* ── 제작 방식 선택 ── */
+function bindMethodSelector() {
   document.querySelectorAll('input[name="sr_np_method"]').forEach(function(radio) {
     radio.addEventListener('change', function(e) {
-      document.querySelectorAll('#srMethodSection .ap-pick-card').forEach(function(c) { c.classList.remove('is-selected'); });
+      document.querySelectorAll('#srMethodCard_NEW, #srMethodCard_REUSE').forEach(function(c) { c.classList.remove('is-selected'); });
       document.getElementById('srMethodCard_' + e.target.value)?.classList.add('is-selected');
-      renderLayoutGrid();
     });
   });
+}
 
+/* ── 레이아웃 선택 → 문구 필드 활성/비활성 제어 ── */
+function bindLayoutSelector() {
+  document.querySelectorAll('input[name="sr_np_layout"]').forEach(function(radio) {
+    radio.addEventListener('change', function(e) {
+      srNpLayout = e.target.value;
+
+      // 레이아웃 카드 하이라이트
+      ['ga','na','da'].forEach(function(id) {
+        document.getElementById('srLayoutCard_' + id)?.classList.toggle('is-selected', id === srNpLayout);
+      });
+
+      // 이 레이아웃에서 활성화할 필드 목록
+      var activeFields = NP_LAYOUT_FIELDS[srNpLayout] || [];
+
+      NP_ALL_FIELDS.forEach(function(fk) {
+        var wrap  = document.getElementById('srNpFieldWrap_' + fk);
+        var input = document.getElementById('srNpField_' + fk);
+        var active = activeFields.indexOf(fk) !== -1;
+        if (wrap)  { wrap.classList.toggle('is-disabled', !active); }
+        if (input) {
+          input.disabled = !active;
+          if (!active) input.value = '';
+        }
+      });
+    });
+  });
+}
+
+/* ── 자석 선택 ── */
+function bindMagnetSelector() {
   document.querySelectorAll('input[name="sr_magnet"]').forEach(function(radio) {
     radio.addEventListener('change', function(e) {
-      document.querySelectorAll('#srNpTextSection .ap-pick-card[id^="srMagnetCard_"]').forEach(function(c) { c.classList.remove('is-selected'); });
+      document.querySelectorAll('#srMagnetCard_Y, #srMagnetCard_N').forEach(function(c) { c.classList.remove('is-selected'); });
       document.getElementById('srMagnetCard_' + e.target.value)?.classList.add('is-selected');
     });
   });
 }
 
-function renderSubtypeGrid(type) {
-  var grid = document.getElementById('srNpSubGrid');
-  grid.innerHTML = (NP_SUBTYPES[type] || []).map(function(sub) {
-    return '<label class="ap-pick-card" id="srSubCard_' + type + '_' + sub + '">' +
-      '<input type="radio" name="sr_np_subtype" value="' + sub + '" class="ap-sr-only" />' +
-      '<div class="ap-pick-badge">' + type + '-' + sub + '</div></label>';
-  }).join('');
-  document.getElementById('srNpSubSection').style.display = '';
-
-  grid.querySelectorAll('input[name="sr_np_subtype"]').forEach(function(radio) {
-    radio.addEventListener('change', function(e) {
-      srNpSubtype = e.target.value;
-      grid.querySelectorAll('.ap-pick-card').forEach(function(c) { c.classList.remove('is-selected'); });
-      document.getElementById('srSubCard_' + type + '_' + srNpSubtype)?.classList.add('is-selected');
-    });
-  });
-}
-
-function renderLayoutGrid() {
-  var grid = document.getElementById('srLayoutGrid');
-  grid.innerHTML = NP_LAYOUTS.map(function(l) {
-    return '<label class="ap-pick-card" id="srLayoutCard_' + l.id + '">' +
-      '<input type="radio" name="sr_np_layout" value="' + l.id + '" class="ap-sr-only" />' +
-      '<div class="ap-pick-shape">' + l.shape + '</div>' +
-      '<div class="ap-pick-title">' + l.label + '</div>' +
-      '<div class="ap-pick-desc">' + l.desc + '</div></label>';
-  }).join('');
-  document.getElementById('srLayoutSection').style.display = '';
-
-  grid.querySelectorAll('input[name="sr_np_layout"]').forEach(function(radio) {
-    radio.addEventListener('change', function(e) {
-      var layoutId = e.target.value;
-      srNpLayout = NP_LAYOUTS.find(function(l) { return l.id === layoutId; }) || null;
-      grid.querySelectorAll('.ap-pick-card').forEach(function(c) { c.classList.remove('is-selected'); });
-      document.getElementById('srLayoutCard_' + layoutId)?.classList.add('is-selected');
-      renderTextFields(srNpLayout);
-      document.getElementById('srNpTextSection').style.display = '';
-    });
-  });
-}
-
-function renderTextFields(layout) {
-  var container = document.getElementById('srNpTextFields');
-  if (!layout) { container.innerHTML = ''; return; }
-  container.innerHTML = layout.fields.map(function(fk) {
-    var meta = NP_FIELD_META[fk];
-    return '<div class="form-field"><label class="form-label ' + (meta.required ? 'required' : '') + '">' + meta.label + '</label>' +
-      '<input type="text" id="srNpField_' + fk + '" class="input" placeholder="' + meta.placeholder + '" /></div>';
-  }).join('');
-}
-
-function buildNameplateText() {
-  if (!srNpLayout) return '';
-  return '레이아웃: ' + srNpLayout.label + '\n' +
-    srNpLayout.fields.map(function(fk) { return NP_FIELD_META[fk].label + ': ' + val('srNpField_' + fk); }).join('\n');
-}
-
-/* ── 일반 사인물 파일 첨부 (eform-photo 스타일) ── */
+/* ── 일반 사인물 파일 첨부 ── */
 function bindSignFileInput() {
   var input = document.getElementById('srFileSign');
   if (!input) return;
   input.addEventListener('change', function(e) {
     Array.from(e.target.files || []).forEach(function(file) {
       if (file.size > MAX_SINGLE) { alert('파일당 최대 10MB: ' + file.name); return; }
-      var total = pendingSign.reduce(function(a, f) { return a + f.file.size; }, 0);
+      var total = pendingSign.reduce(function(a,f) { return a + f.file.size; }, 0);
       if (total + file.size > MAX_TOTAL) { alert('전체 20MB 이하만 가능합니다.'); return; }
       pendingSign.push({ file: file });
     });
@@ -178,8 +164,10 @@ function bindSignFileInput() {
 function renderSignFileList() {
   var listEl = document.getElementById('srFileListSign');
   if (!pendingSign.length) {
-    listEl.innerHTML = '<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:#9ca3af;">' +
-      '<i class="ti ti-paperclip" style="font-size:28px;"></i><span style="font-size:12px;font-weight:600;">첨부된 파일이 없습니다</span></div>';
+    listEl.innerHTML =
+      '<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:#9ca3af;">' +
+      '<i class="ti ti-paperclip" style="font-size:28px;"></i>' +
+      '<span style="font-size:12px;font-weight:600;">첨부된 파일이 없습니다</span></div>';
     return;
   }
   listEl.innerHTML = pendingSign.map(function(f, idx) {
@@ -228,16 +216,24 @@ function renderNpFileList() {
   });
 }
 
+/* ── 명판 문구 합성 ── */
+function buildNameplateText() {
+  var activeFields = NP_LAYOUT_FIELDS[srNpLayout] || [];
+  var NP_FIELD_LABELS = { name_kor:'이름 (한글)', name_eng:'영문 이름', title:'직함', dept:'진료과' };
+  return '레이아웃: ' + srNpLayout + '\n' +
+    activeFields.map(function(fk) { return NP_FIELD_LABELS[fk] + ': ' + val('srNpField_' + fk); }).join('\n');
+}
+
 /* ── 제출 ── */
 async function saveSr() {
   var isNp = srType === 'NAMEPLATE';
 
-  var title    = isNp ? val('sr_title_np')          : val('sr_title');
-  var rName    = isNp ? val('sr_requester_name_np')  : val('sr_requester_name');
-  var contact  = isNp ? val('sr_contact_np')         : val('sr_contact');
-  var qty      = isNp ? val('sr_quantity_np')        : val('sr_quantity');
-  var isUrgent = isNp ? val('sr_is_urgent_np')       : val('sr_is_urgent');
-  var urgentReason = isNp ? val('sr_urgent_reason_np') : val('sr_urgent_reason');
+  var title        = isNp ? val('sr_title_np')           : val('sr_title');
+  var rName        = isNp ? val('sr_requester_name_np')   : val('sr_requester_name');
+  var contact      = isNp ? val('sr_contact_np')          : val('sr_contact');
+  var qty          = isNp ? val('sr_quantity_np')         : val('sr_quantity');
+  var isUrgent     = isNp ? val('sr_is_urgent_np')        : val('sr_is_urgent');
+  var urgentReason = isNp ? val('sr_urgent_reason_np')    : val('sr_urgent_reason');
 
   if (!title)   throw new Error('제목을 입력해주세요.');
   if (!rName)   throw new Error('이름을 입력해주세요.');
@@ -245,37 +241,41 @@ async function saveSr() {
   if (isUrgent === 'Y' && !urgentReason) throw new Error('긴급 사유를 입력해주세요.');
 
   var payload = {
-    type: srType,
-    request_title: title,
+    type: srType, request_title: title,
     clinic_id: myClinicId, dept_id: myDeptId,
     requester_id: currentUser.id, requester_name: rName, contact: contact,
     quantity: Math.max(1, Number(qty || 1)),
     is_urgent: isUrgent, urgent_reason: urgentReason,
-    draft_confirm: (document.getElementById('sr_draft_confirm')?.checked) ? 'Y' : 'N',
+    draft_confirm: document.getElementById('sr_draft_confirm')?.checked ? 'Y' : 'N',
     status: 'REQUESTED',
   };
 
   if (!isNp) {
-    if (!val('sr_text_content'))   throw new Error('상세내역을 입력해주세요.');
-    if (!val('sr_install_env'))    throw new Error('설치 환경을 선택해주세요.');
+    if (!val('sr_text_content'))     throw new Error('상세내역을 입력해주세요.');
+    if (!val('sr_install_env'))      throw new Error('설치 환경을 선택해주세요.');
     if (!val('sr_install_location')) throw new Error('설치 위치를 입력해주세요.');
-    payload.text_content = val('sr_text_content');
-    payload.sign_size    = val('sr_sign_size');
-    payload.sign_type    = val('sr_sign_type');
-    payload.install_env  = val('sr_install_env');
+    payload.text_content     = val('sr_text_content');
+    payload.sign_size        = val('sr_sign_size');
+    payload.sign_type        = val('sr_sign_type');
+    payload.install_env      = val('sr_install_env');
     payload.install_location = val('sr_install_location');
   } else {
     if (!srNpType)   throw new Error('명판 타입을 선택해주세요.');
     if (!srNpSubtype) throw new Error('세부 디자인을 선택해주세요.');
     var method = document.querySelector('input[name="sr_np_method"]:checked');
-    if (!method) throw new Error('제작 방식을 선택해주세요.');
+    if (!method)     throw new Error('제작 방식을 선택해주세요.');
     if (!srNpLayout) throw new Error('문구 레이아웃을 선택해주세요.');
     var magnet = document.querySelector('input[name="sr_magnet"]:checked');
-    if (!magnet) throw new Error('자석 부착 여부를 선택해주세요.');
-    for (var i = 0; i < srNpLayout.fields.length; i++) {
-      var fk = srNpLayout.fields[i];
-      if (!val('srNpField_' + fk)) throw new Error(NP_FIELD_META[fk].label + '을(를) 입력해주세요.');
+    if (!magnet)     throw new Error('자석 부착 여부를 선택해주세요.');
+
+    var activeFields = NP_LAYOUT_FIELDS[srNpLayout] || [];
+    for (var i = 0; i < activeFields.length; i++) {
+      if (!val('srNpField_' + activeFields[i])) {
+        var labels = { name_kor:'이름 (한글)', name_eng:'영문 이름', title:'직함', dept:'진료과' };
+        throw new Error(labels[activeFields[i]] + '을(를) 입력해주세요.');
+      }
     }
+
     payload.nameplate_type   = srNpType + '-' + srNpSubtype;
     payload.nameplate_method = method.value;
     payload.nameplate_text   = buildNameplateText();
@@ -290,8 +290,8 @@ async function saveSr() {
     .from('signage_requests').insert(payload).select().single();
   if (ie) throw new Error(ie.message);
 
-  var files = isNp ? pendingNp : pendingSign;
-  var category = isNp ? 'MAIN' : 'LOCATION';
+  var files    = isNp ? pendingNp   : pendingSign;
+  var category = isNp ? 'MAIN'      : 'LOCATION';
   for (var fi = 0; fi < files.length; fi++) {
     var f = files[fi].file;
     var up = await db.uploadFile('signage-files', f, newSr.id);
@@ -341,7 +341,11 @@ async function init() {
 
   bindTypeTabs();
   bindUrgentToggle();
-  bindNameplateTypeSelector();
+  bindNpTypeSelector();
+  bindNpSubtypeSelector();
+  bindMethodSelector();
+  bindLayoutSelector();
+  bindMagnetSelector();
   bindSignFileInput();
   bindNpFileInput();
 
