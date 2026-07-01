@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>프로그램 요청</title>
+  <link rel="stylesheet" href="../../assets/css/common.css" />
+  <link rel="stylesheet" href="../../assets/css/pages/equipment-form.css" />
+  <link rel="stylesheet" href="../../assets/font/tabler-icons/tabler-icons.min.css" />
+  <style>html, body { height: 100%; margin: 0; }</style>
+  <script>
+    if (new URLSearchParams(location.search).get('shell') === '1')
+      document.documentElement.classList.add('in-shell');
+  </script>
+  <style>
+    html, body { background:#f0f2f5; }
+
+    /* ── 액션바 ── */
+    .ap-actionbar {
+      display:flex; align-items:center; gap:8px;
+      background:#fff; border:1px solid #e5e7eb; border-radius:8px;
+      padding:7px 12px; flex-shrink:0; height:44px; box-sizing:border-box;
+    }
+    .ap-actionbar .spacer { flex:1; }
+
+    /* ── 탭 ── */
+    .ap-type-tabs { display:flex; gap:2px; background:#e5e7eb; border-radius:8px; padding:3px; flex-shrink:0; }
+    .ap-type-tabs .tab-btn {
+      flex:1; height:34px; border:none; background:transparent; border-radius:6px;
+      font-size:12px; font-weight:600; color:#6b7280; cursor:pointer; transition:background .15s, color .15s;
+      display:flex; align-items:center; justify-content:center;
+    }
+    .ap-type-tabs .tab-btn:hover { background:rgba(255,255,255,0.6); color:#374151; }
+    .ap-type-tabs .tab-btn.active { background:#fff; color:var(--navy); box-shadow:0 1px 3px rgba(0,0,0,0.08); }
+
+    /* ── 공통 ── */
+    .eform-grid { grid-template-columns: repeat(2, 1fr); }
+    .eform-full { grid-column: 1 / -1; }
+
+    /* ── 좌 컬럼 스크롤 ── */
+    .ap-left-body { flex:1; min-height:0; overflow-y:auto; display:flex; flex-direction:column; }
+
+    /* ── 첨부파일 패널 ── */
+    .ap-file-list-panel {
+      background:#f0f2f5; border:1px solid #e5e7eb; border-radius:8px;
+      height:100%; min-height:0; overflow-y:auto; padding:10px; box-sizing:border-box;
+      display:flex; flex-direction:column; gap:6px;
+    }
+    .ap-file-upload-panel { display:flex; flex-direction:column; gap:8px; height:100%; min-height:0; }
+    .ap-file-input-hidden { position:absolute; width:1px; height:1px; opacity:0; }
+    .ap-file-dropzone {
+      flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px;
+      border:2px dashed #d1d5db; border-radius:8px; cursor:pointer; transition:border-color .15s, background .15s;
+    }
+    .ap-file-dropzone:hover { border-color:#2563eb; background:#eff6ff; }
+    .ap-file-dropzone i { font-size:28px; color:#9ca3af; transition:color .15s; }
+    .ap-file-dropzone:hover i { color:#2563eb; }
+    .ap-file-drop-title { font-size:12px; font-weight:600; color:#374151; }
+    .ap-file-drop-sub   { font-size:11px; color:#9ca3af; }
+  </style>
+</head>
+<body class="equipment-form-page">
+<div class="eform-page">
+
+  <!-- 액션바 -->
+  <div class="ap-actionbar">
+    <span style="font-size:12px;font-weight:700;color:#374151;"><i class="ti ti-bug" style="margin-right:4px;"></i>프로그램 오류수정 / 신규개발 요청</span>
+    <div class="spacer"></div>
+    <button type="button" class="btn btn-sm" onclick="parent.shellNavigate && parent.shellNavigate('program-request/history')">
+      <i class="ti ti-list-check"></i> 신청내역 보기
+    </button>
+    <button type="button" class="btn btn-sm btn-primary" id="prSaveBtn" disabled style="opacity:0.45;cursor:not-allowed;">
+      <i class="ti ti-send"></i> 신청 제출
+    </button>
+  </div>
+
+  <!-- 탭 -->
+  <div class="ap-type-tabs" id="prTypeTabs">
+    <button type="button" class="tab-btn active" data-type="BUGFIX">오류수정요청</button>
+    <button type="button" class="tab-btn" data-type="FEATURE">신규개발요청</button>
+  </div>
+
+  <div id="prPanel" class="eform-body eform-body--2col" style="flex:1;min-height:0;">
+    <div class="eform-top-row" style="display:flex;gap:8px;">
+
+      <!-- 좌: 기본정보 -->
+      <div class="eform-col eform-col--stretch" style="flex:1;min-width:0;">
+        <div class="eform-section" style="flex:1;display:flex;flex-direction:column;min-height:0;">
+          <div class="eform-section-head">
+            <i class="ti ti-info-circle"></i><span>기본 정보</span>
+            <span class="eform-section-desc">신청자 및 공통 정보</span>
+          </div>
+          <div class="ap-left-body" style="padding:14px;">
+            <div class="eform-grid" style="flex:1;align-content:space-between;padding:0;">
+              <div class="form-field eform-full">
+                <label class="form-label required">제목</label>
+                <input type="text" id="pr_title" class="input" placeholder="예: [장비목록] 검색 시 오류 발생, [발주관리] 엑셀 다운로드 기능 추가 등" required />
+              </div>
+              <div class="form-field">
+                <label class="form-label">의원</label>
+                <input type="text" id="pr_clinic_display" class="input" readonly />
+              </div>
+              <div class="form-field">
+                <label class="form-label">부서</label>
+                <input type="text" id="pr_dept_display" class="input" readonly />
+              </div>
+              <div class="form-field">
+                <label class="form-label required">이름</label>
+                <input type="text" id="pr_requester_name" class="input" required />
+              </div>
+              <div class="form-field">
+                <label class="form-label required">연락처</label>
+                <input type="tel" id="pr_contact" class="input" placeholder="010-0000-0000" required />
+              </div>
+              <div class="form-field">
+                <label class="form-label required">관련 프로그램</label>
+                <select id="pr_target_program" class="input" required>
+                  <option value="">선택하세요</option>
+                  <option value="의료장비 관리">의료장비 관리</option>
+                  <option value="자재관리">자재관리</option>
+                  <option value="사인물 신청">사인물 신청</option>
+                  <option value="업무일정 관리">업무일정 관리</option>
+                  <option value="프로그램 요청">프로그램 요청</option>
+                  <option value="마스터 관리">마스터 관리</option>
+                  <option value="기타">기타</option>
+                </select>
+              </div>
+              <div class="form-field">
+                <label class="form-label">관련 화면/메뉴 상세</label>
+                <input type="text" id="pr_program_detail" class="input" placeholder="예: 장비 목록 페이지" />
+              </div>
+              <div class="form-field">
+                <label class="form-label">긴급 여부</label>
+                <select id="pr_is_urgent" class="input">
+                  <option value="N">일반</option>
+                  <option value="Y">🚨 긴급</option>
+                </select>
+              </div>
+              <div class="form-field eform-full" id="prUrgentReasonField" style="display:none;">
+                <label class="form-label required">긴급 사유</label>
+                <input type="text" id="pr_urgent_reason" class="input" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 우: 요청 상세 -->
+      <div class="eform-col eform-col--stretch" style="flex:1;min-width:0;">
+        <div class="eform-section" style="flex:1;display:flex;flex-direction:column;min-height:0;">
+          <div class="eform-section-head">
+            <i class="ti ti-bug" id="prDetailIcon"></i><span id="prDetailTitle">오류수정 상세</span>
+            <span class="eform-section-desc" id="prDetailDesc">오류 내용을 최대한 구체적으로 작성해 주세요</span>
+          </div>
+          <div class="ap-left-body" style="padding:14px;gap:10px;">
+            <div class="form-field" style="flex:1;display:flex;flex-direction:column;">
+              <label class="form-label required" id="prDescLabel">오류 내용</label>
+              <textarea id="pr_description" class="input textarea" style="flex:1;resize:none;" placeholder="언제, 어떤 화면에서, 무엇을 하다가 어떤 문제가 발생했는지 적어주세요."></textarea>
+            </div>
+            <div class="form-field" id="prBugfixField" style="flex-shrink:0;">
+              <label class="form-label">재현 방법</label>
+              <textarea id="pr_steps_to_reproduce" class="input textarea" rows="3" placeholder="예: 1) 장비목록 진입 2) 검색어 입력 3) 조회 버튼 클릭 → 오류 발생"></textarea>
+            </div>
+            <div class="form-field" id="prFeatureField" style="flex-shrink:0;display:none;">
+              <label class="form-label">기대 효과 / 요청 사유</label>
+              <textarea id="pr_expected_benefit" class="input textarea" rows="3" placeholder="이 기능이 추가되면 어떤 점이 개선되는지 적어주세요."></textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 하단: 동의 + 첨부파일 -->
+    <div class="eform-section eform-photo-row">
+      <div class="eform-section-head" style="gap:10px;">
+        <i class="ti ti-paperclip"></i><span>첨부파일</span>
+        <span class="eform-section-desc">오류 화면 캡쳐, 참고 이미지 등</span>
+        <div style="margin-left:auto;display:flex;align-items:center;gap:6px;">
+          <input type="checkbox" id="pr_agree_confirm" />
+          <label for="pr_agree_confirm" style="font-size:12px;color:#374151;cursor:pointer;white-space:nowrap;">신청 내용을 확인하였으며 제출에 동의합니다</label>
+        </div>
+      </div>
+      <div class="eform-photo-body">
+        <div class="ap-file-list-panel" id="prFileList">
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:#9ca3af;">
+            <i class="ti ti-paperclip" style="font-size:28px;"></i>
+            <span style="font-size:12px;font-weight:600;">첨부된 파일이 없습니다</span>
+          </div>
+        </div>
+        <div class="ap-file-upload-panel">
+          <input type="file" id="prFile" class="ap-file-input-hidden" multiple accept="image/*,.pdf" />
+          <label for="prFile" class="ap-file-dropzone">
+            <i class="ti ti-cloud-upload"></i>
+            <span class="ap-file-drop-title">파일을 끌어다 놓거나 클릭하여 선택</span>
+            <span class="ap-file-drop-sub">JPG, PNG, PDF · 파일당 10MB, 전체 20MB 이하</span>
+          </label>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div id="globalLoading" class="is-open">
+  <div class="global-loading__dialog">
+    <div class="global-loading__spinner"></div>
+    <div class="global-loading__text" id="globalLoadingText">불러오는 중...</div>
+  </div>
+</div>
+
+<script src="../../assets/libs/supabase.js"></script>
+<script src="../../assets/js/core/config.js"></script>
+<script src="../../assets/js/core/utils.js"></script>
+<script src="../../assets/js/core/supabase.js"></script>
+<script src="../../assets/js/core/auth.js"></script>
+<script src="../../assets/js/core/db.js"></script>
+<script src="../../assets/js/program-request/apply.js"></script>
+</body>
+</html>
