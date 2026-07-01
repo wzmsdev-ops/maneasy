@@ -42,12 +42,18 @@
     .badge-cancelled  { background:#f3f4f6;color:#6b7280;padding:1px 8px;border-radius:999px;font-size:10px;font-weight:700; }
     .badge-urgent     { background:#fee2e2;color:#dc2626;padding:1px 8px;border-radius:999px;font-size:10px;font-weight:700;margin-left:4px; }
     .badge-type       { background:#ede9fe;color:#5b21b6;padding:1px 8px;border-radius:999px;font-size:10px;font-weight:700; }
-    .sh-detail-meta { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:14px; }
-    .sh-detail-meta-item { display:flex; flex-direction:column; gap:2px; }
+    /* ── 상세 모달 ── */
+    .sh-detail-meta { display:grid; grid-template-columns:1fr 1fr; gap:0; }
+    .sh-detail-meta-item { display:flex; flex-direction:column; gap:3px; padding:10px 14px; border-bottom:1px solid #f3f4f6; }
     .sh-detail-meta-item.full { grid-column:1 / -1; }
-    .sh-detail-meta-label { font-size:10px; font-weight:700; color:#9ca3af; }
-    .sh-detail-meta-value { font-size:12px; font-weight:500; color:#111827; white-space:pre-wrap; }
-    .sh-status-actions { display:flex; gap:6px; flex-wrap:wrap; margin-top:14px; }
+    .sh-detail-meta-item:nth-child(odd):not(.full) { border-right:1px solid #f3f4f6; }
+    .sh-detail-meta-label { font-size:10px; font-weight:700; color:#9ca3af; text-transform:uppercase; letter-spacing:.04em; }
+    .sh-detail-meta-value { font-size:13px; font-weight:500; color:#111827; white-space:pre-wrap; }
+    .sh-detail-section { background:#f8fafc; border:1px solid #e5e7eb; border-radius:8px; margin-bottom:10px; overflow:hidden; }
+    .sh-detail-section-head { padding:7px 14px; font-size:11px; font-weight:700; color:#6b7280; background:#f0f2f5; border-bottom:1px solid #e5e7eb; display:flex; align-items:center; gap:6px; }
+    .sh-file-item { display:flex; align-items:center; justify-content:space-between; padding:8px 14px; border-bottom:1px solid #f3f4f6; font-size:12px; }
+    .sh-file-item:last-child { border-bottom:none; }
+    .sh-status-actions { display:flex; gap:6px; flex-wrap:wrap; margin-top:10px; }
   </style>
 </head>
 <body>
@@ -96,17 +102,17 @@
 <!-- 상세/처리 모달 -->
 <div id="shDetailModal" class="m-modal">
   <div class="m-modal-backdrop" onclick="closeModal('shDetailModal')"></div>
-  <div class="m-modal-dialog m-modal-dialog--wide" style="max-width:720px;height:auto;max-height:calc(100vh - 64px);">
+  <div class="m-modal-dialog m-modal-dialog--wide" style="max-width:900px;height:auto;max-height:calc(100vh - 64px);">
     <div class="m-modal-head">
       <span class="m-modal-title" id="shDetailTitle">신청 상세</span>
       <button class="m-modal-close" onclick="closeModal('shDetailModal')"><i class="ti ti-x"></i></button>
     </div>
-    <div class="m-modal-body">
-      <div class="sh-detail-meta" id="shDetailMeta"></div>
+    <div class="m-modal-body" style="gap:0;padding:14px;display:flex;flex-direction:column;gap:10px;">
+      <div id="shDetailMeta"></div>
       <div id="shDetailFiles"></div>
 
-      <div id="shMemoSection" style="display:none;margin-top:14px;">
-        <label class="form-field full-col">
+      <div id="shMemoSection" style="display:none;">
+        <label class="form-field">
           <span class="form-label">처리 메모</span>
           <textarea id="sh_admin_memo" class="input textarea" rows="2" placeholder="처리 내용, 반려 사유 등"></textarea>
         </label>
